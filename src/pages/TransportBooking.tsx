@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { MapPin, Users, ShoppingCart, Plus, Minus, Trash2, X } from 'lucide-react';
+import { MapPin, Users, ShoppingCart, Plus, Minus, Trash2, X, Briefcase, Clock, BadgeCheck } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
@@ -15,7 +15,7 @@ const TransportBooking = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartItems, addToCart, removeFromCart, updateCartItemCount, clearCart, getTotalAmount, getTotalItems } = useTransportCart();
-  const [vehicles, setVehicles] = useState([]);
+  const [transports, setTransports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -41,115 +41,153 @@ const TransportBooking = () => {
   };
 
   useEffect(() => {
-    async function fetchVehicles() {
+    async function fetchTransports() {
       setLoading(true);
       setError('');
       const { data, error } = await supabase
         .from('transport_services')
-        .select('*');
+        .select('*')
+        .eq('is_active', true);
       if (error) {
-        setError('Failed to fetch vehicles.');
-        setVehicles([]);
+        setError('Failed to fetch transport services.');
+        setTransports([]);
       } else {
-        setVehicles(data || []);
+        setTransports(data || []);
       }
       setLoading(false);
     }
-    fetchVehicles();
+    fetchTransports();
   }, []);
 
-  if (loading) return <div>Loading transport vehicles...</div>;
+  if (loading) return <div>Loading transport options...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
 
-  const routes = [
-    { id: 'jed-makkah', name: 'Jeddah Airport to Makkah Hotel', distance: '80 km', duration: '1.5 hours', prices: { sedan: 120, minivan: 150, gmc: 180, largevan: 200, minibus: 280, bus: 450 } },
-    { id: 'jed-madinah', name: 'Jeddah Airport to Madinah Hotel', distance: '420 km', duration: '4.5 hours', prices: { sedan: 350, minivan: 420, gmc: 480, largevan: 550, minibus: 750, bus: 1200 } },
-    { id: 'makkah-madinah', name: 'Makkah to Madinah', distance: '450 km', duration: '5 hours', prices: { sedan: 380, minivan: 450, gmc: 520, largevan: 600, minibus: 800, bus: 1300 } },
-    { id: 'madinah-makkah', name: 'Madinah to Makkah', distance: '450 km', duration: '5 hours', prices: { sedan: 380, minivan: 450, gmc: 520, largevan: 600, minibus: 800, bus: 1300 } },
-    { id: 'makkah-jed', name: 'Makkah to Jeddah Airport', distance: '80 km', duration: '1.5 hours', prices: { sedan: 120, minivan: 150, gmc: 180, largevan: 200, minibus: 280, bus: 450 } },
-    { id: 'madinah-med', name: 'Madinah Hotel to Madinah Airport', distance: '20 km', duration: '30 minutes', prices: { sedan: 50, minivan: 70, gmc: 90, largevan: 100, minibus: 150, bus: 250 } },
-    { id: 'madinah-jed', name: 'Madinah Hotel to Jeddah Airport', distance: '420 km', duration: '4.5 hours', prices: { sedan: 350, minivan: 420, gmc: 480, largevan: 550, minibus: 750, bus: 1200 } },
-    { id: 'makkah-tour', name: 'Makkah City Day Tour', distance: '50 km', duration: '8 hours', prices: { sedan: 200, minivan: 250, gmc: 300, largevan: 350, minibus: 500, bus: 800 } },
-    { id: 'madinah-tour', name: 'Madinah City Day Tour', distance: '40 km', duration: '8 hours', prices: { sedan: 180, minivan: 220, gmc: 270, largevan: 320, minibus: 450, bus: 750 } },
-    { id: 'jeddah-tour', name: 'Jeddah City Day Tour', distance: '60 km', duration: '8 hours', prices: { sedan: 220, minivan: 280, gmc: 330, largevan: 380, minibus: 550, bus: 900 } },
-    { id: 'taif-tour', name: 'Taif City Day Tour', distance: '100 km', duration: '10 hours', prices: { sedan: 300, minivan: 380, gmc: 450, largevan: 520, minibus: 750, bus: 1200 } }
-  ];
+  // Group transports by vehicle_type
+  const vehicleTypeMap = {};
+  for (const t of transports) {
+    if (!vehicleTypeMap[t.vehicle_type]) {
+      vehicleTypeMap[t.vehicle_type] = {
+        vehicle_type: t.vehicle_type,
+        vehicle_name: t.vehicle_name,
+        vehicle_image: t.vehicle_image,
+        capacity: t.capacity,
+        luggage_capacity: t.luggage_capacity,
+        features: t.features,
+        vehicle_details: t.vehicle_details,
+        // Use the first transport as the base for vehicle info
+        routes: []
+      };
+    }
+    vehicleTypeMap[t.vehicle_type].routes.push(t);
+  }
+  const vehicleTypes = Object.values(vehicleTypeMap);
 
-  const VehicleCard = ({ vehicle }: { vehicle: typeof vehicles[0] }) => {
-    const [selectedRoute, setSelectedRoute] = useState('');
+  const VehicleCard = ({ vehicle }: { vehicle: typeof vehicleTypes[0] }) => {
+    const [selectedRouteId, setSelectedRouteId] = useState('');
     const [vehicleCount, setVehicleCount] = useState(1);
+
+    // Parse vehicle details JSON if present
+    let vehicleDetailsObj = null;
+    if (vehicle.vehicle_details && typeof vehicle.vehicle_details === 'string' && vehicle.vehicle_details.trim().startsWith('{')) {
+      try { vehicleDetailsObj = JSON.parse(vehicle.vehicle_details); } catch {}
+    } else if (typeof vehicle.vehicle_details === 'object') {
+      vehicleDetailsObj = vehicle.vehicle_details;
+    }
+
+    const selectedRoute = vehicle.routes.find(r => r.id === selectedRouteId);
+    const pricePerUnit = selectedRoute ? selectedRoute.price : 0;
 
     const handleAddToCart = () => {
       if (!selectedRoute) return;
-      const route = routes.find(r => r.id === selectedRoute);
-      if (!route) return;
-      const pricePerUnit = route.prices[vehicle.id as keyof typeof route.prices];
       addToCart({
-        vehicleId: vehicle.id,
-        routeId: selectedRoute,
-        vehicleName: vehicle.vehicle_name || vehicle.name,
-        routeName: route.name,
+        vehicleId: vehicle.vehicle_type, // using vehicle_type as id for cart
+        routeId: selectedRoute.id,
+        vehicleName: vehicle.vehicle_name,
+        routeName: selectedRoute.route,
         count: vehicleCount,
         pricePerUnit
       });
-      setSelectedRoute('');
+      setSelectedRouteId('');
       setVehicleCount(1);
     };
 
-    const selectedRouteData = routes.find(r => r.id === selectedRoute);
-    const pricePerUnit = selectedRouteData ? selectedRouteData.prices[vehicle.id as keyof typeof selectedRouteData.prices] : 0;
-
     return (
-      <Card className="h-full flex flex-col">
-        <CardHeader className="p-0">
+      <Card className="h-full flex flex-col shadow-xl border-0 bg-gradient-to-br from-emerald-50 to-amber-50 hover:shadow-2xl transition-shadow duration-200">
+        {/* Vehicle Header */}
+        <div className="relative">
           <img 
-            src={vehicle.vehicle_image || vehicle.image_url || '/placeholder.svg'} 
-            alt={vehicle.vehicle_name || vehicle.name || 'Vehicle'}
-            className="w-full h-48 object-cover rounded-t-lg"
+            src={vehicle.vehicle_image || '/placeholder.svg'} 
+            alt={vehicle.vehicle_name || 'Vehicle'}
+            className="w-full h-48 object-cover rounded-t-xl shadow-md border-b-4 border-emerald-200"
           />
-        </CardHeader>
-        <CardContent className="p-4 flex-1 flex flex-col">
-          <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-lg">{vehicle.vehicle_name || vehicle.name}</CardTitle>
-            <Badge className="bg-emerald-100 text-emerald-800">
-              <Users className="w-3 h-3 mr-1" />
-              {vehicle.vehicle_type || vehicle.type}
-            </Badge>
+          <div className="absolute top-2 left-2 flex gap-2">
+            <Badge className="bg-emerald-600 text-white text-xs px-3 py-1 rounded-full shadow">{vehicle.vehicle_type}</Badge>
+            <BadgeCheck className="text-emerald-400 w-5 h-5" />
           </div>
-          <div className="text-sm text-gray-600 mb-1">{vehicle.trip_distance && <span>Distance: {vehicle.trip_distance}</span>}</div>
-          <div className="text-sm text-gray-600 mb-1">{vehicle.trip_duration && <span>Duration: {vehicle.trip_duration}</span>}</div>
-          <p className="text-sm text-gray-600 mb-2">{vehicle.features && Array.isArray(vehicle.features) ? vehicle.features.join(', ') : vehicle.features}</p>
-          <p className="text-xs text-gray-500 mb-4 flex-1">{vehicle.description}</p>
-          
-          <div className="space-y-4">
-            {/* Route Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Route</label>
-              <Select value={selectedRoute} onValueChange={setSelectedRoute}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Choose your route" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48">
-                  {routes.map((route) => (
-                    <SelectItem key={route.id} value={route.id}>
-                      <div className="flex justify-between items-center w-full">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{route.name}</p>
-                          <p className="text-xs text-gray-500">{route.distance} • {route.duration}</p>
-                        </div>
-                        <div className="ml-4 text-right">
-                          <p className="font-bold text-emerald-600">${route.prices[vehicle.id as keyof typeof route.prices]}</p>
-                          <p className="text-xs text-gray-500">per vehicle</p>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        </div>
+        <CardContent className="flex-1 flex flex-col p-5">
+          {/* Vehicle Info */}
+          <div className="mb-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl font-bold text-emerald-800">{vehicle.vehicle_name}</span>
             </div>
+            <div className="flex items-center gap-4 text-xs text-gray-700 mb-2">
+              <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {vehicle.capacity} pax</span>
+              {vehicle.luggage_capacity && <span className="flex items-center gap-1"><Briefcase className="w-4 h-4" /> {vehicle.luggage_capacity}</span>}
+            </div>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {vehicle.features && Array.isArray(vehicle.features) && vehicle.features.map(f => (
+                <span key={f} className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full text-xs border border-emerald-200">{f}</span>
+              ))}
+            </div>
+            {vehicleDetailsObj && (
+              <div className="text-xs text-gray-500 mt-1">
+                <b>Details:</b> {Object.entries(vehicleDetailsObj).map(([k, v]) => `${k}: ${v}`).join(', ')}
+              </div>
+            )}
+          </div>
+          <Separator className="my-2" />
 
-            {/* Vehicle Count */}
-            {selectedRoute && (
+          {/* Route Options */}
+          <div className="mb-2">
+            <div className="font-semibold text-gray-800 mb-2">Available Routes</div>
+            <Select onValueChange={setSelectedRouteId} value={selectedRouteId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select a route" />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicle.routes.map((route) => (
+                  <SelectItem key={route.id} value={route.id}>
+                    <span className="font-medium">{route.route}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Route Info Section */}
+          {selectedRoute && (
+            <div className="flex flex-col items-start mt-2 bg-amber-50 rounded-lg p-3 border border-amber-100">
+              <div className="font-semibold text-amber-800 mb-1">{selectedRoute.route}</div>
+              <div className="flex flex-wrap gap-4 text-xs text-gray-700 mb-1">
+                {selectedRoute.trip_duration && (
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {selectedRoute.trip_duration}
+                  </span>
+                )}
+                {selectedRoute.trip_distance && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> {selectedRoute.trip_distance}
+                  </span>
+                )}
+              </div>
+              <span className="text-lg font-bold text-emerald-700">${selectedRoute.price}</span>
+            </div>
+          )}
+
+          {/* Vehicle Count and Price Section */}
+          {selectedRoute && (
+            <div className="space-y-2 mt-2 border-t pt-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Number of Vehicles</label>
                 <div className="flex items-center space-x-3">
@@ -171,10 +209,6 @@ const TransportBooking = () => {
                   </Button>
                 </div>
               </div>
-            )}
-
-            {/* Price Display */}
-            {selectedRoute && (
               <div className="bg-emerald-50 p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-700">Total Price:</span>
@@ -186,18 +220,16 @@ const TransportBooking = () => {
                   ${pricePerUnit} × {vehicleCount} vehicle{vehicleCount > 1 ? 's' : ''}
                 </p>
               </div>
-            )}
-
-            {/* Add to Cart Button */}
-            <Button
-              onClick={handleAddToCart}
-              disabled={!selectedRoute}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Add to Cart
-            </Button>
-          </div>
+              <Button
+                onClick={handleAddToCart}
+                disabled={!selectedRoute}
+                className="w-full bg-gradient-to-r from-emerald-600 to-amber-500 hover:opacity-90 text-white shadow-lg text-lg mt-2"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Add to Cart
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -342,14 +374,8 @@ const TransportBooking = () => {
           <div className="mb-12">
             <h2 className="text-2xl font-bold text-center mb-8">Available Transport Vehicles</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {vehicles.map((vehicle) => (
-                <div key={vehicle.id} className="border rounded-lg p-4 shadow-sm bg-white">
-                  <img src={vehicle.image_url} alt={vehicle.name} className="w-full h-40 object-cover rounded mb-2" />
-                  <h3 className="text-lg font-semibold mb-1">{vehicle.name}</h3>
-                  <div className="text-gray-600 mb-1">Type: {vehicle.type}</div>
-                  <div className="text-gray-600 mb-1">Features: {vehicle.features}</div>
-                  <div className="text-emerald-700 font-bold">Price: {vehicle.price}</div>
-                </div>
+              {vehicleTypes.map((vehicle) => (
+                <VehicleCard key={vehicle.vehicle_type} vehicle={vehicle} />
               ))}
             </div>
           </div>
