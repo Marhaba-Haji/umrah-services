@@ -26,7 +26,7 @@ import {
 
 // Import CMS components
 import BlogManager from '../components/cms/BlogManager';
-import CategoryManager from './CategoryManager';
+import CategoryManager from '../components/cms/CategoryManager';
 import HotelManager from '../components/cms/HotelManager';
 import PackageManager from '../components/cms/PackageManager';
 import TransportManager from '../components/cms/TransportManager';
