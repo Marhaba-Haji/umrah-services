@@ -1,14 +1,23 @@
+
 import React, { useState } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currency, setCurrency] = useState('USD');
+
+  const currencies = [
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' }
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
-      {/* Top bar */}
+      {/* Top bar with currency selection */}
       <div className="bg-emerald-700 text-white py-2">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center text-sm">
@@ -22,8 +31,25 @@ const Header = () => {
                 <span>info@marhabahaji.com</span>
               </span>
             </div>
-            <div className="hidden md:block">
-              <span>✈️ Fast Processing | 🛡️ Secure Payment | 🎯 99% Success Rate</span>
+            <div className="flex items-center space-x-4">
+              <div className="hidden md:block">
+                <span>✈️ Fast Processing | 🛡️ Secure Payment | 🎯 99% Success Rate</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-xs">Currency:</span>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger className="w-20 h-6 text-xs bg-emerald-600 border-emerald-500 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencies.map(curr => (
+                      <SelectItem key={curr.code} value={curr.code}>
+                        {curr.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>

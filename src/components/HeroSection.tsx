@@ -3,7 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
+
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -34,7 +36,8 @@ const HeroSection = () => {
     const rate = rates[currency as keyof typeof rates];
     return Math.round(basePriceUSD * rate);
   };
-  return <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
+  return (
+    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
@@ -159,9 +162,11 @@ const HeroSection = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
-                    🚀 Apply Now - {getCurrencySymbol()}{getPricing().toLocaleString()}
-                  </Button>
+                  <Link to="/apply">
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
+                      🚀 Apply Now - {getCurrencySymbol()}{getPricing().toLocaleString()}
+                    </Button>
+                  </Link>
 
                   <Button variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" size="lg">
                     💬 Chat on WhatsApp
@@ -190,6 +195,8 @@ const HeroSection = () => {
         {/* Key Benefits - Desktop Only */}
         
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default HeroSection;
