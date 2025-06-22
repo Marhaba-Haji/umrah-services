@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -23,6 +22,11 @@ import {
 import PackageManager from '../components/cms/PackageManager';
 import HotelManager from '../components/cms/HotelManager';
 import BlogManager from '../components/cms/BlogManager';
+import TransportManager from '../components/cms/TransportManager';
+import GroupFlightsManager from '../components/cms/GroupFlightsManager';
+import GuideServicesManager from '../components/cms/GuideServicesManager';
+import SaudiVisasManager from '../components/cms/SaudiVisasManager';
+import ZiarathManager from '../components/cms/ZiarathManager';
 import LeadManager from '../components/crm/LeadManager';
 import SEOManager from '../components/seo/SEOManager';
 
@@ -169,16 +173,12 @@ const ControlPanel = () => {
 
       {selectedModule === 'packages' && <PackageManager />}
       {selectedModule === 'hotels' && <HotelManager />}
+      {selectedModule === 'transport' && <TransportManager />}
+      {selectedModule === 'flights' && <GroupFlightsManager />}
+      {selectedModule === 'guides' && <GuideServicesManager />}
+      {selectedModule === 'visas' && <SaudiVisasManager />}
+      {selectedModule === 'ziarath' && <ZiarathManager />}
       {selectedModule === 'blogs' && <BlogManager />}
-      {selectedModule !== 'packages' && selectedModule !== 'hotels' && selectedModule !== 'blogs' && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-500">
-              {selectedModule.charAt(0).toUpperCase() + selectedModule.slice(1)} management module coming soon...
-            </p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 
