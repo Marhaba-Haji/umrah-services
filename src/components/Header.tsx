@@ -62,7 +62,7 @@ const Header = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Marhaba Haji</h1>
-              <p className="text-sm text-emerald-600">Umrah Visa Services</p>
+              
             </div>
           </Link>
 
