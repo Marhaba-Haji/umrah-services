@@ -650,7 +650,7 @@ const AdvancedPackageDetails = () => {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => updateGuestCount('childWithoutB ed', false)}
+                        onClick={() => updateGuestCount('childWithoutBed', false)}
                         disabled={guestCount.childWithoutBed <= 0}
                       >
                         <Minus className="w-3 h-3" />
