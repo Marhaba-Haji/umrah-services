@@ -273,24 +273,26 @@ const CategoryManager = () => {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="is_active"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 pt-6">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={field.onChange}
-                            className="rounded"
-                          />
-                        </FormControl>
-                        <FormLabel>Active</FormLabel>
-                        <FormMessage />
-                      </Form
-                    )}
-                  />
+                  <FormItem className="flex items-center space-x-2 pt-6">
+                    <FormField
+                      control={form.control}
+                      name="is_active"
+                      render={({ field }) => (
+                        <>
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={field.onChange}
+                              className="rounded"
+                            />
+                          </FormControl>
+                          <FormLabel>Active</FormLabel>
+                        </>
+                      )}
+                    />
+                    <FormMessage />
+                  </FormItem>
                 </div>
 
                 <div className="flex gap-2 pt-4">
