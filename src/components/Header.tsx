@@ -3,7 +3,7 @@ import React, { useState, createContext, useContext } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Currency Context for global state management
 export const CurrencyContext = createContext({
@@ -16,6 +16,7 @@ export const useCurrency = () => useContext(CurrencyContext);
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('INR');
+  const navigate = useNavigate();
   
   const currencies = [{
     code: 'USD',
@@ -30,6 +31,15 @@ const Header = () => {
     symbol: 'ر.س',
     name: 'Saudi Riyal'
   }];
+
+  const handleNavigation = (path: string) => {
+    navigate(path);
+    // Scroll to top after navigation
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+    setIsMenuOpen(false);
+  };
 
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency }}>
@@ -71,8 +81,8 @@ const Header = () => {
         {/* Main header */}
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center py-4">
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden shadow-lg">
+            <button onClick={() => handleNavigation('/')} className="flex items-center space-x-3">
+              <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg">
                 <img src="/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png" alt="Marhaba Haji Logo" className="w-full h-full object-cover" />
               </div>
               <div>
@@ -81,26 +91,26 @@ const Header = () => {
                 </h1>
                 <p className="text-sm text-gray-600">Umrah Services</p>
               </div>
-            </Link>
+            </button>
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/services" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Services</Link>
-              <Link to="/umrah-packages" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Umrah Packages</Link>
-              <Link to="/hotel" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Hotel</Link>
-              <Link to="/transport" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Transport</Link>
-              <Link to="/group-flights" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Group Flights</Link>
-              <Link to="/blog-post" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Blog</Link>
-              <Link to="/contact" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Contact</Link>
-              <Link to="/faq" className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">FAQ</Link>
+              <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Services</button>
+              <button onClick={() => handleNavigation('/umrah-packages')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Umrah Packages</button>
+              <button onClick={() => handleNavigation('/hotel')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Hotel</button>
+              <button onClick={() => handleNavigation('/transport')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Transport</button>
+              <button onClick={() => handleNavigation('/group-flights')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Group Flights</button>
+              <button onClick={() => handleNavigation('/blog-post')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Blog</button>
+              <button onClick={() => handleNavigation('/contact')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Contact</button>
+              <button onClick={() => handleNavigation('/faq')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">FAQ</button>
             </nav>
 
             <div className="hidden md:flex items-center space-x-4">
-              <Link to="/apply">
+              <button onClick={() => handleNavigation('/apply')}>
                 <Button className="bg-[#023f3a] hover:bg-[#023f3a]/90 text-white shadow-lg">
                   Apply Now
                 </Button>
-              </Link>
+              </button>
             </div>
 
             {/* Mobile menu button */}
@@ -113,21 +123,21 @@ const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-[#023f3a]/10">
               <nav className="flex flex-col space-y-4">
-                <Link to="/services" className="text-gray-700 hover:text-[#023f3a] transition-colors">Services</Link>
-                <Link to="/umrah-packages" className="text-gray-700 hover:text-[#023f3a] transition-colors">Umrah Packages</Link>
-                <Link to="/hotel" className="text-gray-700 hover:text-[#023f3a] transition-colors">Book Hotel</Link>
-                <Link to="/transport" className="text-gray-700 hover:text-[#023f3a] transition-colors">Book Transport</Link>
-                <Link to="/group-flights" className="text-gray-700 hover:text-[#023f3a] transition-colors">Group Flights</Link>
-                <Link to="/blog-post" className="text-gray-700 hover:text-[#023f3a] transition-colors">Blog</Link>
-                <Link to="/contact" className="text-gray-700 hover:text-[#023f3a] transition-colors">Contact</Link>
-                <Link to="/faq" className="text-gray-700 hover:text-[#023f3a] transition-colors">FAQ</Link>
+                <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Services</button>
+                <button onClick={() => handleNavigation('/umrah-packages')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Umrah Packages</button>
+                <button onClick={() => handleNavigation('/hotel')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Book Hotel</button>
+                <button onClick={() => handleNavigation('/transport')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Book Transport</button>
+                <button onClick={() => handleNavigation('/group-flights')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Group Flights</button>
+                <button onClick={() => handleNavigation('/blog-post')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Blog</button>
+                <button onClick={() => handleNavigation('/contact')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Contact</button>
+                <button onClick={() => handleNavigation('/faq')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">FAQ</button>
                 
                 <div className="flex flex-col space-y-2 pt-4">
-                  <Link to="/apply">
+                  <button onClick={() => handleNavigation('/apply')}>
                     <Button className="bg-[#023f3a] hover:bg-[#023f3a]/90 w-full">
                       Apply Now
                     </Button>
-                  </Link>
+                  </button>
                 </div>
               </nav>
             </div>

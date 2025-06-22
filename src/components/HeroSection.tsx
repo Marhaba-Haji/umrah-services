@@ -13,7 +13,7 @@ const HeroSection = () => {
   const basePriceUSD = 299;
   
   return (
-    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
+    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
