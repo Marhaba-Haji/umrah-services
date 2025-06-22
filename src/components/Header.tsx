@@ -1,7 +1,7 @@
-
 import React, { useState } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -32,7 +32,7 @@ const Header = () => {
       {/* Main header */}
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
-          <div className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">🕌</span>
             </div>
@@ -40,13 +40,13 @@ const Header = () => {
               <h1 className="text-xl font-bold text-gray-900">Marhaba Haji</h1>
               <p className="text-sm text-emerald-600">Umrah Visa Services</p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
-            <a href="#book-hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</a>
-            <a href="#book-transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</a>
+            <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
+            <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
             <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
             <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
             <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
@@ -76,8 +76,8 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-gray-100">
             <nav className="flex flex-col space-y-4">
               <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
-              <a href="#book-hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</a>
-              <a href="#book-transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</a>
+              <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
+              <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
               <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
               <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
               <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
