@@ -30,6 +30,20 @@ const HeroSection = () => {
   const convertedPrice = Math.round(basePriceUSD * (exchangeRates[currency] || 1));
   const currencySymbol = currencySymbols[currency] || '$';
 
+  const handleWhatsAppClick = () => {
+    const prefilledMessage = `السلام عليكم! I'm interested in Marhaba Haji's Umrah services. 
+
+I would like to know more about:
+- Umrah visa processing
+- Available packages
+- Pricing and requirements
+
+Please provide me with detailed information. JazakAllah Khair!`;
+
+    const whatsappUrl = `https://wa.me/919008447887?text=${encodeURIComponent(prefilledMessage)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
@@ -52,7 +66,7 @@ const HeroSection = () => {
           <div className="order-2 lg:order-1">
             {/* Trust Badge */}
             <div className="flex justify-center lg:justify-start mb-6">
-              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">🕋 99% Visa Approval Rate | ⚡ 1-5 Days Processing</Badge>
+              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">🕋 99% Visa Approval Rate | ⚡ 2-4 Days Processing</Badge>
             </div>
 
             {/* Main Headline */}
@@ -66,7 +80,7 @@ const HeroSection = () => {
 
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed text-center lg:text-left">
               🕋 Start your sacred journey to Mecca and Medina. Fast, secure, and hassle-free Umrah visa processing 
-              with guaranteed approval and 24/7 expert support.
+              with guaranteed approval and expert support.
             </p>
 
             {/* Animated Trust Statistics */}
@@ -84,12 +98,12 @@ const HeroSection = () => {
                 <div className="text-sm text-gray-600">Success Rate</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-2xl md:text-3xl mb-1 text-emerald-600 font-bold">24/7</div>
+                <div className="text-2xl md:text-3xl mb-1 text-emerald-600 font-bold">7 Days</div>
                 <div className="text-sm text-gray-600">Support Available</div>
               </div>
               <div className="text-center lg:text-left">
                 <div className="text-2xl md:text-3xl mb-1">
-                  <AnimatedCounter end={5} prefix="3-" />
+                  <AnimatedCounter end={4} prefix="2-" />
                 </div>
                 <div className="text-sm text-gray-600">Days Processing</div>
               </div>
@@ -132,13 +146,18 @@ const HeroSection = () => {
                     </div>
                   </div>
 
-                  <Link to="/apply">
+                  <Link to="/apply-umrah-visa-online">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
                       🚀 Apply Now - {currencySymbol}{convertedPrice.toLocaleString()}
                     </Button>
                   </Link>
 
-                  <Button variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" size="lg">
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" 
+                    size="lg"
+                    onClick={handleWhatsAppClick}
+                  >
                     💬 Chat on WhatsApp
                   </Button>
                 </div>

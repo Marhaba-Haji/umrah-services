@@ -13,7 +13,7 @@ const UmrahApplicationSidebar = () => {
           🕋 Apply for Umrah Visa Online
         </h1>
         <p className="text-sm text-gray-600">
-          Fast & Guaranteed Approval in 1-5 days
+          Fast & Guaranteed Approval in 2-4 days
         </p>
       </div>
 
@@ -22,7 +22,7 @@ const UmrahApplicationSidebar = () => {
         <Card className="text-center p-3">
           <Clock className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
           <h3 className="font-semibold text-xs text-gray-900 mb-1">Processing Time</h3>
-          <p className="text-xs text-gray-600">1-5 business days</p>
+          <p className="text-xs text-gray-600">2-4 business days</p>
         </Card>
         <Card className="text-center p-3">
           <Shield className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
@@ -52,12 +52,12 @@ const UmrahApplicationSidebar = () => {
           </div>
           <div className="text-center p-2 border-2 border-emerald-500 rounded-lg bg-emerald-50">
             <Badge className="bg-emerald-100 text-emerald-800 mb-1 text-xs">Express</Badge>
-            <h3 className="font-semibold text-xs mb-1">3-5 Business Days</h3>
+            <h3 className="font-semibold text-xs mb-1">2-4 Business Days</h3>
             <p className="text-lg font-bold text-emerald-600">$449</p>
           </div>
           <div className="text-center p-2 border rounded-lg">
             <Badge className="bg-red-100 text-red-800 mb-1 text-xs">Rush</Badge>
-            <h3 className="font-semibold text-xs mb-1">1-3 Business Days</h3>
+            <h3 className="font-semibold text-xs mb-1">1-2 Business Days</h3>
             <p className="text-lg font-bold text-emerald-600">$699</p>
           </div>
         </div>

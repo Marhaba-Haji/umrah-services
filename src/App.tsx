@@ -21,6 +21,7 @@ import BlogDetail from "./pages/BlogDetail";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
 import AboutUs from "./pages/AboutUs";
+import ControlPanel from "./pages/ControlPanel";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/about" element={<AboutUs />} />
           <Route path="/transport" element={<TransportBooking />} />
           <Route path="/hotel" element={<HotelBooking />} />
+          <Route path="/apply" element={<UmrahApplication />} />
           <Route path="/apply-umrah-visa-online" element={<UmrahApplication />} />
           <Route path="/group-flights" element={<GroupFlights />} />
           <Route path="/services" element={<Services />} />
@@ -47,6 +49,7 @@ const App = () => (
           <Route path="/blog-post/:slug" element={<BlogDetail />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/faq" element={<FAQ />} />
+          <Route path="/control-panel" element={<ControlPanel />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
