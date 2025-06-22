@@ -1,10 +1,7 @@
-
 import React from 'react';
 import { Mail, Phone } from 'lucide-react';
-
 const Footer = () => {
-  return (
-    <footer id="contact" className="bg-gray-900 text-white">
+  return <footer id="contact" className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-16">
         <div className="grid md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -40,7 +37,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li><a href="#services" className="text-gray-400 hover:text-white transition-colors">Our Services</a></li>
               <li><a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors">How It Works</a></li>
-              <li><a href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+              
               <li><a href="#faq" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
               <li><a href="/track" className="text-gray-400 hover:text-white transition-colors">Track Application</a></li>
               <li><a href="/contact" className="text-gray-400 hover:text-white transition-colors">Contact Us</a></li>
@@ -125,8 +122,6 @@ const Footer = () => {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;
