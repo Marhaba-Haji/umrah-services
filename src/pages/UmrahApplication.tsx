@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -392,23 +391,23 @@ const UmrahApplication = () => {
           {/* Right Content - Form Flow */}
           <div className="lg:col-span-3">
             {/* Visa Types and Pricing - moved here from sidebar */}
-            <Card className="p-4 mb-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">Visa Types & Pricing</h2>
-              <div className="space-y-2">
-                <div className="text-center p-2 border rounded-lg">
-                  <Badge className="bg-blue-100 text-blue-800 mb-1 text-xs">Standard</Badge>
-                  <h3 className="font-semibold text-xs mb-1">5-7 Business Days</h3>
-                  <p className="text-lg font-bold text-emerald-600">$299</p>
+            <Card className="p-6 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Visa Types & Pricing</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 border rounded-lg">
+                  <Badge className="bg-blue-100 text-blue-800 mb-2">Standard</Badge>
+                  <h3 className="font-semibold text-sm mb-2">5-7 Business Days</h3>
+                  <p className="text-2xl font-bold text-emerald-600">$299</p>
                 </div>
-                <div className="text-center p-2 border-2 border-emerald-500 rounded-lg bg-emerald-50">
-                  <Badge className="bg-emerald-100 text-emerald-800 mb-1 text-xs">Express</Badge>
-                  <h3 className="font-semibold text-xs mb-1">2-4 Business Days</h3>
-                  <p className="text-lg font-bold text-emerald-600">$449</p>
+                <div className="text-center p-4 border-2 border-emerald-500 rounded-lg bg-emerald-50">
+                  <Badge className="bg-emerald-100 text-emerald-800 mb-2">Express</Badge>
+                  <h3 className="font-semibold text-sm mb-2">2-4 Business Days</h3>
+                  <p className="text-2xl font-bold text-emerald-600">$449</p>
                 </div>
-                <div className="text-center p-2 border rounded-lg">
-                  <Badge className="bg-red-100 text-red-800 mb-1 text-xs">Rush</Badge>
-                  <h3 className="font-semibold text-xs mb-1">1-2 Business Days</h3>
-                  <p className="text-lg font-bold text-emerald-600">$699</p>
+                <div className="text-center p-4 border rounded-lg">
+                  <Badge className="bg-red-100 text-red-800 mb-2">Rush</Badge>
+                  <h3 className="font-semibold text-sm mb-2">1-2 Business Days</h3>
+                  <p className="text-2xl font-bold text-emerald-600">$699</p>
                 </div>
               </div>
             </Card>
