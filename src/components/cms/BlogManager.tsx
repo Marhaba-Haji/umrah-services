@@ -237,26 +237,28 @@ const BlogManager = () => {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <ReactQuill
-                          theme="snow"
-                          value={field.value}
-                          onChange={field.onChange}
-                          modules={{
-                            toolbar: [
-                              [{ 'header': [1, 2, 3, false] }],
-                              ['bold', 'italic', 'underline', 'strike', 'blockquote'],
-                              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                              ['link', 'image', 'video'],
-                              ['clean']
-                            ]
-                          }}
-                          formats={[
-                            'header', 'bold', 'italic', 'underline', 'strike', 'blockquote',
-                            'list', 'bullet', 'link', 'image', 'video'
-                          ]}
-                          placeholder="Write your blog content here... (Rich Text, images, YouTube videos supported)"
-                          style={{ minHeight: 200 }}
-                        />
+                        <div className="min-h-[200px]">
+                          <ReactQuill
+                            theme="snow"
+                            value={field.value}
+                            onChange={field.onChange}
+                            modules={{
+                              toolbar: [
+                                [{ 'header': [1, 2, 3, false] }],
+                                ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                ['link', 'image', 'video'],
+                                ['clean']
+                              ]
+                            }}
+                            formats={[
+                              'header', 'bold', 'italic', 'underline', 'strike', 'blockquote',
+                              'list', 'bullet', 'link', 'image', 'video'
+                            ]}
+                            placeholder="Write your blog content here... (Rich Text, images, YouTube videos supported)"
+                            style={{ minHeight: 200 }}
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -468,7 +470,7 @@ const BlogManager = () => {
                           <FormLabel>Twitter Title</FormLabel>
                           <FormControl>
                             <Input placeholder="Twitter Card Title" {...field} />
-                          </FormControl>
+                          FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
