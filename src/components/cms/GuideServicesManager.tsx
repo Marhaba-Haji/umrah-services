@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ const GuideServicesManager = () => {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<GuideService | null>(null);
+  const [servicePrices, setServicePrices] = useState<{ [service: string]: string }>({});
 
   const form = useForm({
     defaultValues: {
@@ -78,7 +80,7 @@ const GuideServicesManager = () => {
       guideCity: data.guideCity,
       guideContact: data.guideContact,
       serviceType: data.serviceType,
-      servicePrices: data.servicePrices,
+      servicePrices: servicePrices,
       languages: data.languages.split(',').map((lang: string) => lang.trim()),
       experience: data.experience,
       rating: parseFloat(data.rating),
@@ -94,11 +96,13 @@ const GuideServicesManager = () => {
 
     setIsDialogOpen(false);
     setEditingGuide(null);
+    setServicePrices({});
     form.reset();
   };
 
   const handleEdit = (guide: GuideService) => {
     setEditingGuide(guide);
+    setServicePrices(guide.servicePrices || {});
     form.reset({
       guideName: guide.guideName,
       guidePhoto: guide.guidePhoto,
@@ -119,13 +123,20 @@ const GuideServicesManager = () => {
     setGuides(guides.filter(guide => guide.id !== id));
   };
 
+  const handleServicePriceChange = (serviceType: string, price: string) => {
+    setServicePrices(prev => ({
+      ...prev,
+      [serviceType]: price
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-semibold">Guide Services Management</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingGuide(null); form.reset(); }}>
+            <Button onClick={() => { setEditingGuide(null); setServicePrices({}); form.reset(); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Guide
             </Button>
@@ -298,14 +309,12 @@ const GuideServicesManager = () => {
                                       newTypes = [...newTypes, type];
                                     } else {
                                       newTypes = newTypes.filter((t: string) => t !== type);
+                                      // Remove price if unchecked
+                                      const newPrices = { ...servicePrices };
+                                      delete newPrices[type];
+                                      setServicePrices(newPrices);
                                     }
                                     field.onChange(newTypes);
-                                    // Remove price if unchecked
-                                    const prices = form.getValues('servicePrices') || {};
-                                    if (!e.target.checked) {
-                                      delete prices[type];
-                                      form.setValue('servicePrices', { ...prices });
-                                    }
                                   }}
                                 />
                                 {type}
@@ -315,20 +324,14 @@ const GuideServicesManager = () => {
                           {/* Price input for each checked service type */}
                           <div className="grid grid-cols-1 gap-2 mt-2">
                             {field.value && field.value.map((type: string) => (
-                              <FormField
-                                key={type}
-                                control={form.control}
-                                name={`servicePrices.${type}`}
-                                render={({ field: priceField }) => (
-                                  <FormItem>
-                                    <FormLabel>{type} Price</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder={`Enter price for ${type}`} {...priceField} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
+                              <div key={type}>
+                                <FormLabel>{type} Price</FormLabel>
+                                <Input 
+                                  placeholder={`Enter price for ${type}`}
+                                  value={servicePrices[type] || ''}
+                                  onChange={e => handleServicePriceChange(type, e.target.value)}
+                                />
+                              </div>
                             ))}
                           </div>
                         </div>
