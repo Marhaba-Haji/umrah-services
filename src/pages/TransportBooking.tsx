@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, MapPin, Users, Car, Bus } from 'lucide-react';
+import { MapPin, Users } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
@@ -13,7 +12,6 @@ const TransportBooking = () => {
   const [selectedRoute, setSelectedRoute] = useState('');
   const [passengers, setPassengers] = useState(1);
   const [date, setDate] = useState('');
-  const [currency, setCurrency] = useState('USD');
 
   const vehicles = [
     {
@@ -23,7 +21,7 @@ const TransportBooking = () => {
       capacity: 3,
       image: 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=400&h=250&fit=crop',
       description: 'Comfortable sedan for small groups',
-      basePrice: { USD: 80, INR: 6680, SAR: 300 }
+      basePrice: 80
     },
     {
       id: 'minivan',
@@ -32,7 +30,7 @@ const TransportBooking = () => {
       capacity: 5,
       image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=250&fit=crop',
       description: 'Spacious van for families',
-      basePrice: { USD: 120, INR: 10020, SAR: 450 }
+      basePrice: 120
     },
     {
       id: 'gmc',
@@ -41,7 +39,7 @@ const TransportBooking = () => {
       capacity: 7,
       image: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=400&h=250&fit=crop',
       description: 'Premium SUV for comfortable travel',
-      basePrice: { USD: 150, INR: 12525, SAR: 562 }
+      basePrice: 150
     },
     {
       id: 'largevan',
@@ -50,7 +48,7 @@ const TransportBooking = () => {
       capacity: 10,
       image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=400&h=250&fit=crop',
       description: 'Large van for bigger groups',
-      basePrice: { USD: 180, INR: 15030, SAR: 675 }
+      basePrice: 180
     },
     {
       id: 'minibus',
@@ -59,7 +57,7 @@ const TransportBooking = () => {
       capacity: 20,
       image: 'https://images.unsplash.com/photo-1544620282-0e1511a922e8?w=400&h=250&fit=crop',
       description: 'Mini bus for medium groups',
-      basePrice: { USD: 250, INR: 20875, SAR: 937 }
+      basePrice: 250
     },
     {
       id: 'bus',
@@ -68,7 +66,7 @@ const TransportBooking = () => {
       capacity: 50,
       image: 'https://images.unsplash.com/photo-1570125909517-53cb21c89ff2?w=400&h=250&fit=crop',
       description: 'Full-size bus for large groups',
-      basePrice: { USD: 400, INR: 33400, SAR: 1500 }
+      basePrice: 400
     }
   ];
 
@@ -85,20 +83,6 @@ const TransportBooking = () => {
     { id: 'jeddah-tour', name: 'Jeddah City Day Tour', distance: '60 km', duration: '8 hours' },
     { id: 'taif-tour', name: 'Taif City Day Tour', distance: '100 km', duration: '10 hours' }
   ];
-
-  const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' }
-  ];
-
-  const getCurrencySymbol = () => {
-    return currencies.find(curr => curr.code === currency)?.symbol || '$';
-  };
-
-  const getVehiclePrice = (vehicle: any) => {
-    return vehicle.basePrice[currency as keyof typeof vehicle.basePrice] || vehicle.basePrice.USD;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
@@ -119,25 +103,6 @@ const TransportBooking = () => {
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Safe, comfortable, and reliable transportation for your sacred journey. Choose from our fleet of modern vehicles.
             </p>
-          </div>
-
-          {/* Currency Selection */}
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-gray-700">💰 Currency:</span>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencies.map(curr => (
-                    <SelectItem key={curr.code} value={curr.code}>
-                      {curr.symbol} {curr.code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
 
           {/* Vehicle Selection */}
@@ -171,7 +136,7 @@ const TransportBooking = () => {
                     <p className="text-xs text-gray-500 mb-3">{vehicle.description}</p>
                     <div className="flex justify-between items-center">
                       <span className="text-lg font-bold text-emerald-600">
-                        {getCurrencySymbol()}{getVehiclePrice(vehicle).toLocaleString()}
+                        ${vehicle.basePrice.toLocaleString()}
                       </span>
                       <span className="text-xs text-gray-500">Starting from</span>
                     </div>
@@ -252,7 +217,7 @@ const TransportBooking = () => {
                     <p><span className="font-medium">Passengers:</span> {passengers}</p>
                     <p><span className="font-medium">Date:</span> {date}</p>
                     <p className="text-lg font-bold text-emerald-800">
-                      Total: {getCurrencySymbol()}{selectedVehicle ? getVehiclePrice(vehicles.find(v => v.id === selectedVehicle)!).toLocaleString() : '0'}
+                      Total: ${selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)!.basePrice.toLocaleString() : '0'}
                     </p>
                   </div>
                 </div>

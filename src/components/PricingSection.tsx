@@ -1,30 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Check } from 'lucide-react';
 
 const PricingSection = () => {
-  const [currency, setCurrency] = useState('USD');
-
-  const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' }
-  ];
-
-  const getCurrencySymbol = () => {
-    return currencies.find(curr => curr.code === currency)?.symbol || '$';
-  };
-
-  const convertPrice = (baseUSD: number) => {
-    const rates = { USD: 1, INR: 83.5, SAR: 3.75 };
-    const rate = rates[currency as keyof typeof rates];
-    return Math.round(baseUSD * rate);
-  };
-
   const plans = [
     {
       name: 'Standard Umrah Visa',
@@ -93,24 +74,6 @@ const PricingSection = () => {
             Select the perfect package for your sacred journey. All prices include government fees, 
             processing charges, and our service fee.
           </p>
-          
-          {/* Currency Selector */}
-          <div className="flex justify-center mb-8">
-            <div className="w-64">
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencies.map((curr) => (
-                    <SelectItem key={curr.code} value={curr.code}>
-                      {curr.symbol} {curr.name} ({curr.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -128,12 +91,12 @@ const PricingSection = () => {
                 <div className="mb-4">
                   <div className="flex items-center justify-center space-x-2 mb-2">
                     <span className="text-lg text-gray-500 line-through">
-                      {getCurrencySymbol()}{convertPrice(plan.originalPrice).toLocaleString()}
+                      ${plan.originalPrice.toLocaleString()}
                     </span>
-                    <Badge className="bg-red-100 text-red-800 text-xs">Save {getCurrencySymbol()}{convertPrice(plan.originalPrice - plan.price).toLocaleString()}</Badge>
+                    <Badge className="bg-red-100 text-red-800 text-xs">Save ${(plan.originalPrice - plan.price).toLocaleString()}</Badge>
                   </div>
                   <div className="text-4xl font-bold text-emerald-600 mb-1">
-                    {getCurrencySymbol()}{convertPrice(plan.price).toLocaleString()}
+                    ${plan.price.toLocaleString()}
                   </div>
                   <p className="text-gray-600">per person</p>
                 </div>
@@ -154,7 +117,7 @@ const PricingSection = () => {
                   className={`w-full py-3 ${plan.popular ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-gray-900 hover:bg-gray-800'} text-white`}
                   size="lg"
                 >
-                  Apply Now - {getCurrencySymbol()}{convertPrice(plan.price).toLocaleString()}
+                  Apply Now - ${plan.price.toLocaleString()}
                 </Button>
               </CardContent>
             </Card>

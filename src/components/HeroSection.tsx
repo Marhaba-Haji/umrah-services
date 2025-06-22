@@ -1,41 +1,17 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
 
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
-  const [currency, setCurrency] = useState('USD');
   const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
-  const currencies = [{
-    code: 'USD',
-    symbol: '$',
-    name: 'US Dollar'
-  }, {
-    code: 'INR',
-    symbol: '₹',
-    name: 'Indian Rupee'
-  }, {
-    code: 'SAR',
-    symbol: 'ر.س',
-    name: 'Saudi Riyal'
-  }];
-  const getCurrencySymbol = () => {
-    return currencies.find(curr => curr.code === currency)?.symbol || '$';
-  };
-  const getPricing = () => {
-    const basePriceUSD = 299;
-    const rates = {
-      USD: 1,
-      INR: 83.5,
-      SAR: 3.75
-    };
-    const rate = rates[currency as keyof typeof rates];
-    return Math.round(basePriceUSD * rate);
-  };
+  
+  const basePriceUSD = 299;
+  
   return (
     <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
@@ -102,16 +78,10 @@ const HeroSection = () => {
                 <div className="text-sm text-gray-600">Days Processing</div>
               </div>
             </div>
-
-            {/* Key Benefits - Mobile Only */}
-            
           </div>
 
           {/* Right Section - CTA Form */}
           <div className="order-1 lg:order-2">
-            {/* Hero Image */}
-            
-
             {/* Quick Application Form */}
             <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
               <CardContent className="p-6 md:p-8">
@@ -119,7 +89,7 @@ const HeroSection = () => {
                   🎯 Apply for Umrah Visa
                 </h3>
                 <p className="text-gray-600 mb-6 text-center text-sm md:text-base">
-                  Check eligibility and get instant pricing in your preferred currency
+                  Check eligibility and get instant pricing
                 </p>
                 
                 <div className="space-y-4">
@@ -135,28 +105,12 @@ const HeroSection = () => {
                     </select>
                   </div>
 
-                  <div>
-                    <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
-                      💰 Preferred Currency
-                    </label>
-                    <Select value={currency} onValueChange={setCurrency}>
-                      <SelectTrigger className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currencies.map(curr => <SelectItem key={curr.code} value={curr.code}>
-                            {curr.symbol} {curr.name} ({curr.code})
-                          </SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   {/* Dynamic Pricing Display */}
                   <div className="bg-emerald-50 p-4 rounded-lg">
                     <div className="text-center">
                       <p className="text-sm text-emerald-700 mb-1">Starting from</p>
                       <p className="text-3xl font-bold text-emerald-800">
-                        {getCurrencySymbol()}{getPricing().toLocaleString()}
+                        ${basePriceUSD.toLocaleString()}
                       </p>
                       <p className="text-xs text-emerald-600">Per person • All inclusive</p>
                     </div>
@@ -164,7 +118,7 @@ const HeroSection = () => {
 
                   <Link to="/apply">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
-                      🚀 Apply Now - {getCurrencySymbol()}{getPricing().toLocaleString()}
+                      🚀 Apply Now - ${basePriceUSD.toLocaleString()}
                     </Button>
                   </Link>
 
@@ -191,9 +145,6 @@ const HeroSection = () => {
             </Card>
           </div>
         </div>
-
-        {/* Key Benefits - Desktop Only */}
-        
       </div>
     </section>
   );
