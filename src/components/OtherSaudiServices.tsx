@@ -3,8 +3,28 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from './Header';
 
 const OtherSaudiServices = () => {
+  const { currency } = useCurrency();
+
+  // Currency conversion rates (base USD)
+  const exchangeRates = {
+    USD: 1,
+    INR: 83.5,
+    SAR: 3.75
+  };
+
+  // Currency symbols
+  const currencySymbols = {
+    USD: '$',
+    INR: '₹',
+    SAR: 'ر.س'
+  };
+
+  const currencySymbol = currencySymbols[currency] || '$';
+  const rate = exchangeRates[currency] || 1;
+
   const visaServices = [
     {
       icon: '👨‍👩‍👧‍👦',
@@ -12,7 +32,7 @@ const OtherSaudiServices = () => {
       description: 'Visit your family members residing in Saudi Arabia',
       duration: '90 days',
       processing: '5-7 days',
-      price: 'From $199',
+      basePrice: 199,
       features: ['Multiple entry options', 'Extended validity', 'Family invitation required']
     },
     {
@@ -21,7 +41,7 @@ const OtherSaudiServices = () => {
       description: 'Explore Saudi Arabia\'s heritage and modern attractions',
       duration: '1 year',
       processing: '3-5 days',
-      price: 'From $149',
+      basePrice: 149,
       features: ['Multiple entry', 'Online application', 'Tourism activities allowed']
     },
     {
@@ -30,7 +50,7 @@ const OtherSaudiServices = () => {
       description: 'Conduct business meetings and commercial activities',
       duration: '90 days',
       processing: '3-5 days',
-      price: 'From $299',
+      basePrice: 299,
       features: ['Business activities', 'Company sponsorship', 'Meeting attendance']
     },
     {
@@ -39,7 +59,7 @@ const OtherSaudiServices = () => {
       description: 'Study at recognized educational institutions',
       duration: '1 year',
       processing: '7-10 days',
-      price: 'From $179',
+      basePrice: 179,
       features: ['University admission required', 'Renewable', 'Part-time work allowed']
     },
     {
@@ -48,7 +68,7 @@ const OtherSaudiServices = () => {
       description: 'Legal representation and business delegation',
       duration: '30 days',
       processing: '5-7 days',
-      price: 'From $399',
+      basePrice: 399,
       features: ['Legal representation', 'Business delegation', 'Special authorization']
     }
   ];
@@ -70,48 +90,53 @@ const OtherSaudiServices = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {visaServices.map((service, index) => (
-            <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105">
-              <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">{service.icon}</span>
-                </div>
-                <CardTitle className="text-xl font-bold text-gray-900 mb-2">
-                  {service.title}
-                </CardTitle>
-                <p className="text-gray-600 text-sm">{service.description}</p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">⏰ Duration:</span>
-                    <span className="font-medium">{service.duration}</span>
+          {visaServices.map((service, index) => {
+            const convertedPrice = Math.round(service.basePrice * rate);
+            return (
+              <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105">
+                <CardHeader className="text-center pb-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">{service.icon}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">🚀 Processing:</span>
-                    <span className="font-medium">{service.processing}</span>
+                  <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                    {service.title}
+                  </CardTitle>
+                  <p className="text-gray-600 text-sm">{service.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">⏰ Duration:</span>
+                      <span className="font-medium">{service.duration}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">🚀 Processing:</span>
+                      <span className="font-medium">{service.processing}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">💰 Price:</span>
+                      <span className="font-bold text-blue-600">
+                        From {currencySymbol}{convertedPrice.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">💰 Price:</span>
-                    <span className="font-bold text-blue-600">{service.price}</span>
-                  </div>
-                </div>
 
-                <ul className="space-y-2 mb-6">
-                  {service.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center space-x-2">
-                      <span className="text-blue-500 text-sm">✓</span>
-                      <span className="text-sm text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                  <ul className="space-y-2 mb-6">
+                    {service.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center space-x-2">
+                        <span className="text-blue-500 text-sm">✓</span>
+                        <span className="text-sm text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                  Apply Now
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                    Apply Now
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">

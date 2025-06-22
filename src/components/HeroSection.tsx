@@ -1,14 +1,34 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
+import { useCurrency } from './Header';
 
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
+  const { currency } = useCurrency();
   const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
+  
+  // Currency conversion rates (base USD)
+  const exchangeRates = {
+    USD: 1,
+    INR: 83.5,
+    SAR: 3.75
+  };
+
+  // Currency symbols
+  const currencySymbols = {
+    USD: '$',
+    INR: '₹',
+    SAR: 'ر.س'
+  };
+
   const basePriceUSD = 299;
+  const convertedPrice = Math.round(basePriceUSD * (exchangeRates[currency] || 1));
+  const currencySymbol = currencySymbols[currency] || '$';
 
   return (
     <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
@@ -106,7 +126,7 @@ const HeroSection = () => {
                     <div className="text-center">
                       <p className="text-sm text-emerald-700 mb-1">Starting from</p>
                       <p className="text-3xl font-bold text-emerald-800">
-                        ${basePriceUSD.toLocaleString()}
+                        {currencySymbol}{convertedPrice.toLocaleString()}
                       </p>
                       <p className="text-xs text-emerald-600">Per person • All inclusive</p>
                     </div>
@@ -114,7 +134,7 @@ const HeroSection = () => {
 
                   <Link to="/apply">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
-                      🚀 Apply Now - ${basePriceUSD.toLocaleString()}
+                      🚀 Apply Now - {currencySymbol}{convertedPrice.toLocaleString()}
                     </Button>
                   </Link>
 

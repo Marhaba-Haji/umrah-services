@@ -4,13 +4,33 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check } from 'lucide-react';
+import { useCurrency } from './Header';
 
 const PricingSection = () => {
+  const { currency } = useCurrency();
+
+  // Currency conversion rates (base USD)
+  const exchangeRates = {
+    USD: 1,
+    INR: 83.5,
+    SAR: 3.75
+  };
+
+  // Currency symbols
+  const currencySymbols = {
+    USD: '$',
+    INR: '₹',
+    SAR: 'ر.س'
+  };
+
+  const currencySymbol = currencySymbols[currency] || '$';
+  const rate = exchangeRates[currency] || 1;
+
   const plans = [
     {
       name: 'Standard Umrah Visa',
-      originalPrice: 399,
-      price: 299,
+      originalBasePrice: 399,
+      basePrice: 299,
       processing: '5-7 Days',
       features: [
         'Single Entry Visa',
@@ -24,8 +44,8 @@ const PricingSection = () => {
     },
     {
       name: 'Express Umrah Visa',
-      originalPrice: 599,
-      price: 449,
+      originalBasePrice: 599,
+      basePrice: 449,
       processing: '3-5 Days',
       features: [
         'Single Entry Visa',
@@ -41,8 +61,8 @@ const PricingSection = () => {
     },
     {
       name: 'Premium Umrah Package',
-      originalPrice: 899,
-      price: 699,
+      originalBasePrice: 899,
+      basePrice: 699,
       processing: '1-3 Days',
       features: [
         'Multiple Entry Visa',
@@ -73,49 +93,57 @@ const PricingSection = () => {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan, index) => (
-            <Card key={index} className={`relative ${plan.popular ? 'border-2 border-emerald-500 shadow-xl scale-105' : 'border shadow-lg'}`}>
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white px-4 py-1">
-                  Most Popular
-                </Badge>
-              )}
-              
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl font-bold text-gray-900 mb-2">
-                  {plan.name}
-                </CardTitle>
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-emerald-600">₹{plan.price.toLocaleString()}</span>
-                  <span className="text-lg text-gray-500 line-through ml-2">₹{plan.originalPrice.toLocaleString()}</span>
-                </div>
-                <p className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full inline-block">
-                  Processing: {plan.processing}
-                </p>
-              </CardHeader>
+          {plans.map((plan, index) => {
+            const convertedPrice = Math.round(plan.basePrice * rate);
+            const convertedOriginalPrice = Math.round(plan.originalBasePrice * rate);
+            return (
+              <Card key={index} className={`relative ${plan.popular ? 'border-2 border-emerald-500 shadow-xl scale-105' : 'border shadow-lg'}`}>
+                {plan.popular && (
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white px-4 py-1">
+                    Most Popular
+                  </Badge>
+                )}
+                
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                    {plan.name}
+                  </CardTitle>
+                  <div className="mb-4">
+                    <span className="text-3xl font-bold text-emerald-600">
+                      {currencySymbol}{convertedPrice.toLocaleString()}
+                    </span>
+                    <span className="text-lg text-gray-500 line-through ml-2">
+                      {currencySymbol}{convertedOriginalPrice.toLocaleString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full inline-block">
+                    Processing: {plan.processing}
+                  </p>
+                </CardHeader>
 
-              <CardContent className="pt-0">
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center text-sm">
-                      <Check className="w-4 h-4 text-emerald-500 mr-3 flex-shrink-0" />
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                <CardContent className="pt-0">
+                  <ul className="space-y-3 mb-6">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center text-sm">
+                        <Check className="w-4 h-4 text-emerald-500 mr-3 flex-shrink-0" />
+                        <span className="text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <Button 
-                  className={`w-full ${plan.popular 
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                    : 'bg-white border border-emerald-600 text-emerald-600 hover:bg-emerald-50'
-                  }`}
-                  size="lg"
-                >
-                  Apply Now - ₹{plan.price.toLocaleString()}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button 
+                    className={`w-full ${plan.popular 
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                      : 'bg-white border border-emerald-600 text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                    size="lg"
+                  >
+                    Apply Now - {currencySymbol}{convertedPrice.toLocaleString()}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <div className="text-center mt-12">

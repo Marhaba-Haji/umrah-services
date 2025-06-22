@@ -3,8 +3,28 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from './Header';
 
 const AdditionalServices = () => {
+  const { currency } = useCurrency();
+
+  // Currency conversion rates (base USD)
+  const exchangeRates = {
+    USD: 1,
+    INR: 83.5,
+    SAR: 3.75
+  };
+
+  // Currency symbols
+  const currencySymbols = {
+    USD: '$',
+    INR: '₹',
+    SAR: 'ر.س'
+  };
+
+  const currencySymbol = currencySymbols[currency] || '$';
+  const rate = exchangeRates[currency] || 1;
+
   const services = [
     {
       icon: '🕋',
@@ -12,7 +32,7 @@ const AdditionalServices = () => {
       description: 'Premium hotels near Masjid al-Haram with best rates',
       image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
       features: ['Walking distance to Haram', '5-star accommodations', 'Competitive rates', 'Instant confirmation'],
-      startingPrice: 'From $150/night'
+      basePrice: 150
     },
     {
       icon: '🕌',
@@ -20,7 +40,7 @@ const AdditionalServices = () => {
       description: 'Comfortable stays near Masjid an-Nabawi',
       image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop',
       features: ['Close to Prophet\'s Mosque', 'Modern amenities', 'Halal certified', 'Airport transfers included'],
-      startingPrice: 'From $120/night'
+      basePrice: 120
     },
     {
       icon: '✈️',
@@ -28,7 +48,7 @@ const AdditionalServices = () => {
       description: 'Affordable group flight packages for Umrah pilgrims',
       image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=200&fit=crop',
       features: ['Group discounts', 'Direct flights', 'Flexible dates', 'Baggage included'],
-      startingPrice: 'From $800/person'
+      basePrice: 800
     },
     {
       icon: '📦',
@@ -36,7 +56,7 @@ const AdditionalServices = () => {
       description: 'Complete Umrah packages for groups and families',
       image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
       features: ['All-inclusive packages', 'Group leader support', 'Custom itineraries', 'Best group rates'],
-      startingPrice: 'From $1,200/person'
+      basePrice: 1200
     },
     {
       icon: '⚡',
@@ -44,7 +64,7 @@ const AdditionalServices = () => {
       description: 'Quick 5-7 day Umrah packages for busy schedules',
       image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop',
       features: ['Express processing', 'Prime locations', 'Compact itinerary', 'Maximum spiritual benefit'],
-      startingPrice: 'From $899/person'
+      basePrice: 899
     },
     {
       icon: '🚗',
@@ -52,7 +72,7 @@ const AdditionalServices = () => {
       description: 'Reliable transportation between cities and airports',
       image: 'https://images.unsplash.com/photo-1469041797191-50ace28483c3?w=400&h=200&fit=crop',
       features: ['Licensed drivers', 'Air-conditioned vehicles', '24/7 availability', 'Fixed pricing'],
-      startingPrice: 'From $50/trip'
+      basePrice: 50
     },
     {
       icon: '🎯',
@@ -60,7 +80,7 @@ const AdditionalServices = () => {
       description: 'Expert Umrah guides for spiritual and historical guidance',
       image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
       features: ['Experienced guides', 'Multilingual support', 'Religious instruction', 'Historical insights'],
-      startingPrice: 'From $100/day'
+      basePrice: 100
     },
     {
       icon: '📍',
@@ -68,7 +88,7 @@ const AdditionalServices = () => {
       description: 'Guided visits to historical and religious sites',
       image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
       features: ['Expert guides', 'Historical sites', 'Cave of Hira', 'Jabal al-Nour'],
-      startingPrice: 'From $80/person'
+      basePrice: 80
     },
     {
       icon: '🏛️',
@@ -76,7 +96,7 @@ const AdditionalServices = () => {
       description: 'Sacred sites and historical places in Madinah',
       image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop',
       features: ['Quba Mosque', 'Mount Uhud', 'Qiblatain Mosque', 'Islamic history'],
-      startingPrice: 'From $70/person'
+      basePrice: 70
     }
   ];
 
@@ -97,49 +117,54 @@ const AdditionalServices = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {services.map((service, index) => (
-            <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all overflow-hidden group">
-              <div className="relative h-48 overflow-hidden">
-                <img 
-                  src={service.image} 
-                  alt={service.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute top-4 left-4">
-                  <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-                    <span className="text-xl">{service.icon}</span>
+          {services.map((service, index) => {
+            const convertedPrice = Math.round(service.basePrice * rate);
+            const priceUnit = service.basePrice >= 800 ? '/person' : service.basePrice >= 100 ? '/day' : service.basePrice >= 50 ? '/trip' : '/night';
+            
+            return (
+              <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all overflow-hidden group">
+                <div className="relative h-48 overflow-hidden">
+                  <img 
+                    src={service.image} 
+                    alt={service.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                      <span className="text-xl">{service.icon}</span>
+                    </div>
+                  </div>
+                  <div className="absolute top-4 right-4">
+                    <Badge className="bg-emerald-600 text-white">
+                      From {currencySymbol}{convertedPrice.toLocaleString()}{priceUnit}
+                    </Badge>
                   </div>
                 </div>
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-emerald-600 text-white">
-                    {service.startingPrice}
-                  </Badge>
-                </div>
-              </div>
-              
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-gray-900 mb-2">
-                  {service.title}
-                </CardTitle>
-                <p className="text-gray-600 text-sm">{service.description}</p>
-              </CardHeader>
-              
-              <CardContent>
-                <ul className="space-y-2 mb-6">
-                  {service.features.map((feature, featureIndex) => (
-                    <li key={featureIndex} className="flex items-center space-x-2">
-                      <span className="text-emerald-500 text-sm">✓</span>
-                      <span className="text-sm text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl font-bold text-gray-900 mb-2">
+                    {service.title}
+                  </CardTitle>
+                  <p className="text-gray-600 text-sm">{service.description}</p>
+                </CardHeader>
+                
+                <CardContent>
+                  <ul className="space-y-2 mb-6">
+                    {service.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-center space-x-2">
+                        <span className="text-emerald-500 text-sm">✓</span>
+                        <span className="text-sm text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                  Book Now
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                    Book Now
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         <div className="max-w-4xl mx-auto mt-16">
