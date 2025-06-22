@@ -23,12 +23,44 @@ const AdditionalServices = () => {
       startingPrice: 'From $120/night'
     },
     {
+      icon: '✈️',
+      title: 'Group Flights',
+      description: 'Affordable group flight packages for Umrah pilgrims',
+      image: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&h=200&fit=crop',
+      features: ['Group discounts', 'Direct flights', 'Flexible dates', 'Baggage included'],
+      startingPrice: 'From $800/person'
+    },
+    {
+      icon: '📦',
+      title: 'Group Umrah Packages',
+      description: 'Complete Umrah packages for groups and families',
+      image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
+      features: ['All-inclusive packages', 'Group leader support', 'Custom itineraries', 'Best group rates'],
+      startingPrice: 'From $1,200/person'
+    },
+    {
+      icon: '⚡',
+      title: 'Short Umrah Packages',
+      description: 'Quick 5-7 day Umrah packages for busy schedules',
+      image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?w=400&h=200&fit=crop',
+      features: ['Express processing', 'Prime locations', 'Compact itinerary', 'Maximum spiritual benefit'],
+      startingPrice: 'From $899/person'
+    },
+    {
       icon: '🚗',
       title: 'Cab Transport Booking',
       description: 'Reliable transportation between cities and airports',
       image: 'https://images.unsplash.com/photo-1469041797191-50ace28483c3?w=400&h=200&fit=crop',
       features: ['Licensed drivers', 'Air-conditioned vehicles', '24/7 availability', 'Fixed pricing'],
       startingPrice: 'From $50/trip'
+    },
+    {
+      icon: '🎯',
+      title: 'Guide Services',
+      description: 'Expert Umrah guides for spiritual and historical guidance',
+      image: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?w=400&h=200&fit=crop',
+      features: ['Experienced guides', 'Multilingual support', 'Religious instruction', 'Historical insights'],
+      startingPrice: 'From $100/day'
     },
     {
       icon: '📍',

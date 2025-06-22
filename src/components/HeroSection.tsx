@@ -4,11 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
+
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
   const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
   const basePriceUSD = 299;
-  return <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
+
+  return (
+    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
@@ -23,7 +26,7 @@ const HeroSection = () => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 lg:pt-8">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Section - Content */}
           <div className="order-2 lg:order-1">
@@ -139,6 +142,8 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default HeroSection;
