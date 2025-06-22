@@ -6,6 +6,7 @@ import TrustIndicators from '../components/TrustIndicators';
 import UmrahConditions from '../components/UmrahConditions';
 import ServicesSection from '../components/ServicesSection';
 import HowItWorks from '../components/HowItWorks';
+import PricingSection from '../components/PricingSection';
 import OtherSaudiServices from '../components/OtherSaudiServices';
 import AdditionalServices from '../components/AdditionalServices';
 import FAQSection from '../components/FAQSection';
@@ -37,6 +38,7 @@ const Index = () => {
           <UmrahConditions />
           <ServicesSection />
           <HowItWorks />
+          <PricingSection />
           <OtherSaudiServices />
           <AdditionalServices />
           <TestimonialsSection />

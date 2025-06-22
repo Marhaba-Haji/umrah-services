@@ -2,90 +2,85 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 const UmrahConditions = () => {
   const conditions = [
     {
       icon: '🏨',
       title: 'Confirmed Hotel Booking',
-      description: 'Valid hotel reservation from approved accommodations',
-      details: ['Approved hotel list', 'Confirmation voucher', 'Full payment guarantee']
+      description: 'Valid hotel reservation from approved accommodations in Mecca and Medina',
+      details: ['Must be from approved hotel list', 'Confirmation voucher required', 'Full payment or booking guarantee needed']
     },
     {
       icon: '✈️',
       title: 'Return Flight Booking',
-      description: 'Confirmed round-trip flight tickets',
-      details: ['Return ticket mandatory', 'Valid dates', 'Match visa period']
+      description: 'Confirmed round-trip flight tickets with valid dates',
+      details: ['Return ticket mandatory', 'Valid for visa duration', 'Travel dates must match visa period']
     },
     {
       icon: '🚗',
       title: 'Airport Transfer',
-      description: 'Pre-arranged transportation service',
-      details: ['Licensed providers', 'Airport pickup/drop-off', 'Advance booking']
+      description: 'Pre-arranged transportation from approved transport companies',
+      details: ['Licensed transport providers only', 'Airport pickup/drop-off included', 'Advance booking required']
     }
   ];
 
   return (
-    <section className="py-12 bg-gradient-to-br from-amber-50 to-orange-50">
+    <section className="py-16 bg-gradient-to-br from-amber-50 to-orange-50">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <Badge className="bg-amber-100 text-amber-800 mb-3 px-3 py-1">
+        <div className="text-center mb-12">
+          <Badge className="bg-amber-100 text-amber-800 mb-4 px-4 py-2">
             📋 Important Requirements
           </Badge>
-          <h2 className="text-3xl font-bold text-gray-900 mb-3">
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">
             🕋 Umrah Visa Conditions
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Ensure you have these mandatory requirements before applying for your Umrah visa.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Before applying for your Umrah visa, ensure you have these mandatory requirements. 
+            All conditions must be fulfilled for visa approval.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {conditions.map((condition, index) => (
             <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-shadow border-l-4 border-l-amber-500">
-              <CardHeader className="text-center pb-3">
-                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl">{condition.icon}</span>
+              <CardHeader className="text-center pb-4">
+                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">{condition.icon}</span>
                 </div>
-                <CardTitle className="text-lg font-bold text-gray-900 mb-2">
+                <CardTitle className="text-xl font-bold text-gray-900 mb-2">
                   {condition.title}
                 </CardTitle>
-                <p className="text-gray-600 text-sm">{condition.description}</p>
+                <p className="text-gray-600">{condition.description}</p>
               </CardHeader>
-              <CardContent className="pt-0">
-                <ul className="space-y-1 mb-4">
+              <CardContent>
+                <ul className="space-y-2">
                   {condition.details.map((detail, detailIndex) => (
                     <li key={detailIndex} className="flex items-center space-x-2">
-                      <span className="text-amber-500 text-xs">✓</span>
-                      <span className="text-xs text-gray-700">{detail}</span>
+                      <span className="text-amber-500 text-sm">✓</span>
+                      <span className="text-sm text-gray-700">{detail}</span>
                     </li>
                   ))}
                 </ul>
-                <Button 
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white"
-                  size="sm"
-                >
-                  Get Assistance
-                </Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="max-w-3xl mx-auto mt-8">
+        <div className="max-w-4xl mx-auto mt-12">
           <Card className="bg-gradient-to-r from-amber-100 to-orange-100 border-amber-200">
-            <CardContent className="p-6 text-center">
-              <h3 className="text-xl font-semibold text-amber-800 mb-3">
+            <CardContent className="p-8 text-center">
+              <h3 className="text-2xl font-semibold text-amber-800 mb-4">
                 ⚠️ Important Notice
               </h3>
-              <p className="text-amber-700 mb-3 text-sm">
-                All three conditions above are mandatory for Umrah visa approval. We can assist you with 
-                approved hotel bookings and transport arrangements.
+              <p className="text-amber-700 mb-4">
+                All three conditions above are mandatory for Umrah visa approval. Failure to provide 
+                confirmed bookings from approved providers may result in visa rejection.
               </p>
-              <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                Contact Our Experts
-              </Button>
+              <p className="text-sm text-amber-600">
+                We can assist you with approved hotel bookings and transport arrangements. 
+                Contact our experts for complete travel packages.
+              </p>
             </CardContent>
           </Card>
         </div>
