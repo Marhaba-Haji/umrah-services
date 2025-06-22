@@ -73,6 +73,7 @@ const Header = () => {
             <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
             <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
             <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
+            <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
             <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
             <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
             <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
@@ -104,6 +105,7 @@ const Header = () => {
               <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
               <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
               <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
+              <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
               <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
               <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
               <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
