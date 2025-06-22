@@ -5,12 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, Upload } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Upload, X } from 'lucide-react';
+
+interface ItineraryDay {
+  day: number;
+  title: string;
+  description: string;
+}
 
 interface Package {
   id: number;
@@ -37,6 +44,7 @@ interface Package {
     starCategory: string;
     distanceFromMasjid: string;
   };
+  flightIncluded: boolean;
   flightDetails: {
     airlineName: string;
     flightType: 'direct' | 'connecting';
@@ -44,6 +52,7 @@ interface Package {
   departureDate: string;
   returnDate: string;
   durationCategory: 'short' | 'standard' | 'long';
+  itinerary: ItineraryDay[];
   pricing: {
     adult: string;
     childWithBed: string;
@@ -51,12 +60,22 @@ interface Package {
     infant: string;
   };
   roomTypePricing: {
-    sixSharing: string;
-    fiveSharing: string;
-    fourSharing: string;
-    triplePrivate: string;
-    doublePrivate: string;
-    singlePrivate: string;
+    adult: {
+      sixSharing: string;
+      fiveSharing: string;
+      fourSharing: string;
+      triplePrivate: string;
+      doublePrivate: string;
+      singlePrivate: string;
+    };
+    childWithBed: {
+      sixSharing: string;
+      fiveSharing: string;
+      fourSharing: string;
+      triplePrivate: string;
+      doublePrivate: string;
+      singlePrivate: string;
+    };
   };
 }
 
@@ -87,6 +106,7 @@ const PackageManager = () => {
         starCategory: '5',
         distanceFromMasjid: '300m'
       },
+      flightIncluded: true,
       flightDetails: {
         airlineName: 'Emirates',
         flightType: 'direct'
@@ -94,6 +114,7 @@ const PackageManager = () => {
       departureDate: '2024-03-01',
       returnDate: '2024-03-15',
       durationCategory: 'standard',
+      itinerary: [],
       pricing: {
         adult: '2999',
         childWithBed: '2499',
@@ -101,29 +122,42 @@ const PackageManager = () => {
         infant: '299'
       },
       roomTypePricing: {
-        sixSharing: '2999',
-        fiveSharing: '3299',
-        fourSharing: '3599',
-        triplePrivate: '3999',
-        doublePrivate: '4499',
-        singlePrivate: '5999'
+        adult: {
+          sixSharing: '2999',
+          fiveSharing: '3299',
+          fourSharing: '3599',
+          triplePrivate: '3999',
+          doublePrivate: '4499',
+          singlePrivate: '5999'
+        },
+        childWithBed: {
+          sixSharing: '2499',
+          fiveSharing: '2799',
+          fourSharing: '3099',
+          triplePrivate: '3399',
+          doublePrivate: '3899',
+          singlePrivate: '5099'
+        }
       }
     }
   ]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+  const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>([]);
+  const [copyAdultToChild, setCopyAdultToChild] = useState(false);
 
   const inclusionOptions = [
     'Umrah visa', 'Insurance', 'Air tickets', 'Accommodation', 'Makkah ziarath',
     'Madinah ziarath', 'Taif ziarath', 'Badr ziarath', 'Zamzam', 'Umrah kit',
     'Laundry', 'Meals', 'Arrival airport transfer', 'Departure airport transfer',
-    'Makkah to Madinah transfer', 'Guide', 'GST', 'TCS'
+    'Makkah to Madinah transfer', 'Guide', 'GST', 'TCS', 'Sim card', 'Lanyard'
   ];
 
   const form = useForm({
     defaultValues: {
       name: '',
+      durationCategory: 'standard',
       price: '',
       duration: '',
       status: 'Active',
@@ -142,23 +176,64 @@ const PackageManager = () => {
       madinahHotelName: '',
       madinahHotelStar: '3',
       madinahHotelDistance: '',
+      flightIncluded: true,
       airlineName: '',
       flightType: 'direct',
       departureDate: '',
       returnDate: '',
-      durationCategory: 'standard',
       adultPrice: '',
       childWithBedPrice: '',
       childWithoutBedPrice: '',
       infantPrice: '',
-      sixSharingPrice: '',
-      fiveSharingPrice: '',
-      fourSharingPrice: '',
-      triplePrivatePrice: '',
-      doublePrivatePrice: '',
-      singlePrivatePrice: ''
+      adultSixSharingPrice: '',
+      adultFiveSharingPrice: '',
+      adultFourSharingPrice: '',
+      adultTriplePrivatePrice: '',
+      adultDoublePrivatePrice: '',
+      adultSinglePrivatePrice: '',
+      childSixSharingPrice: '',
+      childFiveSharingPrice: '',
+      childFourSharingPrice: '',
+      childTriplePrivatePrice: '',
+      childDoublePrivatePrice: '',
+      childSinglePrivatePrice: ''
     }
   });
+
+  const addItineraryDay = () => {
+    const newDay: ItineraryDay = {
+      day: itineraryDays.length + 1,
+      title: '',
+      description: ''
+    };
+    setItineraryDays([...itineraryDays, newDay]);
+  };
+
+  const removeItineraryDay = (index: number) => {
+    const updatedDays = itineraryDays.filter((_, i) => i !== index);
+    // Renumber days
+    const renumberedDays = updatedDays.map((day, i) => ({ ...day, day: i + 1 }));
+    setItineraryDays(renumberedDays);
+  };
+
+  const updateItineraryDay = (index: number, field: 'title' | 'description', value: string) => {
+    const updatedDays = [...itineraryDays];
+    updatedDays[index][field] = value;
+    setItineraryDays(updatedDays);
+  };
+
+  const handleCopyAdultToChild = (checked: boolean) => {
+    setCopyAdultToChild(checked);
+    if (checked) {
+      const adultPrices = form.getValues();
+      form.setValue('childSixSharingPrice', adultPrices.adultSixSharingPrice);
+      form.setValue('childFiveSharingPrice', adultPrices.adultFiveSharingPrice);
+      form.setValue('childFourSharingPrice', adultPrices.adultFourSharingPrice);
+      form.setValue('childTriplePrivatePrice', adultPrices.adultTriplePrivatePrice);
+      form.setValue('childDoublePrivatePrice', adultPrices.adultDoublePrivatePrice);
+      form.setValue('childSinglePrivatePrice', adultPrices.adultSinglePrivatePrice);
+    }
+  };
 
   const onSubmit = (data: any) => {
     const newPackage: Package = {
@@ -186,6 +261,7 @@ const PackageManager = () => {
         starCategory: data.madinahHotelStar,
         distanceFromMasjid: data.madinahHotelDistance
       },
+      flightIncluded: data.flightIncluded,
       flightDetails: {
         airlineName: data.airlineName,
         flightType: data.flightType
@@ -193,6 +269,7 @@ const PackageManager = () => {
       departureDate: data.departureDate,
       returnDate: data.returnDate,
       durationCategory: data.durationCategory,
+      itinerary: itineraryDays,
       pricing: {
         adult: data.adultPrice,
         childWithBed: data.childWithBedPrice,
@@ -200,12 +277,22 @@ const PackageManager = () => {
         infant: data.infantPrice
       },
       roomTypePricing: {
-        sixSharing: data.sixSharingPrice,
-        fiveSharing: data.fiveSharingPrice,
-        fourSharing: data.fourSharingPrice,
-        triplePrivate: data.triplePrivatePrice,
-        doublePrivate: data.doublePrivatePrice,
-        singlePrivate: data.singlePrivatePrice
+        adult: {
+          sixSharing: data.adultSixSharingPrice,
+          fiveSharing: data.adultFiveSharingPrice,
+          fourSharing: data.adultFourSharingPrice,
+          triplePrivate: data.adultTriplePrivatePrice,
+          doublePrivate: data.adultDoublePrivatePrice,
+          singlePrivate: data.adultSinglePrivatePrice
+        },
+        childWithBed: {
+          sixSharing: data.childSixSharingPrice,
+          fiveSharing: data.childFiveSharingPrice,
+          fourSharing: data.childFourSharingPrice,
+          triplePrivate: data.childTriplePrivatePrice,
+          doublePrivate: data.childDoublePrivatePrice,
+          singlePrivate: data.childSinglePrivatePrice
+        }
       }
     };
 
@@ -217,13 +304,17 @@ const PackageManager = () => {
 
     setIsDialogOpen(false);
     setEditingPackage(null);
+    setItineraryDays([]);
+    setCopyAdultToChild(false);
     form.reset();
   };
 
   const handleEdit = (pkg: Package) => {
     setEditingPackage(pkg);
+    setItineraryDays(pkg.itinerary);
     form.reset({
       name: pkg.name,
+      durationCategory: pkg.durationCategory,
       price: pkg.price,
       duration: pkg.duration,
       status: pkg.status,
@@ -242,21 +333,27 @@ const PackageManager = () => {
       madinahHotelName: pkg.madinahHotel.name,
       madinahHotelStar: pkg.madinahHotel.starCategory,
       madinahHotelDistance: pkg.madinahHotel.distanceFromMasjid,
+      flightIncluded: pkg.flightIncluded,
       airlineName: pkg.flightDetails.airlineName,
       flightType: pkg.flightDetails.flightType,
       departureDate: pkg.departureDate,
       returnDate: pkg.returnDate,
-      durationCategory: pkg.durationCategory,
       adultPrice: pkg.pricing.adult,
       childWithBedPrice: pkg.pricing.childWithBed,
       childWithoutBedPrice: pkg.pricing.childWithoutBed,
       infantPrice: pkg.pricing.infant,
-      sixSharingPrice: pkg.roomTypePricing.sixSharing,
-      fiveSharingPrice: pkg.roomTypePricing.fiveSharing,
-      fourSharingPrice: pkg.roomTypePricing.fourSharing,
-      triplePrivatePrice: pkg.roomTypePricing.triplePrivate,
-      doublePrivatePrice: pkg.roomTypePricing.doublePrivate,
-      singlePrivatePrice: pkg.roomTypePricing.singlePrivate
+      adultSixSharingPrice: pkg.roomTypePricing.adult.sixSharing,
+      adultFiveSharingPrice: pkg.roomTypePricing.adult.fiveSharing,
+      adultFourSharingPrice: pkg.roomTypePricing.adult.fourSharing,
+      adultTriplePrivatePrice: pkg.roomTypePricing.adult.triplePrivate,
+      adultDoublePrivatePrice: pkg.roomTypePricing.adult.doublePrivate,
+      adultSinglePrivatePrice: pkg.roomTypePricing.adult.singlePrivate,
+      childSixSharingPrice: pkg.roomTypePricing.childWithBed.sixSharing,
+      childFiveSharingPrice: pkg.roomTypePricing.childWithBed.fiveSharing,
+      childFourSharingPrice: pkg.roomTypePricing.childWithBed.fourSharing,
+      childTriplePrivatePrice: pkg.roomTypePricing.childWithBed.triplePrivate,
+      childDoublePrivatePrice: pkg.roomTypePricing.childWithBed.doublePrivate,
+      childSinglePrivatePrice: pkg.roomTypePricing.childWithBed.singlePrivate
     });
     setIsDialogOpen(true);
   };
@@ -271,7 +368,7 @@ const PackageManager = () => {
         <h3 className="text-xl font-semibold">Umrah Packages</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingPackage(null); form.reset(); }}>
+            <Button onClick={() => { setEditingPackage(null); setItineraryDays([]); setCopyAdultToChild(false); form.reset(); }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Package
             </Button>
@@ -285,7 +382,7 @@ const PackageManager = () => {
                 {/* Basic Package Information */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold">Basic Information</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="name"
@@ -295,6 +392,28 @@ const PackageManager = () => {
                           <FormControl>
                             <Input placeholder="Enter package name" {...field} />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="durationCategory"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Duration Category</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="short">Short</SelectItem>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="long">Long</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -454,6 +573,19 @@ const PackageManager = () => {
                   {/* Makkah Hotel */}
                   <div className="border p-4 rounded space-y-3">
                     <h5 className="font-medium">Makkah Hotel</h5>
+                    <FormField
+                      control={form.control}
+                      name="makkahHotelImage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hotel Image URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/hotel-image.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -509,6 +641,19 @@ const PackageManager = () => {
                   {/* Madinah Hotel */}
                   <div className="border p-4 rounded space-y-3">
                     <h5 className="font-medium">Madinah Hotel</h5>
+                    <FormField
+                      control={form.control}
+                      name="madinahHotelImage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hotel Image URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/hotel-image.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
@@ -562,114 +707,164 @@ const PackageManager = () => {
                   </div>
                 </div>
 
+                {/* Day-wise Itinerary */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-lg font-semibold">Day-wise Itinerary</h4>
+                    <Button type="button" onClick={addItineraryDay} variant="outline" size="sm">
+                      <Plus className="w-3 h-3 mr-1" />
+                      Add Day
+                    </Button>
+                  </div>
+                  
+                  {itineraryDays.map((day, index) => (
+                    <div key={index} className="border p-4 rounded space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h5 className="font-medium">Day {day.day}</h5>
+                        <Button 
+                          type="button" 
+                          onClick={() => removeItineraryDay(index)}
+                          variant="outline" 
+                          size="sm"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium">Title</label>
+                          <Input
+                            placeholder="Day title"
+                            value={day.title}
+                            onChange={(e) => updateItineraryDay(index, 'title', e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Description</label>
+                          <Textarea
+                            placeholder="Day description"
+                            value={day.description}
+                            onChange={(e) => updateItineraryDay(index, 'description', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Flight & Travel Details */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold">Flight & Travel Details</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="airlineName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Airline Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Emirates" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="flightType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Flight Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="direct">Direct</SelectItem>
-                              <SelectItem value="connecting">Connecting</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="flightIncluded"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormLabel>Flight Included</FormLabel>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                  <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="departureDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Departure Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="returnDate"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Return Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="durationCategory"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Duration Category</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="short">Short</SelectItem>
-                              <SelectItem value="standard">Standard</SelectItem>
-                              <SelectItem value="long">Long</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  {form.watch('flightIncluded') && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="airlineName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Airline Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g., Emirates" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="flightType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Flight Type</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="direct">Direct</SelectItem>
+                                  <SelectItem value="connecting">Connecting</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="departureDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Departure Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="returnDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Return Date</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Pricing */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold">Pricing Details</h4>
                   
-                  {/* Per Person Pricing */}
+                  {/* Room Type Pricing - Adult */}
                   <div className="border p-4 rounded space-y-3">
-                    <h5 className="font-medium">Per Person Pricing</h5>
-                    <div className="grid grid-cols-4 gap-4">
+                    <h5 className="font-medium">Adult Room Type Pricing</h5>
+                    <div className="grid grid-cols-3 gap-4">
                       <FormField
                         control={form.control}
-                        name="adultPrice"
+                        name="adultSixSharingPrice"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Adult</FormLabel>
+                            <FormLabel>6 Sharing/Private</FormLabel>
                             <FormControl>
-                              <Input placeholder="2999" {...field} />
+                              <Input placeholder="2999" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childSixSharingPrice', e.target.value);
+                                }
+                              }} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -677,10 +872,116 @@ const PackageManager = () => {
                       />
                       <FormField
                         control={form.control}
-                        name="childWithBedPrice"
+                        name="adultFiveSharingPrice"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Child with Bed</FormLabel>
+                            <FormLabel>5 Sharing/Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3299" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childFiveSharingPrice', e.target.value);
+                                }
+                              }} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adultFourSharingPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>4 Sharing/Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3599" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childFourSharingPrice', e.target.value);
+                                }
+                              }} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adultTriplePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Triple Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3999" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childTriplePrivatePrice', e.target.value);
+                                }
+                              }} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adultDoublePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Double Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="4499" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childDoublePrivatePrice', e.target.value);
+                                }
+                              }} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="adultSinglePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Single Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="5999" {...field} onChange={(e) => {
+                                field.onChange(e);
+                                if (copyAdultToChild) {
+                                  form.setValue('childSinglePrivatePrice', e.target.value);
+                                }
+                              }} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Room Type Pricing - Child with Bed */}
+                  <div className="border p-4 rounded space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h5 className="font-medium">Child with Bed Room Type Pricing</h5>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={copyAdultToChild}
+                          onCheckedChange={handleCopyAdultToChild}
+                        />
+                        <label className="text-sm">Same as Adult</label>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="childSixSharingPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>6 Sharing/Private</FormLabel>
                             <FormControl>
                               <Input placeholder="2499" {...field} />
                             </FormControl>
@@ -688,6 +989,78 @@ const PackageManager = () => {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="childFiveSharingPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>5 Sharing/Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="2799" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="childFourSharingPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>4 Sharing/Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3099" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="childTriplePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Triple Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3399" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="childDoublePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Double Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="3899" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="childSinglePrivatePrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Single Private</FormLabel>
+                            <FormControl>
+                              <Input placeholder="5099" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fixed Pricing for Child without Bed and Infant */}
+                  <div className="border p-4 rounded space-y-3">
+                    <h5 className="font-medium">Fixed Pricing (No Room Type Variation)</h5>
+                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="childWithoutBedPrice"
@@ -709,91 +1082,6 @@ const PackageManager = () => {
                             <FormLabel>Infant</FormLabel>
                             <FormControl>
                               <Input placeholder="299" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Room Type Pricing */}
-                  <div className="border p-4 rounded space-y-3">
-                    <h5 className="font-medium">Room Type Pricing</h5>
-                    <div className="grid grid-cols-3 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="sixSharingPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>6 Sharing/Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="2999" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="fiveSharingPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>5 Sharing/Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="3299" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="fourSharingPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>4 Sharing/Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="3599" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="triplePrivatePrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Triple Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="3999" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="doublePrivatePrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Double Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="4499" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="singlePrivatePrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Single Private</FormLabel>
-                            <FormControl>
-                              <Input placeholder="5999" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -853,6 +1141,7 @@ const PackageManager = () => {
                   <th className="text-left p-2">Duration</th>
                   <th className="text-left p-2">Category</th>
                   <th className="text-left p-2">Type</th>
+                  <th className="text-left p-2">Flight</th>
                   <th className="text-left p-2">Status</th>
                   <th className="text-left p-2">Actions</th>
                 </tr>
@@ -868,6 +1157,11 @@ const PackageManager = () => {
                     </td>
                     <td className="p-2">
                       <Badge variant="secondary">{pkg.packageType}</Badge>
+                    </td>
+                    <td className="p-2">
+                      <Badge variant={pkg.flightIncluded ? 'default' : 'outline'}>
+                        {pkg.flightIncluded ? 'Included' : 'Not Included'}
+                      </Badge>
                     </td>
                     <td className="p-2">
                       <Badge variant={pkg.status === 'Active' ? 'default' : 'secondary'}>
