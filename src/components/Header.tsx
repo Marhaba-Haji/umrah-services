@@ -80,9 +80,7 @@ const Header = () => {
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
-              Track Application
-            </Button>
+            
             <Link to="/apply">
               <Button className="bg-emerald-600 hover:bg-emerald-700">
                 Apply Now
