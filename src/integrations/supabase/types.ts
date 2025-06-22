@@ -9,16 +9,1351 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      blog_posts: {
+        Row: {
+          author_id: string | null
+          canonical_url: string | null
+          category_id: string | null
+          content: string | null
+          created_at: string | null
+          excerpt: string | null
+          featured: boolean | null
+          featured_image: string | null
+          featured_image_alt: string | null
+          id: string
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          og_type: string | null
+          og_url: string | null
+          publish_date: string | null
+          schema_markup: Json | null
+          slug: string
+          status: Database["public"]["Enums"]["blog_status"] | null
+          title: string
+          twitter_card_type: string | null
+          twitter_description: string | null
+          twitter_image: string | null
+          twitter_title: string | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          author_id?: string | null
+          canonical_url?: string | null
+          category_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          featured?: boolean | null
+          featured_image?: string | null
+          featured_image_alt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          og_url?: string | null
+          publish_date?: string | null
+          schema_markup?: Json | null
+          slug: string
+          status?: Database["public"]["Enums"]["blog_status"] | null
+          title: string
+          twitter_card_type?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          author_id?: string | null
+          canonical_url?: string | null
+          category_id?: string | null
+          content?: string | null
+          created_at?: string | null
+          excerpt?: string | null
+          featured?: boolean | null
+          featured_image?: string | null
+          featured_image_alt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          og_type?: string | null
+          og_url?: string | null
+          publish_date?: string | null
+          schema_markup?: Json | null
+          slug?: string
+          status?: Database["public"]["Enums"]["blog_status"] | null
+          title?: string
+          twitter_card_type?: string | null
+          twitter_description?: string | null
+          twitter_image?: string | null
+          twitter_title?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_posts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_services: {
+        Row: {
+          booking_id: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          price: number
+          quantity: number | null
+          service_date: string | null
+          service_id: string | null
+          service_type: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          price: number
+          quantity?: number | null
+          service_date?: string | null
+          service_id?: string | null
+          service_type: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          price?: number
+          quantity?: number | null
+          service_date?: string | null
+          service_id?: string | null
+          service_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_services_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookings: {
+        Row: {
+          booking_date: string | null
+          booking_reference: string
+          cancellation_date: string | null
+          cancellation_reason: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          number_of_travelers: number
+          package_id: string | null
+          paid_amount: number | null
+          payment_details: Json | null
+          return_date: string | null
+          special_requests: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          total_amount: number
+          travel_date: string | null
+          traveler_details: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_date?: string | null
+          booking_reference: string
+          cancellation_date?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          number_of_travelers: number
+          package_id?: string | null
+          paid_amount?: number | null
+          payment_details?: Json | null
+          return_date?: string | null
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total_amount: number
+          travel_date?: string | null
+          traveler_details?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_date?: string | null
+          booking_reference?: string
+          cancellation_date?: string | null
+          cancellation_reason?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          number_of_travelers?: number
+          package_id?: string | null
+          paid_amount?: number | null
+          payment_details?: Json | null
+          return_date?: string | null
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total_amount?: number
+          travel_date?: string | null
+          traveler_details?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "umrah_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_inquiries: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          inquiry_type: string | null
+          message: string
+          name: string
+          phone: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          status: string | null
+          subject: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          inquiry_type?: string | null
+          message: string
+          name: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          inquiry_type?: string | null
+          message?: string
+          name?: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_inquiries_responded_by_fkey"
+            columns: ["responded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      faqs: {
+        Row: {
+          answer: string
+          category_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          question: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          answer: string
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          question: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          answer?: string
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          question?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "faqs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_flights: {
+        Row: {
+          airline: string
+          arrival_time: string
+          available_seats: number | null
+          created_at: string | null
+          departure_date: string | null
+          departure_time: string
+          duration: string
+          flight_number: string
+          flight_type: Database["public"]["Enums"]["flight_type"] | null
+          id: string
+          layover_duration: string | null
+          luggage_limit: string | null
+          max_capacity: number | null
+          price: number
+          return_date: string | null
+          sector: string
+          status: string | null
+        }
+        Insert: {
+          airline: string
+          arrival_time: string
+          available_seats?: number | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_time: string
+          duration: string
+          flight_number: string
+          flight_type?: Database["public"]["Enums"]["flight_type"] | null
+          id?: string
+          layover_duration?: string | null
+          luggage_limit?: string | null
+          max_capacity?: number | null
+          price: number
+          return_date?: string | null
+          sector: string
+          status?: string | null
+        }
+        Update: {
+          airline?: string
+          arrival_time?: string
+          available_seats?: number | null
+          created_at?: string | null
+          departure_date?: string | null
+          departure_time?: string
+          duration?: string
+          flight_number?: string
+          flight_type?: Database["public"]["Enums"]["flight_type"] | null
+          id?: string
+          layover_duration?: string | null
+          luggage_limit?: string | null
+          max_capacity?: number | null
+          price?: number
+          return_date?: string | null
+          sector?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
+      guide_services: {
+        Row: {
+          availability_schedule: Json | null
+          created_at: string | null
+          description: string | null
+          experience: string | null
+          guide_city: string
+          guide_contact: string | null
+          guide_name: string
+          guide_photo: string | null
+          id: string
+          languages: string[] | null
+          qualifications: string[] | null
+          rating: number | null
+          service_prices: Json | null
+          service_type: Database["public"]["Enums"]["guide_service_type"]
+          specializations: string[] | null
+          status: string | null
+        }
+        Insert: {
+          availability_schedule?: Json | null
+          created_at?: string | null
+          description?: string | null
+          experience?: string | null
+          guide_city: string
+          guide_contact?: string | null
+          guide_name: string
+          guide_photo?: string | null
+          id?: string
+          languages?: string[] | null
+          qualifications?: string[] | null
+          rating?: number | null
+          service_prices?: Json | null
+          service_type: Database["public"]["Enums"]["guide_service_type"]
+          specializations?: string[] | null
+          status?: string | null
+        }
+        Update: {
+          availability_schedule?: Json | null
+          created_at?: string | null
+          description?: string | null
+          experience?: string | null
+          guide_city?: string
+          guide_contact?: string | null
+          guide_name?: string
+          guide_photo?: string | null
+          id?: string
+          languages?: string[] | null
+          qualifications?: string[] | null
+          rating?: number | null
+          service_prices?: Json | null
+          service_type?: Database["public"]["Enums"]["guide_service_type"]
+          specializations?: string[] | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      hotel_bookings: {
+        Row: {
+          booking_reference: string
+          check_in_date: string
+          check_out_date: string
+          created_at: string | null
+          guest_details: Json | null
+          hotel_id: string | null
+          id: string
+          number_of_guests: number
+          number_of_rooms: number | null
+          room_id: string | null
+          special_requests: string | null
+          status: Database["public"]["Enums"]["booking_status"] | null
+          total_amount: number
+          user_id: string | null
+        }
+        Insert: {
+          booking_reference: string
+          check_in_date: string
+          check_out_date: string
+          created_at?: string | null
+          guest_details?: Json | null
+          hotel_id?: string | null
+          id?: string
+          number_of_guests: number
+          number_of_rooms?: number | null
+          room_id?: string | null
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total_amount: number
+          user_id?: string | null
+        }
+        Update: {
+          booking_reference?: string
+          check_in_date?: string
+          check_out_date?: string
+          created_at?: string | null
+          guest_details?: Json | null
+          hotel_id?: string | null
+          id?: string
+          number_of_guests?: number
+          number_of_rooms?: number | null
+          room_id?: string | null
+          special_requests?: string | null
+          status?: Database["public"]["Enums"]["booking_status"] | null
+          total_amount?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_bookings_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "hotel_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hotel_bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotel_rooms: {
+        Row: {
+          amenities: string[] | null
+          available_rooms: number | null
+          capacity: number
+          created_at: string | null
+          description: string | null
+          hotel_id: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          price_per_night: number
+          room_type: Database["public"]["Enums"]["room_type"]
+        }
+        Insert: {
+          amenities?: string[] | null
+          available_rooms?: number | null
+          capacity: number
+          created_at?: string | null
+          description?: string | null
+          hotel_id?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          price_per_night: number
+          room_type: Database["public"]["Enums"]["room_type"]
+        }
+        Update: {
+          amenities?: string[] | null
+          available_rooms?: number | null
+          capacity?: number
+          created_at?: string | null
+          description?: string | null
+          hotel_id?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          price_per_night?: number
+          room_type?: Database["public"]["Enums"]["room_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_rooms_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hotels: {
+        Row: {
+          address: string | null
+          amenities: string[] | null
+          city: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          description: string | null
+          distance_from_haram: string | null
+          featured: boolean | null
+          google_maps_url: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean | null
+          location: string
+          name: string
+          price_per_night: number
+          rating: Database["public"]["Enums"]["hotel_rating"]
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          amenities?: string[] | null
+          city: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance_from_haram?: string | null
+          featured?: boolean | null
+          google_maps_url?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          location: string
+          name: string
+          price_per_night: number
+          rating: Database["public"]["Enums"]["hotel_rating"]
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          amenities?: string[] | null
+          city?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          description?: string | null
+          distance_from_haram?: string | null
+          featured?: boolean | null
+          google_maps_url?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean | null
+          location?: string
+          name?: string
+          price_per_night?: number
+          rating?: Database["public"]["Enums"]["hotel_rating"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          budget_range: string | null
+          city: string | null
+          converted_at: string | null
+          country: string | null
+          created_at: string | null
+          email: string | null
+          first_name: string
+          follow_up_date: string | null
+          id: string
+          last_name: string | null
+          lead_source: string | null
+          notes: string | null
+          number_of_travelers: number | null
+          package_interest: string | null
+          phone: string
+          service_interest: string | null
+          special_requirements: string | null
+          status: Database["public"]["Enums"]["lead_status"] | null
+          travel_dates: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          budget_range?: string | null
+          city?: string | null
+          converted_at?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_name: string
+          follow_up_date?: string | null
+          id?: string
+          last_name?: string | null
+          lead_source?: string | null
+          notes?: string | null
+          number_of_travelers?: number | null
+          package_interest?: string | null
+          phone: string
+          service_interest?: string | null
+          special_requirements?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          travel_dates?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          budget_range?: string | null
+          city?: string | null
+          converted_at?: string | null
+          country?: string | null
+          created_at?: string | null
+          email?: string | null
+          first_name?: string
+          follow_up_date?: string | null
+          id?: string
+          last_name?: string | null
+          lead_source?: string | null
+          notes?: string | null
+          number_of_travelers?: number | null
+          package_interest?: string | null
+          phone?: string
+          service_interest?: string | null
+          special_requirements?: string | null
+          status?: Database["public"]["Enums"]["lead_status"] | null
+          travel_dates?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_package_interest_fkey"
+            columns: ["package_interest"]
+            isOneToOne: false
+            referencedRelation: "umrah_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          city: string | null
+          country: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          email: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          passport_number: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          passport_number?: string | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          helpful_count: number | null
+          id: string
+          is_featured: boolean | null
+          is_verified: boolean | null
+          rating: number | null
+          reviewable_id: string
+          reviewable_type: string
+          status: string | null
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          rating?: number | null
+          reviewable_id: string
+          reviewable_type: string
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          helpful_count?: number | null
+          id?: string
+          is_featured?: boolean | null
+          is_verified?: boolean | null
+          rating?: number | null
+          reviewable_id?: string
+          reviewable_type?: string
+          status?: string | null
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saudi_visas: {
+        Row: {
+          application_process: Json | null
+          created_at: string | null
+          description: string | null
+          id: string
+          number_of_entries: string
+          price: number
+          processing_time: string
+          required_documents: Json | null
+          requirements: string[] | null
+          status: Database["public"]["Enums"]["visa_status"] | null
+          stay_validity: string
+          visa_category: string
+          visa_type: string
+          visa_validity: string
+        }
+        Insert: {
+          application_process?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          number_of_entries: string
+          price: number
+          processing_time: string
+          required_documents?: Json | null
+          requirements?: string[] | null
+          status?: Database["public"]["Enums"]["visa_status"] | null
+          stay_validity: string
+          visa_category: string
+          visa_type: string
+          visa_validity: string
+        }
+        Update: {
+          application_process?: Json | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          number_of_entries?: string
+          price?: number
+          processing_time?: string
+          required_documents?: Json | null
+          requirements?: string[] | null
+          status?: Database["public"]["Enums"]["visa_status"] | null
+          stay_validity?: string
+          visa_category?: string
+          visa_type?: string
+          visa_validity?: string
+        }
+        Relationships: []
+      }
+      seo_pages: {
+        Row: {
+          canonical_url: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          meta_description: string | null
+          meta_keywords: string | null
+          og_description: string | null
+          og_image: string | null
+          og_title: string | null
+          page_title: string | null
+          page_url: string
+          robots_meta: string | null
+          schema_markup: Json | null
+          twitter_description: string | null
+          twitter_title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          canonical_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          page_title?: string | null
+          page_url: string
+          robots_meta?: string | null
+          schema_markup?: Json | null
+          twitter_description?: string | null
+          twitter_title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          canonical_url?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          meta_description?: string | null
+          meta_keywords?: string | null
+          og_description?: string | null
+          og_image?: string | null
+          og_title?: string | null
+          page_title?: string | null
+          page_url?: string
+          robots_meta?: string | null
+          schema_markup?: Json | null
+          twitter_description?: string | null
+          twitter_title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          setting_key: string
+          setting_type: string | null
+          setting_value: Json | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          setting_key: string
+          setting_type?: string | null
+          setting_value?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          setting_key?: string
+          setting_type?: string | null
+          setting_value?: Json | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      testimonials: {
+        Row: {
+          content: string
+          created_at: string | null
+          customer_location: string | null
+          customer_name: string
+          customer_photo: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          rating: number | null
+          service_type: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          customer_location?: string | null
+          customer_name: string
+          customer_photo?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          rating?: number | null
+          service_type?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          customer_location?: string | null
+          customer_name?: string
+          customer_photo?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          rating?: number | null
+          service_type?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      transport_services: {
+        Row: {
+          capacity: number
+          created_at: string | null
+          description: string | null
+          driver_contact: string | null
+          driver_name: string | null
+          features: string[] | null
+          id: string
+          is_ac: boolean | null
+          is_active: boolean | null
+          luggage_capacity: string | null
+          price: number
+          route: string
+          vehicle_details: Json | null
+          vehicle_type: Database["public"]["Enums"]["transport_type"]
+        }
+        Insert: {
+          capacity: number
+          created_at?: string | null
+          description?: string | null
+          driver_contact?: string | null
+          driver_name?: string | null
+          features?: string[] | null
+          id?: string
+          is_ac?: boolean | null
+          is_active?: boolean | null
+          luggage_capacity?: string | null
+          price: number
+          route: string
+          vehicle_details?: Json | null
+          vehicle_type: Database["public"]["Enums"]["transport_type"]
+        }
+        Update: {
+          capacity?: number
+          created_at?: string | null
+          description?: string | null
+          driver_contact?: string | null
+          driver_name?: string | null
+          features?: string[] | null
+          id?: string
+          is_ac?: boolean | null
+          is_active?: boolean | null
+          luggage_capacity?: string | null
+          price?: number
+          route?: string
+          vehicle_details?: Json | null
+          vehicle_type?: Database["public"]["Enums"]["transport_type"]
+        }
+        Relationships: []
+      }
+      umrah_packages: {
+        Row: {
+          available_spots: number | null
+          booking_deadline: string | null
+          category_id: string | null
+          created_at: string | null
+          departure_date: string | null
+          description: string | null
+          duration: string
+          exclusions: string[] | null
+          featured_image: string | null
+          id: string
+          images: string[] | null
+          inclusions: string[] | null
+          is_group_package: boolean | null
+          itinerary: Json | null
+          madinah_hotel_id: string | null
+          makkah_hotel_id: string | null
+          max_capacity: number | null
+          min_participants: number | null
+          name: string
+          price: number
+          return_date: string | null
+          status: Database["public"]["Enums"]["package_status"] | null
+          terms_conditions: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          available_spots?: number | null
+          booking_deadline?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          description?: string | null
+          duration: string
+          exclusions?: string[] | null
+          featured_image?: string | null
+          id?: string
+          images?: string[] | null
+          inclusions?: string[] | null
+          is_group_package?: boolean | null
+          itinerary?: Json | null
+          madinah_hotel_id?: string | null
+          makkah_hotel_id?: string | null
+          max_capacity?: number | null
+          min_participants?: number | null
+          name: string
+          price: number
+          return_date?: string | null
+          status?: Database["public"]["Enums"]["package_status"] | null
+          terms_conditions?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          available_spots?: number | null
+          booking_deadline?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          departure_date?: string | null
+          description?: string | null
+          duration?: string
+          exclusions?: string[] | null
+          featured_image?: string | null
+          id?: string
+          images?: string[] | null
+          inclusions?: string[] | null
+          is_group_package?: boolean | null
+          itinerary?: Json | null
+          madinah_hotel_id?: string | null
+          makkah_hotel_id?: string | null
+          max_capacity?: number | null
+          min_participants?: number | null
+          name?: string
+          price?: number
+          return_date?: string | null
+          status?: Database["public"]["Enums"]["package_status"] | null
+          terms_conditions?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "umrah_packages_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_packages_madinah_hotel_id_fkey"
+            columns: ["madinah_hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_packages_makkah_hotel_id_fkey"
+            columns: ["makkah_hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ziarath_services: {
+        Row: {
+          best_time: string | null
+          created_at: string | null
+          description: string | null
+          duration: string
+          guide_id: string | null
+          historical_importance: string | null
+          id: string
+          images: string[] | null
+          inclusions: string[] | null
+          location: string
+          max_participants: number | null
+          price: number
+          significance: string | null
+          status: string | null
+          title: string
+          ziarath_type: Database["public"]["Enums"]["ziarath_type"]
+        }
+        Insert: {
+          best_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration: string
+          guide_id?: string | null
+          historical_importance?: string | null
+          id?: string
+          images?: string[] | null
+          inclusions?: string[] | null
+          location: string
+          max_participants?: number | null
+          price: number
+          significance?: string | null
+          status?: string | null
+          title: string
+          ziarath_type: Database["public"]["Enums"]["ziarath_type"]
+        }
+        Update: {
+          best_time?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration?: string
+          guide_id?: string | null
+          historical_importance?: string | null
+          id?: string
+          images?: string[] | null
+          inclusions?: string[] | null
+          location?: string
+          max_participants?: number | null
+          price?: number
+          significance?: string | null
+          status?: string | null
+          title?: string
+          ziarath_type?: Database["public"]["Enums"]["ziarath_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ziarath_services_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guide_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      blog_status: "draft" | "published" | "archived"
+      booking_status: "pending" | "confirmed" | "cancelled" | "completed"
+      flight_type: "direct" | "connecting"
+      guide_service_type:
+        | "personal_guide"
+        | "group_guide"
+        | "ziarath_guide"
+        | "translation_service"
+      hotel_rating: "3_star" | "4_star" | "5_star" | "luxury"
+      lead_status: "new" | "contacted" | "qualified" | "converted" | "lost"
+      package_status: "active" | "inactive" | "draft"
+      room_type: "single" | "double" | "triple" | "quad" | "family"
+      transport_type: "bus" | "car" | "van" | "luxury_car"
+      visa_status: "active" | "suspended" | "discontinued"
+      ziarath_type:
+        | "makkah_ziarath"
+        | "madinah_ziarath"
+        | "taif_ziarath"
+        | "badr_ziarath"
+        | "jeddah_ziarath"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +1468,29 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      blog_status: ["draft", "published", "archived"],
+      booking_status: ["pending", "confirmed", "cancelled", "completed"],
+      flight_type: ["direct", "connecting"],
+      guide_service_type: [
+        "personal_guide",
+        "group_guide",
+        "ziarath_guide",
+        "translation_service",
+      ],
+      hotel_rating: ["3_star", "4_star", "5_star", "luxury"],
+      lead_status: ["new", "contacted", "qualified", "converted", "lost"],
+      package_status: ["active", "inactive", "draft"],
+      room_type: ["single", "double", "triple", "quad", "family"],
+      transport_type: ["bus", "car", "van", "luxury_car"],
+      visa_status: ["active", "suspended", "discontinued"],
+      ziarath_type: [
+        "makkah_ziarath",
+        "madinah_ziarath",
+        "taif_ziarath",
+        "badr_ziarath",
+        "jeddah_ziarath",
+      ],
+    },
   },
 } as const
