@@ -22,11 +22,11 @@ const Footer = () => {
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-gray-400">
                 <Phone className="w-4 h-4" />
-                <span>24/7 Support: +1-234-567-8900</span>
+                <span>Support: +91-78920-09800</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-400">
                 <Mail className="w-4 h-4" />
-                <span>info@marhabahaji.com</span>
+                <span>support@marhabahaji.com</span>
               </div>
             </div>
           </div>
