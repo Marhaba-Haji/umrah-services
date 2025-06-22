@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import HeroSection from '../components/HeroSection';
 import TrustIndicators from '../components/TrustIndicators';
@@ -12,8 +12,21 @@ import AdditionalServices from '../components/AdditionalServices';
 import FAQSection from '../components/FAQSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import Footer from '../components/Footer';
+import LeadCapturePopup from '../components/LeadCapturePopup';
+import WhatsAppWidget from '../components/WhatsAppWidget';
 
 const Index = () => {
+  const [showPopup, setShowPopup] = useState(false);
+
+  useEffect(() => {
+    // Show popup after 15 seconds
+    const timer = setTimeout(() => {
+      setShowPopup(true);
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -30,6 +43,15 @@ const Index = () => {
         <FAQSection />
       </main>
       <Footer />
+      
+      {/* Lead Capture Popup */}
+      <LeadCapturePopup 
+        isOpen={showPopup} 
+        onClose={() => setShowPopup(false)} 
+      />
+      
+      {/* WhatsApp Widget */}
+      <WhatsAppWidget />
     </div>
   );
 };
