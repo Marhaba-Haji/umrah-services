@@ -76,7 +76,7 @@ const Header = () => {
             <Link to="/blog-post" className="text-gray-700 hover:text-emerald-600 transition-colors">Blog</Link>
             
             <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
-            <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
+            
           </nav>
 
           <div className="hidden md:flex items-center space-x-4">
