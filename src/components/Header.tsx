@@ -45,7 +45,8 @@ const Header = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
-            <a href="#how-it-works" className="text-gray-700 hover:text-emerald-600 transition-colors">How It Works</a>
+            <a href="#book-hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</a>
+            <a href="#book-transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</a>
             <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
             <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
             <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
@@ -75,7 +76,8 @@ const Header = () => {
           <div className="md:hidden py-4 border-t border-gray-100">
             <nav className="flex flex-col space-y-4">
               <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-emerald-600 transition-colors">How It Works</a>
+              <a href="#book-hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</a>
+              <a href="#book-transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</a>
               <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
               <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
               <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
