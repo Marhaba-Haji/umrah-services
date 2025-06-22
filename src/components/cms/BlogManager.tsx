@@ -470,7 +470,7 @@ const BlogManager = () => {
                           <FormLabel>Twitter Title</FormLabel>
                           <FormControl>
                             <Input placeholder="Twitter Card Title" {...field} />
-                          FormControl>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
