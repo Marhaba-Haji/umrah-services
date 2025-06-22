@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface BlogPost {
   id: number;
@@ -24,6 +25,19 @@ interface BlogPost {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  schemaMarkup?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  ogType?: string;
+  ogUrl?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
+  twitterImage?: string;
+  twitterCardType?: string;
+  featuredImage?: string;
+  featuredImageAlt?: string;
 }
 
 const BlogManager = () => {
@@ -58,7 +72,20 @@ const BlogManager = () => {
       author: 'Admin',
       metaTitle: '',
       metaDescription: '',
-      metaKeywords: ''
+      metaKeywords: '',
+      schemaMarkup: '',
+      canonicalUrl: '',
+      ogTitle: '',
+      ogDescription: '',
+      ogImage: '',
+      ogType: '',
+      ogUrl: '',
+      twitterTitle: '',
+      twitterDescription: '',
+      twitterImage: '',
+      twitterCardType: '',
+      featuredImage: '',
+      featuredImageAlt: '',
     }
   });
 
@@ -82,7 +109,20 @@ const BlogManager = () => {
       publishDate: editingPost ? editingPost.publishDate : new Date().toISOString().split('T')[0],
       metaTitle: data.metaTitle || data.title,
       metaDescription: data.metaDescription || data.excerpt,
-      metaKeywords: data.metaKeywords
+      metaKeywords: data.metaKeywords,
+      schemaMarkup: data.schemaMarkup,
+      canonicalUrl: data.canonicalUrl,
+      ogTitle: data.ogTitle,
+      ogDescription: data.ogDescription,
+      ogImage: data.ogImage,
+      ogType: data.ogType,
+      ogUrl: data.ogUrl,
+      twitterTitle: data.twitterTitle,
+      twitterDescription: data.twitterDescription,
+      twitterImage: data.twitterImage,
+      twitterCardType: data.twitterCardType,
+      featuredImage: data.featuredImage,
+      featuredImageAlt: data.featuredImageAlt,
     };
 
     if (editingPost) {
@@ -108,7 +148,20 @@ const BlogManager = () => {
       author: post.author,
       metaTitle: post.metaTitle,
       metaDescription: post.metaDescription,
-      metaKeywords: post.metaKeywords
+      metaKeywords: post.metaKeywords,
+      schemaMarkup: post.schemaMarkup,
+      canonicalUrl: post.canonicalUrl,
+      ogTitle: post.ogTitle,
+      ogDescription: post.ogDescription,
+      ogImage: post.ogImage,
+      ogType: post.ogType,
+      ogUrl: post.ogUrl,
+      twitterTitle: post.twitterTitle,
+      twitterDescription: post.twitterDescription,
+      twitterImage: post.twitterImage,
+      twitterCardType: post.twitterCardType,
+      featuredImage: post.featuredImage,
+      featuredImageAlt: post.featuredImageAlt,
     });
     setIsDialogOpen(true);
   };
@@ -184,16 +237,73 @@ const BlogManager = () => {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Write your blog content here..." 
-                          rows={8}
-                          {...field} 
+                        <ReactQuill
+                          theme="snow"
+                          value={field.value}
+                          onChange={field.onChange}
+                          modules={{
+                            toolbar: [
+                              [{ 'header': [1, 2, 3, false] }],
+                              ['bold', 'italic', 'underline', 'strike', 'blockquote'],
+                              [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                              ['link', 'image', 'video'],
+                              ['clean']
+                            ]
+                          }}
+                          formats={[
+                            'header', 'bold', 'italic', 'underline', 'strike', 'blockquote',
+                            'list', 'bullet', 'link', 'image', 'video'
+                          ]}
+                          placeholder="Write your blog content here... (Rich Text, images, YouTube videos supported)"
+                          style={{ minHeight: 200 }}
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="featuredImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Featured Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = () => field.onChange(reader.result as string);
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </FormControl>
+                        {field.value && (
+                          <img src={field.value} alt="preview" className="w-24 h-16 object-cover rounded mt-2" />
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="featuredImageAlt"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Featured Image Alt Tag</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Describe the featured image" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
@@ -257,16 +367,16 @@ const BlogManager = () => {
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="text-lg font-semibold mb-4">SEO Settings</h4>
-                  <div className="space-y-4">
+                  <h4 className="text-lg font-semibold mb-4">SEO & Social Settings</h4>
+                  <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="metaTitle"
+                      name="schemaMarkup"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meta Title</FormLabel>
+                          <FormLabel>Schema Markup (JSON-LD)</FormLabel>
                           <FormControl>
-                            <Input placeholder="SEO optimized title" {...field} />
+                            <Textarea placeholder="Paste schema markup here..." rows={3} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -274,12 +384,12 @@ const BlogManager = () => {
                     />
                     <FormField
                       control={form.control}
-                      name="metaDescription"
+                      name="canonicalUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meta Description</FormLabel>
+                          <FormLabel>Canonical URL</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="SEO description (150-160 characters)" {...field} />
+                            <Input placeholder="https://example.com/blog-post" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -287,12 +397,116 @@ const BlogManager = () => {
                     />
                     <FormField
                       control={form.control}
-                      name="metaKeywords"
+                      name="ogTitle"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Meta Keywords</FormLabel>
+                          <FormLabel>OG Title</FormLabel>
                           <FormControl>
-                            <Input placeholder="keyword1, keyword2, keyword3" {...field} />
+                            <Input placeholder="Open Graph Title" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ogDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Description</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Open Graph Description" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ogImage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Image URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/og-image.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ogType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="article, website, etc." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ogUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/blog-post" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="twitterTitle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Twitter Card Title" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="twitterDescription"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter Description</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Twitter Card Description" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="twitterImage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter Image URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/twitter-image.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="twitterCardType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Twitter Card Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="summary, summary_large_image, etc." {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

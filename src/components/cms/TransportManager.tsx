@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,17 @@ interface Transport {
   features: string[];
   status: string;
   description: string;
+  routeDistance?: string;
+  vehicleImage?: string;
+  travelDuration?: string;
 }
+
+const FEATURE_OPTIONS = [
+  'AC', 'WiFi', 'Reclining Seats', 'Charger', 'TV', 'Music', 'Luggage', 'Water', 'Snacks', 'GPS', 'Leather Seats', 'Sunroof'
+];
+const VEHICLE_TYPES = [
+  'Sedan', 'Mini Van', 'GMC', 'Large Van', 'Mini Bus', 'Bus'
+];
 
 const TransportManager = () => {
   const [transports, setTransports] = useState<Transport[]>([
@@ -59,9 +68,12 @@ const TransportManager = () => {
       route: '',
       capacity: '',
       price: '',
-      features: '',
+      features: [],
       status: 'Active',
-      description: ''
+      description: '',
+      routeDistance: '',
+      vehicleImage: '',
+      travelDuration: '',
     }
   });
 
@@ -73,9 +85,12 @@ const TransportManager = () => {
       route: data.route,
       capacity: parseInt(data.capacity),
       price: data.price,
-      features: data.features.split(',').map((item: string) => item.trim()),
+      features: data.features,
       status: data.status,
-      description: data.description
+      description: data.description,
+      routeDistance: data.routeDistance,
+      vehicleImage: data.vehicleImage,
+      travelDuration: data.travelDuration,
     };
 
     if (editingTransport) {
@@ -97,9 +112,12 @@ const TransportManager = () => {
       route: transport.route,
       capacity: transport.capacity.toString(),
       price: transport.price,
-      features: transport.features.join(', '),
+      features: transport.features,
       status: transport.status,
-      description: transport.description
+      description: transport.description,
+      routeDistance: transport.routeDistance || '',
+      vehicleImage: transport.vehicleImage || '',
+      travelDuration: transport.travelDuration || '',
     });
     setIsDialogOpen(true);
   };
@@ -119,7 +137,7 @@ const TransportManager = () => {
               Add Transport
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingTransport ? 'Edit Transport' : 'Add New Transport'}</DialogTitle>
             </DialogHeader>
@@ -139,10 +157,9 @@ const TransportManager = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Bus">Bus</SelectItem>
-                            <SelectItem value="Van">Van</SelectItem>
-                            <SelectItem value="Car">Car</SelectItem>
-                            <SelectItem value="Taxi">Taxi</SelectItem>
+                            {VEHICLE_TYPES.map(type => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -193,6 +210,35 @@ const TransportManager = () => {
                   />
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="routeDistance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Route Distance (km)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 80" type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="travelDuration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Travel Duration (minutes)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 90" type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="price"
@@ -212,10 +258,52 @@ const TransportManager = () => {
                   name="features"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Features (comma separated)</FormLabel>
+                      <FormLabel>Features</FormLabel>
+                      <div className="grid grid-cols-3 gap-2">
+                        {FEATURE_OPTIONS.map(feature => (
+                          <label key={feature} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={field.value?.includes(feature)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  field.onChange([...(field.value || []), feature]);
+                                } else {
+                                  field.onChange((field.value || []).filter((f: string) => f !== feature));
+                                }
+                              }}
+                            />
+                            {feature}
+                          </label>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="vehicleImage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Vehicle Image</FormLabel>
                       <FormControl>
-                        <Input placeholder="AC, WiFi, Reclining Seats" {...field} />
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const reader = new FileReader();
+                            reader.onload = () => field.onChange(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }}
+                        />
                       </FormControl>
+                      {field.value && (
+                        <img src={field.value} alt="preview" className="w-24 h-16 object-cover rounded mt-2" />
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

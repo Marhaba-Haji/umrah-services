@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,13 +16,22 @@ interface GuideService {
   guidePhoto: string;
   guideCity: string;
   guideContact: string;
-  serviceType: string;
+  serviceType: string[];
+  servicePrices: { [service: string]: string };
   languages: string[];
   experience: string;
   rating: number;
   status: string;
   description: string;
 }
+
+const SERVICE_TYPES = [
+  'Umrah Guide',
+  'Makkah Ziarath Guide',
+  'Madinah Ziarath Guide',
+  'Taif Ziarath Guide',
+  'Badr Ziarath Guide',
+];
 
 const GuideServicesManager = () => {
   const [guides, setGuides] = useState<GuideService[]>([
@@ -33,7 +41,8 @@ const GuideServicesManager = () => {
       guidePhoto: '/placeholder.svg',
       guideCity: 'Makkah', 
       guideContact: '+966501234567', 
-      serviceType: 'Umrah Guide',
+      serviceType: ['Umrah Guide'],
+      servicePrices: {},
       languages: ['Arabic', 'English', 'Urdu'],
       experience: '5 years',
       rating: 4.8,
@@ -51,7 +60,8 @@ const GuideServicesManager = () => {
       guidePhoto: '',
       guideCity: '',
       guideContact: '',
-      serviceType: '',
+      serviceType: [],
+      servicePrices: {},
       languages: '',
       experience: '',
       rating: '',
@@ -68,6 +78,7 @@ const GuideServicesManager = () => {
       guideCity: data.guideCity,
       guideContact: data.guideContact,
       serviceType: data.serviceType,
+      servicePrices: data.servicePrices,
       languages: data.languages.split(',').map((lang: string) => lang.trim()),
       experience: data.experience,
       rating: parseFloat(data.rating),
@@ -94,6 +105,7 @@ const GuideServicesManager = () => {
       guideCity: guide.guideCity,
       guideContact: guide.guideContact,
       serviceType: guide.serviceType,
+      servicePrices: guide.servicePrices || {},
       languages: guide.languages.join(', '),
       experience: guide.experience,
       rating: guide.rating.toString(),
@@ -123,8 +135,8 @@ const GuideServicesManager = () => {
               <DialogTitle>{editingGuide ? 'Edit Guide Service' : 'Add New Guide Service'}</DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="guideName"
@@ -162,9 +174,6 @@ const GuideServicesManager = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="guideContact"
@@ -178,47 +187,36 @@ const GuideServicesManager = () => {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="serviceType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Service Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <div className="flex flex-col gap-2">
+                    <FormField
+                      control={form.control}
+                      name="guidePhoto"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Guide Photo</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select service type" />
-                            </SelectTrigger>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = () => field.onChange(reader.result as string);
+                                reader.readAsDataURL(file);
+                              }}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Umrah Guide">Umrah Guide</SelectItem>
-                            <SelectItem value="Makkah Ziarath Guide">Makkah Ziarath Guide</SelectItem>
-                            <SelectItem value="Madinah Ziarath Guide">Madinah Ziarath Guide</SelectItem>
-                            <SelectItem value="Taif Ziarath Guide">Taif Ziarath Guide</SelectItem>
-                            <SelectItem value="Badr Ziarath Guide">Badr Ziarath Guide</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          {field.value && (
+                            <img src={field.value} alt="preview" className="w-24 h-24 object-cover rounded mt-2 border" />
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="guidePhoto"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Guide Photo URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/photo.jpg" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="languages"
@@ -245,9 +243,6 @@ const GuideServicesManager = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="rating"
@@ -276,7 +271,6 @@ const GuideServicesManager = () => {
                           <SelectContent>
                             <SelectItem value="Active">Active</SelectItem>
                             <SelectItem value="Inactive">Inactive</SelectItem>
-                            <SelectItem value="On Leave">On Leave</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -284,7 +278,65 @@ const GuideServicesManager = () => {
                     )}
                   />
                 </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="serviceType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Service Types & Prices</FormLabel>
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            {SERVICE_TYPES.map(type => (
+                              <label key={type} className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={field.value?.includes(type)}
+                                  onChange={e => {
+                                    let newTypes = field.value || [];
+                                    if (e.target.checked) {
+                                      newTypes = [...newTypes, type];
+                                    } else {
+                                      newTypes = newTypes.filter((t: string) => t !== type);
+                                    }
+                                    field.onChange(newTypes);
+                                    // Remove price if unchecked
+                                    const prices = form.getValues('servicePrices') || {};
+                                    if (!e.target.checked) {
+                                      delete prices[type];
+                                      form.setValue('servicePrices', { ...prices });
+                                    }
+                                  }}
+                                />
+                                {type}
+                              </label>
+                            ))}
+                          </div>
+                          {/* Price input for each checked service type */}
+                          <div className="grid grid-cols-1 gap-2 mt-2">
+                            {field.value && field.value.map((type: string) => (
+                              <FormField
+                                key={type}
+                                control={form.control}
+                                name={`servicePrices.${type}`}
+                                render={({ field: priceField }) => (
+                                  <FormItem>
+                                    <FormLabel>{type} Price</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder={`Enter price for ${type}`} {...priceField} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="description"
@@ -292,13 +344,12 @@ const GuideServicesManager = () => {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Guide description and specialties" {...field} />
+                        <Textarea placeholder="Guide description" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">
                     {editingGuide ? 'Update Guide' : 'Create Guide'}
@@ -340,7 +391,7 @@ const GuideServicesManager = () => {
                       </div>
                     </td>
                     <td className="p-2">{guide.guideCity}</td>
-                    <td className="p-2">{guide.serviceType}</td>
+                    <td className="p-2">{guide.serviceType.join(', ')}</td>
                     <td className="p-2">⭐ {guide.rating}</td>
                     <td className="p-2">
                       <Badge variant={guide.status === 'Active' ? 'default' : 'secondary'}>

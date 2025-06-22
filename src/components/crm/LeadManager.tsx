@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +54,9 @@ const LeadManager = () => {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [viewLead, setViewLead] = useState<Lead | null>(null);
+  const [messageLead, setMessageLead] = useState<Lead | null>(null);
+  const [messageText, setMessageText] = useState('');
 
   const form = useForm({
     defaultValues: {
@@ -388,13 +390,13 @@ const LeadManager = () => {
                     <td className="p-2">{lead.date}</td>
                     <td className="p-2">
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => setViewLead(lead)}>
                           <Eye className="w-3 h-3" />
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(lead)}>
                           <Edit className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => setMessageLead(lead)}>
                           <MessageSquare className="w-3 h-3" />
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleDelete(lead.id)}>
@@ -409,6 +411,62 @@ const LeadManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* View Lead Dialog */}
+      <Dialog open={!!viewLead} onOpenChange={() => setViewLead(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Lead Details</DialogTitle>
+          </DialogHeader>
+          {viewLead && (
+            <div className="space-y-2">
+              <div><b>Name:</b> {viewLead.name}</div>
+              <div><b>Email:</b> {viewLead.email}</div>
+              <div><b>Phone:</b> {viewLead.phone}</div>
+              <div><b>Service:</b> {viewLead.service}</div>
+              <div><b>Status:</b> {viewLead.status}</div>
+              <div><b>Source:</b> {viewLead.source}</div>
+              <div><b>Date:</b> {viewLead.date}</div>
+              {viewLead.followUpDate && <div><b>Follow Up:</b> {viewLead.followUpDate}</div>}
+              <div><b>Notes:</b> {viewLead.notes}</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Lead Dialog */}
+      <Dialog open={!!messageLead} onOpenChange={() => setMessageLead(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send Message / Log Note</DialogTitle>
+          </DialogHeader>
+          {messageLead && (
+            <form onSubmit={e => {
+              e.preventDefault();
+              if (!messageText.trim()) return;
+              setLeads(leads => leads.map(lead =>
+                lead.id === messageLead.id
+                  ? { ...lead, notes: (lead.notes ? lead.notes + '\n' : '') + messageText }
+                  : lead
+              ));
+              setMessageText('');
+              setMessageLead(null);
+            }} className="space-y-4">
+              <div><b>Lead:</b> {messageLead.name}</div>
+              <Textarea
+                placeholder="Type your message or note here..."
+                value={messageText}
+                onChange={e => setMessageText(e.target.value)}
+                rows={4}
+              />
+              <div className="flex gap-2 justify-end">
+                <Button type="submit">Send / Log</Button>
+                <Button type="button" variant="outline" onClick={() => setMessageLead(null)}>Cancel</Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

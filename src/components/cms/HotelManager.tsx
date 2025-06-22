@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +20,18 @@ interface Hotel {
   description: string;
   amenities: string[];
   city: string;
+  distanceFromHaram?: string;
+  distanceFromMasjidENabawi?: string;
+  images?: string[];
+  latitude?: string;
+  longitude?: string;
+  isShuttle?: boolean;
+  isWalkable?: boolean;
 }
+
+const FACILITIES = [
+  'WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Laundry', 'Room Service', 'Air Conditioning', 'Breakfast', 'Conference Room', 'Pet Friendly'
+];
 
 const HotelManager = () => {
   const [hotels, setHotels] = useState<Hotel[]>([
@@ -40,8 +50,15 @@ const HotelManager = () => {
       pricePerNight: '',
       status: 'Active',
       description: '',
-      amenities: '',
-      city: 'makkah'
+      amenities: [],
+      city: 'makkah',
+      distanceFromHaram: '',
+      distanceFromMasjidENabawi: '',
+      images: [],
+      latitude: '',
+      longitude: '',
+      isShuttle: false,
+      isWalkable: false,
     }
   });
 
@@ -54,8 +71,15 @@ const HotelManager = () => {
       pricePerNight: data.pricePerNight,
       status: data.status,
       description: data.description,
-      amenities: data.amenities.split(',').map((item: string) => item.trim()),
-      city: data.city
+      amenities: data.amenities,
+      city: data.city,
+      distanceFromHaram: data.city === 'makkah' ? data.distanceFromHaram : undefined,
+      distanceFromMasjidENabawi: data.city === 'madinah' ? data.distanceFromMasjidENabawi : undefined,
+      images: data.images,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      isShuttle: data.isShuttle,
+      isWalkable: data.isWalkable,
     };
 
     if (editingHotel) {
@@ -78,8 +102,15 @@ const HotelManager = () => {
       pricePerNight: hotel.pricePerNight,
       status: hotel.status,
       description: hotel.description,
-      amenities: hotel.amenities.join(', '),
-      city: hotel.city
+      amenities: hotel.amenities,
+      city: hotel.city,
+      distanceFromHaram: hotel.distanceFromHaram,
+      distanceFromMasjidENabawi: hotel.distanceFromMasjidENabawi,
+      images: hotel.images,
+      latitude: hotel.latitude,
+      longitude: hotel.longitude,
+      isShuttle: hotel.isShuttle,
+      isWalkable: hotel.isWalkable,
     });
     setIsDialogOpen(true);
   };
@@ -99,7 +130,7 @@ const HotelManager = () => {
               Add Hotel
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingHotel ? 'Edit Hotel' : 'Add New Hotel'}</DialogTitle>
             </DialogHeader>
@@ -195,6 +226,37 @@ const HotelManager = () => {
                   />
                 </div>
 
+                {form.watch('city') === 'makkah' && (
+                  <FormField
+                    control={form.control}
+                    name="distanceFromHaram"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Distance from Haram (meters)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 500" type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {form.watch('city') === 'madinah' && (
+                  <FormField
+                    control={form.control}
+                    name="distanceFromMasjidENabawi"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Distance from Masjid-e-Nabawi (meters)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 700" type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -214,14 +276,119 @@ const HotelManager = () => {
                   name="amenities"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Amenities (comma separated)</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="WiFi, Pool, Spa, Restaurant" {...field} />
-                      </FormControl>
+                      <FormLabel>Facilities</FormLabel>
+                      <div className="grid grid-cols-3 gap-2">
+                        {FACILITIES.map(facility => (
+                          <label key={facility} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={field.value?.includes(facility)}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  field.onChange([...(field.value || []), facility]);
+                                } else {
+                                  field.onChange((field.value || []).filter((f: string) => f !== facility));
+                                }
+                              }}
+                            />
+                            {facility}
+                          </label>
+                        ))}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Upload Images</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={e => {
+                            const files = Array.from(e.target.files || []);
+                            Promise.all(files.map(file => {
+                              return new Promise<string>((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result as string);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                              });
+                            })).then(images => field.onChange(images));
+                          }}
+                        />
+                      </FormControl>
+                      <div className="flex gap-2 mt-2 flex-wrap">
+                        {field.value && field.value.map((img: string, idx: number) => (
+                          <img key={idx} src={img} alt="preview" className="w-16 h-16 object-cover rounded" />
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="latitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Latitude</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 21.4225" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="longitude"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Longitude</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. 39.8262" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <FormField
+                    control={form.control}
+                    name="isShuttle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          Shuttle
+                        </label>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="isWalkable"
+                    render={({ field }) => (
+                      <FormItem>
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          Walkable
+                        </label>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}

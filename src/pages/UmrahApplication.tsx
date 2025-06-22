@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, FileText, User, Plane, CreditCard } from 'lucide-react';
+import { ChevronRight, FileText, User, Plane, CreditCard, Plus, Minus } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import UmrahApplicationSidebar from '../components/UmrahApplicationSidebar';
@@ -12,16 +12,40 @@ import FAQSection from '../components/FAQSection';
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [travelerCount, setTravelerCount] = useState(1);
+  const [currentTraveler, setCurrentTraveler] = useState(0);
+  const [travelers, setTravelers] = useState([
+    {
+      // Personal Information
+      firstName: '',
+      lastName: '',
+      nationality: '',
+      passportNumber: '',
+      passportIssue: '',
+      passportExpiry: '',
+      dateOfBirth: '',
+      gender: '',
+      email: '',
+      phone: '',
+      // Travel Information
+      departureDate: '',
+      returnDate: '',
+      departureCity: '',
+      hotelMakkah: '',
+      hotelMadinah: '',
+      transportType: '',
+    }
+  ]);
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
     lastName: '',
     nationality: '',
     passportNumber: '',
+    passportIssue: '',
     passportExpiry: '',
     dateOfBirth: '',
     gender: '',
-    maritalStatus: '',
     email: '',
     phone: '',
     
@@ -32,12 +56,34 @@ const UmrahApplication = () => {
     hotelMakkah: '',
     hotelMadinah: '',
     transportType: '',
-    
-    // Emergency Contact
-    emergencyName: '',
-    emergencyPhone: '',
-    emergencyRelation: ''
   });
+  const [passportDateError, setPassportDateError] = useState('');
+  const [passportExpiryAlert, setPassportExpiryAlert] = useState('');
+  const [dateError, setDateError] = useState('');
+  const MAX_IMAGE_SIZE_MB = 2;
+  const [uploadPreviews, setUploadPreviews] = useState({
+    passportFront: '',
+    passportBack: '',
+    photo: '',
+    flight: '',
+    makkahHotel: '',
+    madinahHotel: ''
+  });
+  const [uploadErrors, setUploadErrors] = useState({
+    passportFront: '',
+    passportBack: '',
+    photo: '',
+    flight: '',
+    makkahHotel: '',
+    madinahHotel: ''
+  });
+  const [sameAsFirst, setSameAsFirst] = useState(false);
+  const [visaType, setVisaType] = useState('express');
+  const visaPrices = {
+    standard: 299,
+    express: 449,
+    rush: 699
+  };
 
   const steps = [
     { number: 1, title: 'Personal Information', icon: User },
@@ -46,8 +92,109 @@ const UmrahApplication = () => {
     { number: 4, title: 'Payment', icon: CreditCard }
   ];
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleTravelerInputChange = (field: string, value: string) => {
+    setTravelers(prev => {
+      const updated = [...prev];
+      updated[currentTraveler] = { ...updated[currentTraveler], [field]: value };
+      return updated;
+    });
+    if (field === 'passportIssue' || field === 'passportExpiry') {
+      // Validate issue < expiry
+      const issue = field === 'passportIssue' ? value : formData.passportIssue;
+      const expiry = field === 'passportExpiry' ? value : formData.passportExpiry;
+      if (issue && expiry && new Date(issue) >= new Date(expiry)) {
+        setPassportDateError('Passport issue date must be before expiry date.');
+      } else {
+        setPassportDateError('');
+      }
+      // Validate expiry at least 180 days from today
+      if (expiry) {
+        const today = new Date();
+        const expiryDate = new Date(expiry);
+        const diffDays = (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays < 180) {
+          setPassportExpiryAlert('Passport expiry date must be at least 180 days from today!');
+        } else {
+          setPassportExpiryAlert('');
+        }
+      } else {
+        setPassportExpiryAlert('');
+      }
+    }
+    if (field === 'departureDate' || field === 'returnDate') {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const dep = field === 'departureDate' ? value : formData.departureDate;
+      const ret = field === 'returnDate' ? value : formData.returnDate;
+      let error = '';
+      if (dep) {
+        const depDate = new Date(dep);
+        const diffDep = (depDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDep < 3) error = 'Departure date must be at least 3 days from today.';
+      }
+      if (ret) {
+        const retDate = new Date(ret);
+        const diffRet = (retDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffRet < 3) error = 'Return date must be at least 3 days from today.';
+      }
+      setDateError(error);
+    }
+  };
+
+  const handleImageUpload = (field: string, file: File | null) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
+      setUploadErrors(prev => ({ ...prev, [field]: 'Only JPG, JPEG, PNG files are allowed.' }));
+      setUploadPreviews(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      setUploadErrors(prev => ({ ...prev, [field]: `Max file size is ${MAX_IMAGE_SIZE_MB}MB.` }));
+      setUploadPreviews(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+    setUploadErrors(prev => ({ ...prev, [field]: '' }));
+    const reader = new FileReader();
+    reader.onload = e => {
+      setUploadPreviews(prev => ({ ...prev, [field]: e.target?.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleTravelerCountChange = (value: string) => {
+    const count = Math.max(1, parseInt(value) || 1);
+    setTravelerCount(count);
+    setTravelers(prev => {
+      const arr = [...prev];
+      while (arr.length < count) arr.push({ ...arr[0] });
+      return arr.slice(0, count);
+    });
+    setCurrentTraveler(0);
+  };
+
+  const handleSameAsFirstChange = (checked: boolean) => {
+    setSameAsFirst(checked);
+    if (checked && currentTraveler > 0) {
+      setTravelers(prev => {
+        const updated = [...prev];
+        updated[currentTraveler] = {
+          ...updated[currentTraveler],
+          departureDate: travelers[0].departureDate,
+          returnDate: travelers[0].returnDate,
+          departureCity: travelers[0].departureCity,
+          hotelMakkah: travelers[0].hotelMakkah,
+          hotelMadinah: travelers[0].hotelMadinah,
+          transportType: travelers[0].transportType,
+        };
+        return updated;
+      });
+      setUploadPreviews(prev => ({
+        ...prev,
+        flight: uploadPreviews.flight,
+        makkahHotel: uploadPreviews.makkahHotel,
+        madinahHotel: uploadPreviews.madinahHotel
+      }));
+    }
   };
 
   const nextStep = () => {
@@ -58,6 +205,8 @@ const UmrahApplication = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
+  const totalVisaPrice = visaPrices[visaType] * travelerCount;
+
   const renderStep1 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 mb-4">Personal Information</h3>
@@ -65,22 +214,22 @@ const UmrahApplication = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
           <Input
-            value={formData.firstName}
-            onChange={(e) => handleInputChange('firstName', e.target.value)}
+            value={travelers[currentTraveler].firstName}
+            onChange={(e) => handleTravelerInputChange('firstName', e.target.value)}
             placeholder="Enter first name"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
           <Input
-            value={formData.lastName}
-            onChange={(e) => handleInputChange('lastName', e.target.value)}
+            value={travelers[currentTraveler].lastName}
+            onChange={(e) => handleTravelerInputChange('lastName', e.target.value)}
             placeholder="Enter last name"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Nationality *</label>
-          <Select value={formData.nationality} onValueChange={(value) => handleInputChange('nationality', value)}>
+          <Select value={travelers[currentTraveler].nationality} onValueChange={(value) => handleTravelerInputChange('nationality', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select nationality" />
             </SelectTrigger>
@@ -96,7 +245,7 @@ const UmrahApplication = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Gender *</label>
-          <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+          <Select value={travelers[currentTraveler].gender} onValueChange={(value) => handleTravelerInputChange('gender', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
@@ -109,55 +258,53 @@ const UmrahApplication = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Passport Number *</label>
           <Input
-            value={formData.passportNumber}
-            onChange={(e) => handleInputChange('passportNumber', e.target.value)}
+            value={travelers[currentTraveler].passportNumber}
+            onChange={(e) => handleTravelerInputChange('passportNumber', e.target.value)}
             placeholder="Enter passport number"
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Passport Expiry *</label>
-          <Input
-            type="date"
-            value={formData.passportExpiry}
-            onChange={(e) => handleInputChange('passportExpiry', e.target.value)}
-          />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Passport Issue Date *</label>
+            <Input
+              type="date"
+              value={travelers[currentTraveler].passportIssue}
+              onChange={(e) => handleTravelerInputChange('passportIssue', e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Passport Expiry *</label>
+            <Input
+              type="date"
+              value={travelers[currentTraveler].passportExpiry}
+              onChange={(e) => handleTravelerInputChange('passportExpiry', e.target.value)}
+            />
+          </div>
         </div>
+        {passportDateError && <div className="text-red-600 text-sm col-span-2">{passportDateError}</div>}
+        {passportExpiryAlert && <div className="text-yellow-600 text-sm col-span-2">{passportExpiryAlert}</div>}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
           <Input
             type="date"
-            value={formData.dateOfBirth}
-            onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+            value={travelers[currentTraveler].dateOfBirth}
+            onChange={(e) => handleTravelerInputChange('dateOfBirth', e.target.value)}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Marital Status *</label>
-          <Select value={formData.maritalStatus} onValueChange={(value) => handleInputChange('maritalStatus', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select marital status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single">Single</SelectItem>
-              <SelectItem value="married">Married</SelectItem>
-              <SelectItem value="divorced">Divorced</SelectItem>
-              <SelectItem value="widowed">Widowed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
           <Input
             type="email"
-            value={formData.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
+            value={travelers[currentTraveler].email}
+            onChange={(e) => handleTravelerInputChange('email', e.target.value)}
             placeholder="Enter email address"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
           <Input
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
+            value={travelers[currentTraveler].phone}
+            onChange={(e) => handleTravelerInputChange('phone', e.target.value)}
             placeholder="Enter phone number"
           />
         </div>
@@ -168,68 +315,67 @@ const UmrahApplication = () => {
   const renderStep2 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 mb-4">Travel Details</h3>
+      {currentTraveler > 0 && (
+        <div className="mb-4 flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="sameAsFirst"
+            checked={sameAsFirst}
+            onChange={e => handleSameAsFirstChange(e.target.checked)}
+          />
+          <label htmlFor="sameAsFirst" className="text-sm font-medium text-gray-700">Same as Traveler 1</label>
+        </div>
+      )}
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Departure Date *</label>
           <Input
             type="date"
-            value={formData.departureDate}
-            onChange={(e) => handleInputChange('departureDate', e.target.value)}
+            value={travelers[currentTraveler].departureDate}
+            onChange={(e) => handleTravelerInputChange('departureDate', e.target.value)}
+            disabled={sameAsFirst && currentTraveler > 0}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Return Date *</label>
           <Input
             type="date"
-            value={formData.returnDate}
-            onChange={(e) => handleInputChange('returnDate', e.target.value)}
+            value={travelers[currentTraveler].returnDate}
+            onChange={(e) => handleTravelerInputChange('returnDate', e.target.value)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+        </div>
+        {dateError && <div className="text-red-600 text-sm col-span-2">{dateError}</div>}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Departure City *</label>
+          <Input
+            value={travelers[currentTraveler].departureCity}
+            onChange={(e) => handleTravelerInputChange('departureCity', e.target.value)}
+            placeholder="Enter departure city"
+            disabled={sameAsFirst && currentTraveler > 0}
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Departure City *</label>
-          <Select value={formData.departureCity} onValueChange={(value) => handleInputChange('departureCity', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select departure city" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="NYC">New York</SelectItem>
-              <SelectItem value="LON">London</SelectItem>
-              <SelectItem value="DEL">Delhi</SelectItem>
-              <SelectItem value="MUM">Mumbai</SelectItem>
-              <SelectItem value="KHI">Karachi</SelectItem>
-              <SelectItem value="DHK">Dhaka</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Hotel in Makkah *</label>
-          <Select value={formData.hotelMakkah} onValueChange={(value) => handleInputChange('hotelMakkah', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select hotel in Makkah" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="fairmont">Fairmont Makkah Clock Royal Tower</SelectItem>
-              <SelectItem value="hilton">Hilton Makkah Convention Hotel</SelectItem>
-              <SelectItem value="swissotel">Swissôtel Makkah</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            value={travelers[currentTraveler].hotelMakkah}
+            onChange={(e) => handleTravelerInputChange('hotelMakkah', e.target.value)}
+            placeholder="Enter hotel name in Makkah"
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Hotel in Madinah *</label>
-          <Select value={formData.hotelMadinah} onValueChange={(value) => handleInputChange('hotelMadinah', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select hotel in Madinah" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="oberoi">The Oberoi Madinah</SelectItem>
-              <SelectItem value="hilton-madinah">Hilton Madinah</SelectItem>
-              <SelectItem value="anwar">Anwar Al Madinah Movenpick</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            value={travelers[currentTraveler].hotelMadinah}
+            onChange={(e) => handleTravelerInputChange('hotelMadinah', e.target.value)}
+            placeholder="Enter hotel name in Madinah"
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Transport Type *</label>
-          <Select value={formData.transportType} onValueChange={(value) => handleInputChange('transportType', value)}>
+          <Select value={travelers[currentTraveler].transportType} onValueChange={(value) => handleTravelerInputChange('transportType', value)} disabled={sameAsFirst && currentTraveler > 0}>
             <SelectTrigger>
               <SelectValue placeholder="Select transport type" />
             </SelectTrigger>
@@ -238,45 +384,10 @@ const UmrahApplication = () => {
               <SelectItem value="minivan">Mini Van (5 pax)</SelectItem>
               <SelectItem value="gmc">GMC (7 pax)</SelectItem>
               <SelectItem value="largevan">Large Van (10 pax)</SelectItem>
+              <SelectItem value="coaster">Coaster (20 pax)</SelectItem>
+              <SelectItem value="bus">Bus (50 pax)</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">Emergency Contact</h4>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-            <Input
-              value={formData.emergencyName}
-              onChange={(e) => handleInputChange('emergencyName', e.target.value)}
-              placeholder="Emergency contact name"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
-            <Input
-              value={formData.emergencyPhone}
-              onChange={(e) => handleInputChange('emergencyPhone', e.target.value)}
-              placeholder="Emergency contact phone"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Relationship *</label>
-            <Select value={formData.emergencyRelation} onValueChange={(value) => handleInputChange('emergencyRelation', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select relationship" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="spouse">Spouse</SelectItem>
-                <SelectItem value="parent">Parent</SelectItem>
-                <SelectItem value="sibling">Sibling</SelectItem>
-                <SelectItem value="child">Child</SelectItem>
-                <SelectItem value="friend">Friend</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
       </div>
     </div>
@@ -285,45 +396,114 @@ const UmrahApplication = () => {
   const renderStep3 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 mb-4">Document Upload</h3>
-      <div className="space-y-4">
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-2">Passport Copy *</h4>
-          <p className="text-gray-600 mb-4">Upload a clear copy of your passport (first page)</p>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="passport" />
-          <Button variant="outline" onClick={() => document.getElementById('passport')?.click()}>
-            Choose File
-          </Button>
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Passport Front Page */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Passport Front Page *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="passportFront"
+            onChange={e => handleImageUpload('passportFront', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('passportFront')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {uploadPreviews.passportFront && <img src={uploadPreviews.passportFront} alt="Passport Front Preview" className="mt-2 w-32 h-20 object-cover rounded border" />}
+          {uploadErrors.passportFront && <div className="text-red-600 text-xs mt-1">{uploadErrors.passportFront}</div>}
         </div>
-        
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-2">Passport Size Photo *</h4>
-          <p className="text-gray-600 mb-4">Upload a recent passport size photograph (white background)</p>
-          <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="photo" />
-          <Button variant="outline" onClick={() => document.getElementById('photo')?.click()}>
-            Choose File
-          </Button>
+        {/* Passport Back Page */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Passport Back Page *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="passportBack"
+            onChange={e => handleImageUpload('passportBack', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('passportBack')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {uploadPreviews.passportBack && <img src={uploadPreviews.passportBack} alt="Passport Back Preview" className="mt-2 w-32 h-20 object-cover rounded border" />}
+          {uploadErrors.passportBack && <div className="text-red-600 text-xs mt-1">{uploadErrors.passportBack}</div>}
         </div>
-
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-2">Flight Booking Confirmation *</h4>
-          <p className="text-gray-600 mb-4">Upload confirmed return flight booking</p>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="flight" />
-          <Button variant="outline" onClick={() => document.getElementById('flight')?.click()}>
-            Choose File
-          </Button>
+        {/* Passport Size Photo */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Passport Size Photo *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="photo"
+            onChange={e => handleImageUpload('photo', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('photo')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {uploadPreviews.photo && <img src={uploadPreviews.photo} alt="Photo Preview" className="mt-2 w-20 h-20 object-cover rounded-full border" />}
+          {uploadErrors.photo && <div className="text-red-600 text-xs mt-1">{uploadErrors.photo}</div>}
         </div>
-
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h4 className="text-lg font-medium text-gray-900 mb-2">Hotel Booking Confirmation *</h4>
-          <p className="text-gray-600 mb-4">Upload confirmed hotel booking from approved hotels</p>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" id="hotel" />
-          <Button variant="outline" onClick={() => document.getElementById('hotel')?.click()}>
-            Choose File
-          </Button>
+        {/* Flight Booking Confirmation */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Flight Booking Confirmation *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="flight"
+            onChange={e => handleImageUpload('flight', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('flight')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {(sameAsFirst && currentTraveler > 0 && uploadPreviews.flight) ? (
+            <img src={uploadPreviews.flight} alt="Flight Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          ) : (
+            uploadPreviews.flight && <img src={uploadPreviews.flight} alt="Flight Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          )}
+          {uploadErrors.flight && <div className="text-red-600 text-xs mt-1">{uploadErrors.flight}</div>}
+        </div>
+        {/* Makkah Hotel Booking Confirmation */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Makkah Hotel Booking Confirmation *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="makkahHotel"
+            onChange={e => handleImageUpload('makkahHotel', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('makkahHotel')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {(sameAsFirst && currentTraveler > 0 && uploadPreviews.makkahHotel) ? (
+            <img src={uploadPreviews.makkahHotel} alt="Makkah Hotel Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          ) : (
+            uploadPreviews.makkahHotel && <img src={uploadPreviews.makkahHotel} alt="Makkah Hotel Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          )}
+          {uploadErrors.makkahHotel && <div className="text-red-600 text-xs mt-1">{uploadErrors.makkahHotel}</div>}
+        </div>
+        {/* Madinah Hotel Booking Confirmation */}
+        <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
+          <h4 className="font-medium mb-1">Madinah Hotel Booking Confirmation *</h4>
+          <p className="text-xs text-gray-500 mb-2">JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.</p>
+          <input
+            type="file"
+            accept=".jpg,.jpeg,.png"
+            className="hidden"
+            id="madinahHotel"
+            onChange={e => handleImageUpload('madinahHotel', e.target.files?.[0] || null)}
+            disabled={sameAsFirst && currentTraveler > 0}
+          />
+          <Button variant="outline" onClick={() => document.getElementById('madinahHotel')?.click()} size="sm" disabled={sameAsFirst && currentTraveler > 0}>Upload</Button>
+          {(sameAsFirst && currentTraveler > 0 && uploadPreviews.madinahHotel) ? (
+            <img src={uploadPreviews.madinahHotel} alt="Madinah Hotel Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          ) : (
+            uploadPreviews.madinahHotel && <img src={uploadPreviews.madinahHotel} alt="Madinah Hotel Preview" className="mt-2 w-32 h-20 object-cover rounded border" />
+          )}
+          {uploadErrors.madinahHotel && <div className="text-red-600 text-xs mt-1">{uploadErrors.madinahHotel}</div>}
         </div>
       </div>
     </div>
@@ -338,21 +518,21 @@ const UmrahApplication = () => {
           <h4 className="text-lg font-semibold text-emerald-800 mb-4">Application Summary</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span>Umrah Visa Processing Fee:</span>
-              <span className="font-semibold">$299</span>
+              <span>Visa Type:</span>
+              <span className="font-semibold capitalize">{visaType}</span>
             </div>
             <div className="flex justify-between">
-              <span>Service Fee:</span>
-              <span className="font-semibold">$50</span>
+              <span>Visa Fee per Traveler:</span>
+              <span className="font-semibold">${visaPrices[visaType]}</span>
             </div>
             <div className="flex justify-between">
-              <span>Processing Speed (3-5 days):</span>
-              <span className="font-semibold">$75</span>
+              <span>Number of Travelers:</span>
+              <span className="font-semibold">{travelerCount}</span>
             </div>
             <hr className="my-2 border-emerald-300" />
             <div className="flex justify-between text-lg font-bold text-emerald-800">
-              <span>Total Amount:</span>
-              <span>$424</span>
+              <span>Total Visa Amount:</span>
+              <span>${totalVisaPrice}</span>
             </div>
           </div>
         </CardContent>
@@ -366,7 +546,7 @@ const UmrahApplication = () => {
             window.open('https://checkout.stripe.com', '_blank');
           }}
         >
-          💳 Pay Now - $424
+          💳 Pay Now - ${totalVisaPrice}
         </Button>
         <p className="text-sm text-gray-600 mt-4">
           🔒 Secure payment powered by Stripe. Your card details are safe and encrypted.
@@ -391,23 +571,32 @@ const UmrahApplication = () => {
           {/* Right Content - Form Flow */}
           <div className="lg:col-span-3">
             {/* Visa Types and Pricing - moved here from sidebar */}
-            <Card className="p-6 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Visa Types & Pricing</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 border rounded-lg">
-                  <Badge className="bg-blue-100 text-blue-800 mb-2">Standard</Badge>
-                  <h3 className="font-semibold text-sm mb-2">5-7 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600">$299</p>
+            <Card className="p-4 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Select Umrah Visa Type</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div
+                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'standard' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
+                  onClick={() => setVisaType('standard')}
+                >
+                  <Badge className="bg-blue-100 text-blue-800 mb-1 text-xs px-2 py-1 rounded">Standard</Badge>
+                  <h3 className="font-semibold text-xs mb-1">5-7 Business Days</h3>
+                  <p className="text-xl font-bold text-emerald-600">${visaPrices.standard}</p>
                 </div>
-                <div className="text-center p-4 border-2 border-emerald-500 rounded-lg bg-emerald-50">
-                  <Badge className="bg-emerald-100 text-emerald-800 mb-2">Express</Badge>
-                  <h3 className="font-semibold text-sm mb-2">2-4 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600">$449</p>
+                <div
+                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'express' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
+                  onClick={() => setVisaType('express')}
+                >
+                  <Badge className="bg-emerald-100 text-emerald-800 mb-1 text-xs px-2 py-1 rounded">Express</Badge>
+                  <h3 className="font-semibold text-xs mb-1">2-4 Business Days</h3>
+                  <p className="text-xl font-bold text-emerald-600">${visaPrices.express}</p>
                 </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <Badge className="bg-red-100 text-red-800 mb-2">Rush</Badge>
-                  <h3 className="font-semibold text-sm mb-2">1-2 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600">$699</p>
+                <div
+                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'rush' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
+                  onClick={() => setVisaType('rush')}
+                >
+                  <Badge className="bg-red-100 text-red-800 mb-1 text-xs px-2 py-1 rounded">Rush</Badge>
+                  <h3 className="font-semibold text-xs mb-1">1-2 Business Days</h3>
+                  <p className="text-xl font-bold text-emerald-600">${visaPrices.rush}</p>
                 </div>
               </div>
             </Card>
@@ -440,10 +629,50 @@ const UmrahApplication = () => {
             {/* Form Content */}
             <Card className="shadow-lg">
               <CardContent className="p-8">
+                <div className="mb-8 flex items-center gap-4">
+                  <label className="block text-lg font-semibold text-gray-900">Number of Travelers / Visas Required</label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={() => handleTravelerCountChange(String(Math.max(1, travelerCount - 1)))}
+                    disabled={travelerCount <= 1}
+                  >
+                    <Minus className="w-4 h-4" />
+                  </Button>
+                  <span className="text-xl font-bold w-8 text-center">{travelerCount}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                    onClick={() => handleTravelerCountChange(String(travelerCount + 1))}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="mb-4">
+                  <Badge className="bg-emerald-100 text-emerald-800">Traveler {currentTraveler + 1} of {travelerCount}</Badge>
+                </div>
                 {currentStep === 1 && renderStep1()}
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}
-                {currentStep === 4 && renderStep4()}
+                {currentStep === 4 && currentTraveler < travelerCount - 1 ? (
+                  <div className="text-center my-8">
+                    <Button
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 text-lg font-semibold"
+                      onClick={() => {
+                        setCurrentTraveler(currentTraveler + 1);
+                        setCurrentStep(1);
+                      }}
+                    >
+                      Add Traveler {currentTraveler + 2} Details
+                    </Button>
+                    <p className="text-sm text-gray-600 mt-2">Please add details for all travelers before proceeding to payment.</p>
+                  </div>
+                ) : null}
+                {currentStep === 4 && currentTraveler === travelerCount - 1 && renderStep4()}
 
                 {/* Navigation Buttons */}
                 <div className="flex justify-between mt-8">

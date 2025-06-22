@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,7 +16,9 @@ interface SaudiVisa {
   visaCategory: string;
   price: string;
   processingTime: string;
-  validity: string;
+  visaValidity: string;
+  stayValidity: string;
+  numberOfEntries: string;
   requirements: string[];
   description: string;
   status: string;
@@ -31,7 +32,9 @@ const SaudiVisasManager = () => {
       visaCategory: 'Basic',
       price: '$120', 
       processingTime: '3-5 days',
-      validity: '30 days',
+      visaValidity: '30 days',
+      stayValidity: '15 days',
+      numberOfEntries: 'Single',
       requirements: ['Passport', 'Photo', 'Vaccination Certificate'],
       description: 'Basic Umrah visa for pilgrimage',
       status: 'Active'
@@ -47,7 +50,9 @@ const SaudiVisasManager = () => {
       visaCategory: '',
       price: '',
       processingTime: '',
-      validity: '',
+      visaValidity: '',
+      stayValidity: '',
+      numberOfEntries: '',
       requirements: '',
       description: '',
       status: 'Active'
@@ -61,7 +66,9 @@ const SaudiVisasManager = () => {
       visaCategory: data.visaCategory,
       price: data.price,
       processingTime: data.processingTime,
-      validity: data.validity,
+      visaValidity: data.visaValidity,
+      stayValidity: data.stayValidity,
+      numberOfEntries: data.numberOfEntries,
       requirements: data.requirements.split(',').map((req: string) => req.trim()),
       description: data.description,
       status: data.status
@@ -85,7 +92,9 @@ const SaudiVisasManager = () => {
       visaCategory: visa.visaCategory,
       price: visa.price,
       processingTime: visa.processingTime,
-      validity: visa.validity,
+      visaValidity: visa.visaValidity,
+      stayValidity: visa.stayValidity,
+      numberOfEntries: visa.numberOfEntries,
       requirements: visa.requirements.join(', '),
       description: visa.description,
       status: visa.status
@@ -108,7 +117,7 @@ const SaudiVisasManager = () => {
               Add Visa
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingVisa ? 'Edit Saudi Visa' : 'Add New Saudi Visa'}</DialogTitle>
             </DialogHeader>
@@ -194,19 +203,47 @@ const SaudiVisasManager = () => {
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="validity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Validity</FormLabel>
-                      <FormControl>
-                        <Input placeholder="30 days" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="visaValidity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Visa Validity</FormLabel>
+                        <FormControl>
+                          <Input placeholder="30 days" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="stayValidity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Stay Validity</FormLabel>
+                        <FormControl>
+                          <Input placeholder="15 days" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="numberOfEntries"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Number of Entries</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Single / Multiple" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -293,7 +330,7 @@ const SaudiVisasManager = () => {
                     <td className="p-2">
                       <div>
                         <div className="font-medium">{visa.visaType}</div>
-                        <div className="text-sm text-gray-500">Valid for {visa.validity}</div>
+                        <div className="text-sm text-gray-500">Valid for {visa.visaValidity}</div>
                       </div>
                     </td>
                     <td className="p-2">
