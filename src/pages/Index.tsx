@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
+import Header, { CurrencyContext } from '../components/Header';
 import HeroSection from '../components/HeroSection';
 import TrustIndicators from '../components/TrustIndicators';
 import UmrahConditions from '../components/UmrahConditions';
@@ -17,6 +17,7 @@ import WhatsAppWidget from '../components/WhatsAppWidget';
 
 const Index = () => {
   const [showPopup, setShowPopup] = useState(false);
+  const [currency, setCurrency] = useState('INR');
 
   useEffect(() => {
     // Show popup after 15 seconds
@@ -28,31 +29,33 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header />
-      <main>
-        <HeroSection />
-        <TrustIndicators />
-        <UmrahConditions />
-        <ServicesSection />
-        <HowItWorks />
-        <PricingSection />
-        <OtherSaudiServices />
-        <AdditionalServices />
-        <TestimonialsSection />
-        <FAQSection />
-      </main>
-      <Footer />
-      
-      {/* Lead Capture Popup */}
-      <LeadCapturePopup 
-        isOpen={showPopup} 
-        onClose={() => setShowPopup(false)} 
-      />
-      
-      {/* WhatsApp Widget */}
-      <WhatsAppWidget />
-    </div>
+    <CurrencyContext.Provider value={{ currency, setCurrency }}>
+      <div className="min-h-screen bg-white">
+        <Header />
+        <main>
+          <HeroSection />
+          <TrustIndicators />
+          <UmrahConditions />
+          <ServicesSection />
+          <HowItWorks />
+          <PricingSection />
+          <OtherSaudiServices />
+          <AdditionalServices />
+          <TestimonialsSection />
+          <FAQSection />
+        </main>
+        <Footer />
+        
+        {/* Lead Capture Popup */}
+        <LeadCapturePopup 
+          isOpen={showPopup} 
+          onClose={() => setShowPopup(false)} 
+        />
+        
+        {/* WhatsApp Widget */}
+        <WhatsAppWidget />
+      </div>
+    </CurrencyContext.Provider>
   );
 };
 

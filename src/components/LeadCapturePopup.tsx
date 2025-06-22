@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Gift } from 'lucide-react';
+import { Gift } from 'lucide-react';
 
 interface LeadCapturePopupProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ const LeadCapturePopup = ({ isOpen, onClose }: LeadCapturePopupProps) => {
     mobile: '',
     service: ''
   });
+  const [searchTerm, setSearchTerm] = useState('');
 
   const countryCodes = [
     { code: '+1', country: 'United States', flag: '🇺🇸' },
@@ -41,6 +42,11 @@ const LeadCapturePopup = ({ isOpen, onClose }: LeadCapturePopupProps) => {
     { code: '+47', country: 'Norway', flag: '🇳🇴' },
     { code: '+45', country: 'Denmark', flag: '🇩🇰' }
   ];
+
+  const filteredCountries = countryCodes.filter(country =>
+    country.country.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    country.code.includes(searchTerm)
+  );
 
   const services = [
     'Umrah Visa',
@@ -81,19 +87,19 @@ Time: ${new Date().toLocaleString()}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" hideCloseButton>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-amber-600 to-yellow-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-[#023f3a] rounded-full flex items-center justify-center">
                 <Gift className="w-4 h-4 text-white" />
               </div>
-              <span className="bg-gradient-to-r from-amber-600 to-yellow-500 bg-clip-text text-transparent">
+              <span className="text-[#023f3a]">
                 Get FREE Consultation
               </span>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
+            <Button variant="ghost" size="sm" onClick={onClose} className="hover:bg-gray-100">
+              ✕
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -124,9 +130,17 @@ Time: ${new Date().toLocaleString()}`;
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-48">
-                    {countryCodes.map((country) => (
-                      <SelectItem key={`${country.code}-${country.country}`} value={country.code}>
-                        {country.flag} {country.code}
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search country..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    {filteredCountries.map((country, index) => (
+                      <SelectItem key={`${country.code}-${country.country}-${index}`} value={country.code}>
+                        {country.flag} {country.code} {country.country}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -162,7 +176,7 @@ Time: ${new Date().toLocaleString()}`;
             
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-amber-600 to-yellow-500 hover:from-amber-700 hover:to-yellow-600"
+              className="w-full bg-[#023f3a] hover:bg-[#023f3a]/90 text-white"
             >
               Get FREE Consultation
             </Button>
