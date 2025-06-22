@@ -95,6 +95,7 @@ const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
+              <button onClick={() => handleNavigation('/about')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">About Us</button>
               <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Services</button>
               <button onClick={() => handleNavigation('/umrah-packages')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Umrah Packages</button>
               <button onClick={() => handleNavigation('/hotel')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Hotel</button>
@@ -123,6 +124,7 @@ const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden py-4 border-t border-[#023f3a]/10">
               <nav className="flex flex-col space-y-4">
+                <button onClick={() => handleNavigation('/about')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">About Us</button>
                 <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Services</button>
                 <button onClick={() => handleNavigation('/umrah-packages')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Umrah Packages</button>
                 <button onClick={() => handleNavigation('/hotel')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Book Hotel</button>
