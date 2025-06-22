@@ -7,6 +7,7 @@ import { ChevronRight, FileText, User, Plane, CreditCard } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import UmrahApplicationSidebar from '../components/UmrahApplicationSidebar';
+import FAQSection from '../components/FAQSection';
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -445,6 +446,9 @@ const UmrahApplication = () => {
           </div>
         </div>
       </div>
+
+      {/* FAQ Section - Full Width */}
+      <FAQSection />
 
       <Footer />
     </div>
