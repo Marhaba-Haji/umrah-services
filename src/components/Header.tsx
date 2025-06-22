@@ -3,19 +3,23 @@ import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
-
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('USD');
-
-  const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' }
-  ];
-
-  return (
-    <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
+  const currencies = [{
+    code: 'USD',
+    symbol: '$',
+    name: 'US Dollar'
+  }, {
+    code: 'INR',
+    symbol: '₹',
+    name: 'Indian Rupee'
+  }, {
+    code: 'SAR',
+    symbol: 'ر.س',
+    name: 'Saudi Riyal'
+  }];
+  return <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-100">
       {/* Top bar with currency selection */}
       <div className="bg-emerald-700 text-white py-2">
         <div className="container mx-auto px-4">
@@ -23,12 +27,9 @@ const Header = () => {
             <div className="flex items-center space-x-4">
               <span className="flex items-center space-x-1">
                 <Phone className="w-3 h-3" />
-                <span>24/7 Support: +1-234-567-8900</span>
+                <span>Support: +91-78920-09800</span>
               </span>
-              <span className="flex items-center space-x-1">
-                <Mail className="w-3 h-3" />
-                <span>info@marhabahaji.com</span>
-              </span>
+              
             </div>
             <div className="flex items-center space-x-4">
               <div className="hidden md:block">
@@ -41,11 +42,9 @@ const Header = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {currencies.map(curr => (
-                      <SelectItem key={curr.code} value={curr.code}>
+                    {currencies.map(curr => <SelectItem key={curr.code} value={curr.code}>
                         {curr.code}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -92,18 +91,13 @@ const Header = () => {
           </div>
 
           {/* Mobile menu button */}
-          <button
-            className="md:hidden p-2"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-          >
+          <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle menu">
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-100">
+        {isMenuOpen && <div className="md:hidden py-4 border-t border-gray-100">
             <nav className="flex flex-col space-y-4">
               <Link to="/services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</Link>
               <Link to="/umrah-packages" className="text-gray-700 hover:text-emerald-600 transition-colors">Umrah Packages</Link>
@@ -126,11 +120,8 @@ const Header = () => {
                 </Link>
               </div>
             </nav>
-          </div>
-        )}
+          </div>}
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;
