@@ -1,39 +1,40 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AnimatedCounter from './AnimatedCounter';
-
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
   const [currency, setCurrency] = useState('USD');
-
-  const popularCountries = [
-    'United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 
-    'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'
-  ];
-
-  const currencies = [
-    { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
-    { code: 'SAR', symbol: 'ر.س', name: 'Saudi Riyal' }
-  ];
-
+  const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
+  const currencies = [{
+    code: 'USD',
+    symbol: '$',
+    name: 'US Dollar'
+  }, {
+    code: 'INR',
+    symbol: '₹',
+    name: 'Indian Rupee'
+  }, {
+    code: 'SAR',
+    symbol: 'ر.س',
+    name: 'Saudi Riyal'
+  }];
   const getCurrencySymbol = () => {
     return currencies.find(curr => curr.code === currency)?.symbol || '$';
   };
-
   const getPricing = () => {
     const basePriceUSD = 299;
-    const rates = { USD: 1, INR: 83.5, SAR: 3.75 };
+    const rates = {
+      USD: 1,
+      INR: 83.5,
+      SAR: 3.75
+    };
     const rate = rates[currency as keyof typeof rates];
     return Math.round(basePriceUSD * rate);
   };
-
-  return (
-    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
+  return <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
@@ -128,17 +129,7 @@ const HeroSection = () => {
           {/* Right Section - CTA Form */}
           <div className="order-1 lg:order-2">
             {/* Hero Image */}
-            <div className="relative mb-6 lg:mb-8">
-              <img 
-                src="https://images.unsplash.com/photo-1466442929976-97f336a657be?w=600&h=400&fit=crop" 
-                alt="Masjid al-Haram Mecca" 
-                className="w-full h-48 md:h-64 lg:h-72 object-cover rounded-2xl shadow-2xl"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-2xl"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="text-sm md:text-base font-medium">🕋 Sacred Journey Awaits</p>
-              </div>
-            </div>
+            
 
             {/* Quick Application Form */}
             <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
@@ -155,18 +146,11 @@ const HeroSection = () => {
                     <label htmlFor="nationality" className="block text-sm font-medium text-gray-700 mb-2">
                       🌍 Your Nationality
                     </label>
-                    <select
-                      id="nationality"
-                      value={nationality}
-                      onChange={(e) => setNationality(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                    >
+                    <select id="nationality" value={nationality} onChange={e => setNationality(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                       <option value="">Select your country</option>
-                      {popularCountries.map((country) => (
-                        <option key={country} value={country}>
+                      {popularCountries.map(country => <option key={country} value={country}>
                           {country}
-                        </option>
-                      ))}
+                        </option>)}
                     </select>
                   </div>
 
@@ -179,11 +163,9 @@ const HeroSection = () => {
                         <SelectValue placeholder="Select currency" />
                       </SelectTrigger>
                       <SelectContent>
-                        {currencies.map((curr) => (
-                          <SelectItem key={curr.code} value={curr.code}>
+                        {currencies.map(curr => <SelectItem key={curr.code} value={curr.code}>
                             {curr.symbol} {curr.name} ({curr.code})
-                          </SelectItem>
-                        ))}
+                          </SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -199,18 +181,11 @@ const HeroSection = () => {
                     </div>
                   </div>
 
-                  <Button 
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200"
-                    size="lg"
-                  >
+                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
                     🚀 Apply Now - {getCurrencySymbol()}{getPricing().toLocaleString()}
                   </Button>
 
-                  <Button 
-                    variant="outline"
-                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3"
-                    size="lg"
-                  >
+                  <Button variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" size="lg">
                     💬 Chat on WhatsApp
                   </Button>
                 </div>
@@ -259,8 +234,6 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;
