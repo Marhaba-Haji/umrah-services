@@ -70,7 +70,8 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
+            <Link to="/services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</Link>
+            <Link to="/umrah-packages" className="text-gray-700 hover:text-emerald-600 transition-colors">Umrah Packages</Link>
             <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
             <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
             <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
@@ -83,9 +84,11 @@ const Header = () => {
             <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
               Track Application
             </Button>
-            <Button className="bg-emerald-600 hover:bg-emerald-700">
-              Apply Now
-            </Button>
+            <Link to="/apply">
+              <Button className="bg-emerald-600 hover:bg-emerald-700">
+                Apply Now
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -102,7 +105,8 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-100">
             <nav className="flex flex-col space-y-4">
-              <a href="#services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</a>
+              <Link to="/services" className="text-gray-700 hover:text-emerald-600 transition-colors">Services</Link>
+              <Link to="/umrah-packages" className="text-gray-700 hover:text-emerald-600 transition-colors">Umrah Packages</Link>
               <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
               <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
               <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
@@ -113,9 +117,11 @@ const Header = () => {
                 <Button variant="outline" className="border-emerald-600 text-emerald-600">
                   Track Application
                 </Button>
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  Apply Now
-                </Button>
+                <Link to="/apply">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700 w-full">
+                    Apply Now
+                  </Button>
+                </Link>
               </div>
             </nav>
           </div>

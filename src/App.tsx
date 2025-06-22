@@ -10,6 +10,11 @@ import TransportBooking from "./pages/TransportBooking";
 import HotelBooking from "./pages/HotelBooking";
 import UmrahApplication from "./pages/UmrahApplication";
 import GroupFlights from "./pages/GroupFlights";
+import Services from "./pages/Services";
+import UmrahPackages from "./pages/UmrahPackages";
+import GroupPackages from "./pages/GroupPackages";
+import CustomPackages from "./pages/CustomPackages";
+import PackageDetails from "./pages/PackageDetails";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +30,11 @@ const App = () => (
           <Route path="/hotel" element={<HotelBooking />} />
           <Route path="/apply" element={<UmrahApplication />} />
           <Route path="/group-flights" element={<GroupFlights />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/umrah-packages" element={<UmrahPackages />} />
+          <Route path="/group-packages" element={<GroupPackages />} />
+          <Route path="/custom-packages" element={<CustomPackages />} />
+          <Route path="/package-details/:id" element={<PackageDetails />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
