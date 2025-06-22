@@ -1,19 +1,14 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
-
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
   const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
-  
   const basePriceUSD = 299;
-  
-  return (
-    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
+  return <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
       {/* Background Islamic patterns */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
@@ -34,9 +29,7 @@ const HeroSection = () => {
           <div className="order-2 lg:order-1">
             {/* Trust Badge */}
             <div className="flex justify-center lg:justify-start mb-6">
-              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">
-                🕋 99% Visa Approval Rate | ⚡ 3-5 Days Processing
-              </Badge>
+              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">🕋 99% Visa Approval Rate | ⚡ 1-5 Days Processing</Badge>
             </div>
 
             {/* Main Headline */}
@@ -146,8 +139,6 @@ const HeroSection = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;
