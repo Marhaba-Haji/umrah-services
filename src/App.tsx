@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +14,8 @@ import UmrahPackages from "./pages/UmrahPackages";
 import GroupPackages from "./pages/GroupPackages";
 import CustomPackages from "./pages/CustomPackages";
 import PackageDetails from "./pages/PackageDetails";
+import Blogs from "./pages/Blogs";
+import BlogDetail from "./pages/BlogDetail";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,8 @@ const App = () => (
           <Route path="/group-packages" element={<GroupPackages />} />
           <Route path="/custom-packages" element={<CustomPackages />} />
           <Route path="/package-details/:id" element={<PackageDetails />} />
+          <Route path="/blog-post" element={<Blogs />} />
+          <Route path="/blog-post/:slug" element={<BlogDetail />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

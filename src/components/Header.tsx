@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -75,6 +74,7 @@ const Header = () => {
             <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
             <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
             <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
+            <Link to="/blog-post" className="text-gray-700 hover:text-emerald-600 transition-colors">Blog</Link>
             <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
             <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
             <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
@@ -110,9 +110,11 @@ const Header = () => {
               <Link to="/hotel" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Hotel</Link>
               <Link to="/transport" className="text-gray-700 hover:text-emerald-600 transition-colors">Book Transport</Link>
               <Link to="/group-flights" className="text-gray-700 hover:text-emerald-600 transition-colors">Group Flights</Link>
+              <Link to="/blog-post" className="text-gray-700 hover:text-emerald-600 transition-colors">Blog</Link>
               <a href="#pricing" className="text-gray-700 hover:text-emerald-600 transition-colors">Pricing</a>
               <a href="#faq" className="text-gray-700 hover:text-emerald-600 transition-colors">FAQ</a>
               <a href="#contact" className="text-gray-700 hover:text-emerald-600 transition-colors">Contact</a>
+              
               <div className="flex flex-col space-y-2 pt-4">
                 <Button variant="outline" className="border-emerald-600 text-emerald-600">
                   Track Application
