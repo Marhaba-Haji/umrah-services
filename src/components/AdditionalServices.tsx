@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'react-router-dom';
 import { useCurrency } from './Header';
 
 const AdditionalServices = () => {
@@ -100,6 +100,24 @@ const AdditionalServices = () => {
     }
   ];
 
+  const getServiceRoute = (serviceTitle) => {
+    switch (serviceTitle) {
+      case 'Makkah Hotel Booking':
+      case 'Madinah Hotel Booking':
+        return '/hotel';
+      case 'Group Flights':
+        return '/group-flights';
+      case 'Group Umrah Packages':
+        return '/group-packages';
+      case 'Short Umrah Packages':
+        return '/umrah-packages';
+      case 'Cab Transport Booking':
+        return '/transport';
+      default:
+        return '/services';
+    }
+  };
+
   return (
     <section className="py-20 bg-white">
       <div className="container mx-auto px-4">
@@ -158,9 +176,11 @@ const AdditionalServices = () => {
                     ))}
                   </ul>
 
-                  <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
-                    Book Now
-                  </Button>
+                  <Link to={getServiceRoute(service.title)}>
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">
+                      Book Now
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             );
@@ -178,12 +198,16 @@ const AdditionalServices = () => {
                 Save up to 25% on complete packages.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button className="bg-emerald-600 hover:bg-emerald-700">
-                  View Complete Packages
-                </Button>
-                <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
-                  Get Custom Quote
-                </Button>
+                <Link to="/umrah-packages">
+                  <Button className="bg-emerald-600 hover:bg-emerald-700">
+                    View Complete Packages
+                  </Button>
+                </Link>
+                <Link to="/custom-packages">
+                  <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+                    Get Custom Quote
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

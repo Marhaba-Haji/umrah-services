@@ -1,6 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const HowItWorks = () => {
   const steps = [
@@ -65,6 +66,21 @@ const HowItWorks = () => {
       ]
     }
   ];
+
+  const handleWhatsAppClick = () => {
+    const prefilledMessage = `السلام عليكم! I need a free consultation for Umrah visa services. 
+
+Please provide me with:
+- Detailed requirements
+- Processing timeline
+- Available packages
+- Pricing information
+
+JazakAllah Khair!`;
+
+    const whatsappUrl = `https://wa.me/919008447887?text=${encodeURIComponent(prefilledMessage)}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
   return (
     <section id="how-it-works" className="py-20 bg-white">
@@ -156,12 +172,18 @@ const HowItWorks = () => {
               Start your application today and take the first step towards your spiritual journey.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
-                Start Application Now
-              </button>
-              <button className="border border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-3 rounded-lg font-medium transition-colors">
+              <Link to="/apply-umrah-visa-online">
+                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+                  Start Application Now
+                </Button>
+              </Link>
+              <Button 
+                onClick={handleWhatsAppClick}
+                variant="outline" 
+                className="border border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-3 rounded-lg font-medium transition-colors"
+              >
                 Get Free Consultation
-              </button>
+              </Button>
             </div>
           </div>
         </div>
