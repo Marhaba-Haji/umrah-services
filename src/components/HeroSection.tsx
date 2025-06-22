@@ -188,29 +188,7 @@ const HeroSection = () => {
         </div>
 
         {/* Key Benefits - Desktop Only */}
-        <div className="hidden lg:grid lg:grid-cols-3 gap-8 max-w-3xl mx-auto mt-16">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-2xl">⚡</span>
-            </div>
-            <h4 className="font-semibold text-gray-900 mb-1">Fast Processing</h4>
-            <p className="text-sm text-gray-600">Get your visa in 3-5 business days</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-2xl">🛡️</span>
-            </div>
-            <h4 className="font-semibold text-gray-900 mb-1">100% Secure</h4>
-            <p className="text-sm text-gray-600">Bank-level security for your data</p>
-          </div>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <span className="text-2xl">💬</span>
-            </div>
-            <h4 className="font-semibold text-gray-900 mb-1">24/7 Support</h4>
-            <p className="text-sm text-gray-600">Expert help whenever you need it</p>
-          </div>
-        </div>
+        
       </div>
     </section>;
 };
