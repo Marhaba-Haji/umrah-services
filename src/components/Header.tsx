@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,14 +9,11 @@ export const CurrencyContext = createContext({
   currency: 'INR',
   setCurrency: (currency: string) => {}
 });
-
 export const useCurrency = () => useContext(CurrencyContext);
-
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('INR');
   const navigate = useNavigate();
-  
   const currencies = [{
     code: 'USD',
     symbol: '$',
@@ -31,18 +27,21 @@ const Header = () => {
     symbol: 'ر.س',
     name: 'Saudi Riyal'
   }];
-
   const handleNavigation = (path: string) => {
     navigate(path);
     // Scroll to top after navigation
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     }, 100);
     setIsMenuOpen(false);
   };
-
-  return (
-    <CurrencyContext.Provider value={{ currency, setCurrency }}>
+  return <CurrencyContext.Provider value={{
+    currency,
+    setCurrency
+  }}>
       <header className="sticky top-0 z-50 bg-white shadow-lg border-b border-[#023f3a]/10">
         {/* Top bar with currency selection */}
         <div className="bg-[#023f3a] text-white py-2">
@@ -65,11 +64,9 @@ const Header = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {currencies.map(curr => (
-                        <SelectItem key={curr.code} value={curr.code}>
+                      {currencies.map(curr => <SelectItem key={curr.code} value={curr.code}>
                           {curr.code}
-                        </SelectItem>
-                      ))}
+                        </SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -95,7 +92,7 @@ const Header = () => {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6">
-              <button onClick={() => handleNavigation('/about')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">About Us</button>
+              
               <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Services</button>
               <button onClick={() => handleNavigation('/umrah-packages')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Umrah Packages</button>
               <button onClick={() => handleNavigation('/hotel')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Book Hotel</button>
@@ -103,7 +100,7 @@ const Header = () => {
               <button onClick={() => handleNavigation('/group-flights')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Group Flights</button>
               <button onClick={() => handleNavigation('/blog-post')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Blog</button>
               <button onClick={() => handleNavigation('/contact')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">Contact</button>
-              <button onClick={() => handleNavigation('/faq')} className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium">FAQ</button>
+              
             </nav>
 
             <div className="hidden md:flex items-center space-x-4">
@@ -121,8 +118,7 @@ const Header = () => {
           </div>
 
           {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="md:hidden py-4 border-t border-[#023f3a]/10">
+          {isMenuOpen && <div className="md:hidden py-4 border-t border-[#023f3a]/10">
               <nav className="flex flex-col space-y-4">
                 <button onClick={() => handleNavigation('/about')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">About Us</button>
                 <button onClick={() => handleNavigation('/services')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">Services</button>
@@ -142,12 +138,9 @@ const Header = () => {
                   </button>
                 </div>
               </nav>
-            </div>
-          )}
+            </div>}
         </div>
       </header>
-    </CurrencyContext.Provider>
-  );
+    </CurrencyContext.Provider>;
 };
-
 export default Header;
