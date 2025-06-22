@@ -35,7 +35,7 @@ const App = () => (
           <Route path="/about" element={<AboutUs />} />
           <Route path="/transport" element={<TransportBooking />} />
           <Route path="/hotel" element={<HotelBooking />} />
-          <Route path="/apply" element={<UmrahApplication />} />
+          <Route path="/apply-umrah-visa-online" element={<UmrahApplication />} />
           <Route path="/group-flights" element={<GroupFlights />} />
           <Route path="/services" element={<Services />} />
           <Route path="/umrah-packages" element={<UmrahPackages />} />

@@ -1,13 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronRight, FileText, User, Plane, CreditCard, Clock, Shield, CheckCircle } from 'lucide-react';
+import { ChevronRight, FileText, User, Plane, CreditCard } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { Badge } from '@/components/ui/badge';
+import UmrahApplicationSidebar from '../components/UmrahApplicationSidebar';
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -375,196 +374,77 @@ const UmrahApplication = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* SEO-Optimized Content Section */}
-      <section className="py-8 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                🕋 Apply for Umrah Visa Online - Fast & Guaranteed Approval
-              </h1>
-              <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-                Get your Saudi Arabia Umrah visa in just 1-5 days with 99% approval rate. Complete online application, 
-                document upload, and secure payment processing for pilgrims worldwide.
-              </p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+          {/* Left Sidebar - Information */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <UmrahApplicationSidebar />
             </div>
-
-            {/* Quick Info Cards */}
-            <div className="grid md:grid-cols-4 gap-6 mb-12">
-              <Card className="text-center p-6">
-                <Clock className="w-8 h-8 text-emerald-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Processing Time</h3>
-                <p className="text-sm text-gray-600">1-5 business days guaranteed</p>
-              </Card>
-              <Card className="text-center p-6">
-                <Shield className="w-8 h-8 text-emerald-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Approval Rate</h3>
-                <p className="text-sm text-gray-600">99% success rate</p>
-              </Card>
-              <Card className="text-center p-6">
-                <CheckCircle className="w-8 h-8 text-emerald-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Visa Validity</h3>
-                <p className="text-sm text-gray-600">30-90 days duration</p>
-              </Card>
-              <Card className="text-center p-6">
-                <FileText className="w-8 h-8 text-emerald-600 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Easy Process</h3>
-                <p className="text-sm text-gray-600">100% online application</p>
-              </Card>
-            </div>
-
-            {/* Comprehensive Umrah Visa Information */}
-            <div className="grid md:grid-cols-2 gap-8 mb-12">
-              <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">What is an Umrah Visa?</h2>
-                <p className="text-gray-600 mb-4">
-                  An Umrah visa is a special entry permit issued by the Kingdom of Saudi Arabia that allows Muslims 
-                  to perform the sacred pilgrimage of Umrah to the holy cities of Makkah and Madinah. Unlike Hajj, 
-                  Umrah can be performed at any time of the year.
-                </p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Single or multiple entry options</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Valid for 30, 90, or 180 days</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Electronic visa processing</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />No sponsor required</li>
-                </ul>
-              </Card>
-
-              <Card className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Umrah Visa Requirements</h2>
-                <p className="text-gray-600 mb-4">
-                  To obtain your Umrah visa, you must meet specific requirements set by the Saudi government. 
-                  Our expert team ensures your application meets all criteria for guaranteed approval.
-                </p>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Valid passport (6+ months validity)</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Recent passport-size photograph</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Confirmed hotel booking</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Return flight tickets</li>
-                  <li className="flex items-center"><CheckCircle className="w-4 h-4 text-emerald-500 mr-2" />Vaccination certificate (if required)</li>
-                </ul>
-              </Card>
-            </div>
-
-            {/* Visa Types and Pricing */}
-            <Card className="p-6 mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Umrah Visa Types & Processing Options</h2>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="text-center p-4 border rounded-lg">
-                  <Badge className="bg-blue-100 text-blue-800 mb-3">Standard Processing</Badge>
-                  <h3 className="font-semibold mb-2">5-7 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600 mb-2">$299</p>
-                  <p className="text-sm text-gray-600">Perfect for advance planning</p>
-                </div>
-                <div className="text-center p-4 border-2 border-emerald-500 rounded-lg bg-emerald-50">
-                  <Badge className="bg-emerald-100 text-emerald-800 mb-3">Express Processing</Badge>
-                  <h3 className="font-semibold mb-2">3-5 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600 mb-2">$449</p>
-                  <p className="text-sm text-gray-600">Most popular choice</p>
-                </div>
-                <div className="text-center p-4 border rounded-lg">
-                  <Badge className="bg-red-100 text-red-800 mb-3">Rush Processing</Badge>
-                  <h3 className="font-semibold mb-2">1-3 Business Days</h3>
-                  <p className="text-2xl font-bold text-emerald-600 mb-2">$699</p>
-                  <p className="text-sm text-gray-600">For urgent travel needs</p>
-                </div>
-              </div>
-            </Card>
-
-            {/* FAQ Section */}
-            <Card className="p-6 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions About Umrah Visa</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">How long does Umrah visa processing take?</h3>
-                  <p className="text-gray-600 text-sm">Standard processing takes 5-7 business days, express processing 3-5 days, and rush processing 1-3 days. We guarantee these timelines with 99% approval rate.</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">What documents are required for Umrah visa application?</h3>
-                  <p className="text-gray-600 text-sm">You need a valid passport, passport-size photo, confirmed hotel booking, return flight tickets, and vaccination certificate (if applicable).</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Can I apply for Umrah visa online?</h3>
-                  <p className="text-gray-600 text-sm">Yes, our platform offers 100% online Umrah visa application with secure document upload and payment processing.</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">What is the validity period of Umrah visa?</h3>
-                  <p className="text-gray-600 text-sm">Umrah visas are typically valid for 30, 90, or 180 days depending on the type you choose and your nationality.</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              🕋 Complete Your Umrah Visa Application
-            </h2>
-            <p className="text-xl text-gray-600">Apply now in 4 simple steps with guaranteed approval</p>
           </div>
 
-          {/* Progress Steps */}
-          <div className="flex justify-center mb-8">
-            <div className="flex items-center space-x-4">
-              {steps.map((step, index) => (
-                <div key={step.number} className="flex items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                    currentStep >= step.number 
-                      ? 'bg-emerald-600 border-emerald-600 text-white' 
-                      : 'border-gray-300 text-gray-400'
-                  }`}>
-                    <step.icon className="w-5 h-5" />
+          {/* Right Content - Form Flow */}
+          <div className="lg:col-span-3">
+            {/* Progress Steps */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between">
+                {steps.map((step, index) => (
+                  <div key={step.number} className="flex items-center">
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                      currentStep >= step.number 
+                        ? 'bg-emerald-600 border-emerald-600 text-white' 
+                        : 'border-gray-300 text-gray-400'
+                    }`}>
+                      <step.icon className="w-5 h-5" />
+                    </div>
+                    <span className={`ml-2 text-sm font-medium hidden md:block ${
+                      currentStep >= step.number ? 'text-emerald-600' : 'text-gray-400'
+                    }`}>
+                      {step.title}
+                    </span>
+                    {index < steps.length - 1 && (
+                      <ChevronRight className="w-5 h-5 text-gray-400 ml-4 hidden md:block" />
+                    )}
                   </div>
-                  <span className={`ml-2 text-sm font-medium ${
-                    currentStep >= step.number ? 'text-emerald-600' : 'text-gray-400'
-                  }`}>
-                    {step.title}
-                  </span>
-                  {index < steps.length - 1 && (
-                    <ChevronRight className="w-5 h-5 text-gray-400 ml-4" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Form Content */}
-          <Card className="max-w-4xl mx-auto">
-            <CardContent className="p-8">
-              {currentStep === 1 && renderStep1()}
-              {currentStep === 2 && renderStep2()}
-              {currentStep === 3 && renderStep3()}
-              {currentStep === 4 && renderStep4()}
-
-              {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8">
-                <Button 
-                  variant="outline" 
-                  onClick={prevStep} 
-                  disabled={currentStep === 1}
-                  className="px-6"
-                >
-                  Previous
-                </Button>
-                {currentStep < 4 ? (
-                  <Button 
-                    onClick={nextStep}
-                    className="bg-emerald-600 hover:bg-emerald-700 px-6"
-                  >
-                    Next Step
-                  </Button>
-                ) : null}
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Form Content */}
+            <Card className="shadow-lg">
+              <CardContent className="p-8">
+                {currentStep === 1 && renderStep1()}
+                {currentStep === 2 && renderStep2()}
+                {currentStep === 3 && renderStep3()}
+                {currentStep === 4 && renderStep4()}
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-8">
+                  <Button 
+                    variant="outline" 
+                    onClick={prevStep} 
+                    disabled={currentStep === 1}
+                    className="px-6"
+                  >
+                    Previous
+                  </Button>
+                  {currentStep < 4 ? (
+                    <Button 
+                      onClick={nextStep}
+                      className="bg-emerald-600 hover:bg-emerald-700 px-6"
+                    >
+                      Next Step
+                    </Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </section>
+      </div>
 
       <Footer />
     </div>
