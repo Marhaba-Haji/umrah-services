@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,11 +9,15 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
 import { useTransportCart } from '../hooks/useTransportCart';
+import { supabase } from '../lib/supabaseClient';
 
 const TransportBooking = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartItems, addToCart, removeFromCart, updateCartItemCount, clearCart, getTotalAmount, getTotalItems } = useTransportCart();
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Check if popup was already shown on this page
   React.useEffect(() => {
@@ -37,56 +40,26 @@ const TransportBooking = () => {
     sessionStorage.setItem(popupShownKey, 'true');
   };
 
-  const vehicles = [
-    {
-      id: 'sedan',
-      name: 'Sedan',
-      model: 'Toyota Camry or Similar',
-      capacity: 3,
-      image: 'https://images.unsplash.com/photo-1549924231-f129b911e442?w=400&h=250&fit=crop',
-      description: 'Comfortable sedan for small groups'
-    },
-    {
-      id: 'minivan',
-      name: 'Mini Van',
-      model: 'Hyundai H1 or Similar',
-      capacity: 5,
-      image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=250&fit=crop',
-      description: 'Spacious van for families'
-    },
-    {
-      id: 'gmc',
-      name: 'GMC',
-      model: 'Chevrolet GMC',
-      capacity: 7,
-      image: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?w=400&h=250&fit=crop',
-      description: 'Premium SUV for comfortable travel'
-    },
-    {
-      id: 'largevan',
-      name: 'Large Van',
-      model: 'Toyota Hiace',
-      capacity: 10,
-      image: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=400&h=250&fit=crop',
-      description: 'Large van for bigger groups'
-    },
-    {
-      id: 'minibus',
-      name: 'Mini Bus',
-      model: 'Coaster',
-      capacity: 20,
-      image: 'https://images.unsplash.com/photo-1544620282-0e1511a922e8?w=400&h=250&fit=crop',
-      description: 'Mini bus for medium groups'
-    },
-    {
-      id: 'bus',
-      name: 'Bus',
-      model: 'Volvo',
-      capacity: 50,
-      image: 'https://images.unsplash.com/photo-1570125909517-53cb21c89ff2?w=400&h=250&fit=crop',
-      description: 'Full-size bus for large groups'
+  useEffect(() => {
+    async function fetchVehicles() {
+      setLoading(true);
+      setError('');
+      const { data, error } = await supabase
+        .from('transport_services')
+        .select('*');
+      if (error) {
+        setError('Failed to fetch vehicles.');
+        setVehicles([]);
+      } else {
+        setVehicles(data || []);
+      }
+      setLoading(false);
     }
-  ];
+    fetchVehicles();
+  }, []);
+
+  if (loading) return <div>Loading transport vehicles...</div>;
+  if (error) return <div className="text-red-600">{error}</div>;
 
   const routes = [
     { id: 'jed-makkah', name: 'Jeddah Airport to Makkah Hotel', distance: '80 km', duration: '1.5 hours', prices: { sedan: 120, minivan: 150, gmc: 180, largevan: 200, minibus: 280, bus: 450 } },
@@ -108,22 +81,17 @@ const TransportBooking = () => {
 
     const handleAddToCart = () => {
       if (!selectedRoute) return;
-      
       const route = routes.find(r => r.id === selectedRoute);
       if (!route) return;
-
       const pricePerUnit = route.prices[vehicle.id as keyof typeof route.prices];
-      
       addToCart({
         vehicleId: vehicle.id,
         routeId: selectedRoute,
-        vehicleName: vehicle.name,
+        vehicleName: vehicle.vehicle_name || vehicle.name,
         routeName: route.name,
         count: vehicleCount,
         pricePerUnit
       });
-
-      // Reset form
       setSelectedRoute('');
       setVehicleCount(1);
     };
@@ -135,20 +103,22 @@ const TransportBooking = () => {
       <Card className="h-full flex flex-col">
         <CardHeader className="p-0">
           <img 
-            src={vehicle.image} 
-            alt={vehicle.name}
+            src={vehicle.vehicle_image || vehicle.image_url || '/placeholder.svg'} 
+            alt={vehicle.vehicle_name || vehicle.name || 'Vehicle'}
             className="w-full h-48 object-cover rounded-t-lg"
           />
         </CardHeader>
         <CardContent className="p-4 flex-1 flex flex-col">
           <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-lg">{vehicle.name}</CardTitle>
+            <CardTitle className="text-lg">{vehicle.vehicle_name || vehicle.name}</CardTitle>
             <Badge className="bg-emerald-100 text-emerald-800">
               <Users className="w-3 h-3 mr-1" />
-              {vehicle.capacity}
+              {vehicle.vehicle_type || vehicle.type}
             </Badge>
           </div>
-          <p className="text-sm text-gray-600 mb-2">{vehicle.model}</p>
+          <div className="text-sm text-gray-600 mb-1">{vehicle.trip_distance && <span>Distance: {vehicle.trip_distance}</span>}</div>
+          <div className="text-sm text-gray-600 mb-1">{vehicle.trip_duration && <span>Duration: {vehicle.trip_duration}</span>}</div>
+          <p className="text-sm text-gray-600 mb-2">{vehicle.features && Array.isArray(vehicle.features) ? vehicle.features.join(', ') : vehicle.features}</p>
           <p className="text-xs text-gray-500 mb-4 flex-1">{vehicle.description}</p>
           
           <div className="space-y-4">
@@ -370,10 +340,16 @@ const TransportBooking = () => {
 
           {/* Vehicle Selection */}
           <div className="mb-12">
-            <h2 className="text-2xl font-bold text-center mb-8">Choose Your Vehicles & Routes</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <h2 className="text-2xl font-bold text-center mb-8">Available Transport Vehicles</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {vehicles.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                <div key={vehicle.id} className="border rounded-lg p-4 shadow-sm bg-white">
+                  <img src={vehicle.image_url} alt={vehicle.name} className="w-full h-40 object-cover rounded mb-2" />
+                  <h3 className="text-lg font-semibold mb-1">{vehicle.name}</h3>
+                  <div className="text-gray-600 mb-1">Type: {vehicle.type}</div>
+                  <div className="text-gray-600 mb-1">Features: {vehicle.features}</div>
+                  <div className="text-emerald-700 font-bold">Price: {vehicle.price}</div>
+                </div>
               ))}
             </div>
           </div>

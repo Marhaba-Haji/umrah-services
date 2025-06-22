@@ -283,7 +283,7 @@ const HotelBooking = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5, 6].map(num => (
-                          <SelectItem key={num} value={num.toString()}>
+                          <SelectItem key={`adults-${num}`} value={num.toString()}>
                             {num} Adult{num > 1 ? 's' : ''}
                           </SelectItem>
                         ))}
@@ -295,7 +295,7 @@ const HotelBooking = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {[0, 1, 2, 3, 4, 5].filter(num => adults + num <= 6).map(num => (
-                          <SelectItem key={num} value={num.toString()}>
+                          <SelectItem key={`children-${num}`} value={num.toString()}>
                             {num} Child{num !== 1 ? 'ren' : ''}
                           </SelectItem>
                         ))}

@@ -270,15 +270,15 @@ const UmrahApplication = () => {
               type="date"
               value={travelers[currentTraveler].passportIssue}
               onChange={(e) => handleTravelerInputChange('passportIssue', e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Passport Expiry *</label>
-            <Input
-              type="date"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Passport Expiry *</label>
+          <Input
+            type="date"
               value={travelers[currentTraveler].passportExpiry}
               onChange={(e) => handleTravelerInputChange('passportExpiry', e.target.value)}
-            />
+          />
           </div>
         </div>
         {passportDateError && <div className="text-red-600 text-sm col-span-2">{passportDateError}</div>}

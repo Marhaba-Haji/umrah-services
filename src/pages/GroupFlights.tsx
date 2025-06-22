@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -121,7 +120,7 @@ const GroupFlights = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {Array.from({ length: 41 }, (_, i) => i + 10).map((count) => (
-                      <SelectItem key={count} value={count.toString()}>
+                      <SelectItem key={`passengers-${count}`} value={count.toString()}>
                         {count} Passengers
                       </SelectItem>
                     ))}

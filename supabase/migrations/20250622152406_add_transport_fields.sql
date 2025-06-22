@@ -1,4 +1,3 @@
-
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -133,7 +132,11 @@ CREATE TABLE public.transport_services (
   is_ac BOOLEAN DEFAULT TRUE,
   luggage_capacity TEXT,
   is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  vehicle_name TEXT,
+  trip_distance TEXT,
+  trip_duration TEXT,
+  vehicle_image TEXT
 );
 
 -- Group flights
