@@ -101,29 +101,7 @@ const HeroSection = () => {
             </div>
 
             {/* Key Benefits - Mobile Only */}
-            <div className="grid grid-cols-3 gap-4 mb-8 lg:hidden">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-xl">⚡</span>
-                </div>
-                <h4 className="font-semibold text-gray-900 text-sm mb-1">Fast Processing</h4>
-                <p className="text-xs text-gray-600">3-5 business days</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-xl">🛡️</span>
-                </div>
-                <h4 className="font-semibold text-gray-900 text-sm mb-1">100% Secure</h4>
-                <p className="text-xs text-gray-600">Bank-level security</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-xl">💬</span>
-                </div>
-                <h4 className="font-semibold text-gray-900 text-sm mb-1">24/7 Support</h4>
-                <p className="text-xs text-gray-600">Expert help anytime</p>
-              </div>
-            </div>
+            
           </div>
 
           {/* Right Section - CTA Form */}
