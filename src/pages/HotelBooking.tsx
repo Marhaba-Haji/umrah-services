@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, MapPin, Users, Wifi, Car, Coffee } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -11,6 +11,10 @@ import HotelFilters from '../components/HotelFilters';
 const HotelBooking = () => {
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [city, setCity] = useState('');
+  const [rooms, setRooms] = useState(1);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
   const [activeFilters, setActiveFilters] = useState<any>({});
 
   const makkahHotels = [
@@ -88,16 +92,36 @@ const HotelBooking = () => {
   const allHotels = [...makkahHotels, ...madinahHotels];
 
   const getFilteredHotels = () => {
-    if (!activeFilters.city) return allHotels;
+    let hotels = allHotels;
     
-    return allHotels.filter(hotel => {
-      const matchesCity = hotel.city === activeFilters.city;
-      const matchesPrice = hotel.startingPrice >= activeFilters.priceRange[0] && hotel.startingPrice <= activeFilters.priceRange[1];
-      const matchesRating = hotel.rating >= activeFilters.starRating[0] && hotel.rating <= activeFilters.starRating[1];
-      const matchesDistance = hotel.distance >= activeFilters.distanceRange[0] && hotel.distance <= activeFilters.distanceRange[1];
-      
-      return matchesCity && matchesPrice && matchesRating && matchesDistance;
-    });
+    // Filter by city from top search form
+    if (city) {
+      hotels = hotels.filter(hotel => hotel.city === city);
+    }
+    
+    // Apply other filters if they exist
+    if (activeFilters.priceRange) {
+      hotels = hotels.filter(hotel => 
+        hotel.startingPrice >= activeFilters.priceRange[0] && 
+        hotel.startingPrice <= activeFilters.priceRange[1]
+      );
+    }
+    
+    if (activeFilters.starRating) {
+      hotels = hotels.filter(hotel => 
+        hotel.rating >= activeFilters.starRating[0] && 
+        hotel.rating <= activeFilters.starRating[1]
+      );
+    }
+    
+    if (activeFilters.distanceRange) {
+      hotels = hotels.filter(hotel => 
+        hotel.distance >= activeFilters.distanceRange[0] && 
+        hotel.distance <= activeFilters.distanceRange[1]
+      );
+    }
+    
+    return hotels;
   };
 
   const renderStars = (rating: number) => {
@@ -176,26 +200,41 @@ const HotelBooking = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative py-12 md:py-20">
+      <section className="relative py-8 md:py-12">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-10 right-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
           <div className="absolute bottom-20 left-20 w-24 h-24 border-2 border-amber-600 rounded-lg transform rotate-12"></div>
         </div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
               🏨 Book Your <span className="text-emerald-600">Hotel</span>
             </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Stay in premium approved hotels close to Haram. Comfortable accommodations for your spiritual journey.
             </p>
           </div>
 
-          {/* Search Form */}
-          <Card className="max-w-2xl mx-auto mb-12">
+          {/* Enhanced Search Form */}
+          <Card className="max-w-4xl mx-auto mb-8">
             <CardContent className="p-6">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* City Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">🏙️ City</label>
+                  <Select value={city} onValueChange={setCity}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select city" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="makkah">🕋 Makkah</SelectItem>
+                      <SelectItem value="madinah">🕌 Madinah</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Check-in */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">📅 Check-in</label>
                   <input
@@ -205,6 +244,8 @@ const HotelBooking = () => {
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
+
+                {/* Check-out */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">📅 Check-out</label>
                   <input
@@ -214,6 +255,63 @@ const HotelBooking = () => {
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
+
+                {/* Rooms */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">🏨 Rooms</label>
+                  <Select value={rooms.toString()} onValueChange={(value) => setRooms(Number(value))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6].map(num => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num} Room{num > 1 ? 's' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Guests */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">👥 Guests</label>
+                  <div className="space-y-2">
+                    <Select value={adults.toString()} onValueChange={(value) => setAdults(Number(value))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6].map(num => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} Adult{num > 1 ? 's' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={children.toString()} onValueChange={(value) => setChildren(Number(value))}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[0, 1, 2, 3, 4, 5].filter(num => adults + num <= 6).map(num => (
+                          <SelectItem key={num} value={num.toString()}>
+                            {num} Child{num !== 1 ? 'ren' : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 text-center">
+                <Button 
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8"
+                  disabled={!city}
+                >
+                  🔍 Search Hotels
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -230,8 +328,8 @@ const HotelBooking = () => {
               {/* Results Header */}
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">
-                  {activeFilters.city ? 
-                    `${activeFilters.city === 'makkah' ? '🕋 Makkah' : '🕌 Madinah'} Hotels` : 
+                  {city ? 
+                    `${city === 'makkah' ? '🕋 Makkah' : '🕌 Madinah'} Hotels` : 
                     'Available Hotels'
                   }
                 </h2>
