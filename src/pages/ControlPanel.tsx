@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -20,7 +20,17 @@ import {
   DollarSign,
   TrendingUp,
   PenTool,
-  Folder
+  Folder,
+  LayoutDashboard,
+  Building2,
+  Compass,
+  Ticket,
+  Plane as PlaneIcon,
+  UserCheck,
+  Stamp,
+  Map,
+  HeartHandshake,
+  Search
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Auth } from '@supabase/auth-ui-react';
@@ -30,6 +40,16 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
+import { cn } from '@/lib/utils';
 
 // Import CMS components
 import BlogManager from '../components/cms/BlogManager';
@@ -43,6 +63,32 @@ import SaudiVisasManager from '../components/cms/SaudiVisasManager';
 import ZiarathManager from '../components/cms/ZiarathManager';
 import LeadManager from '../components/crm/LeadManager';
 import SEOManager from '../components/seo/SEOManager';
+
+const ListItem = React.forwardRef<
+  React.ElementRef<"a">,
+  React.ComponentPropsWithoutRef<"a">
+>(({ className, title, children, ...props }, ref) => {
+  return (
+    <li>
+      <NavigationMenuLink asChild>
+        <a
+          ref={ref}
+          className={cn(
+            "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
+            className
+          )}
+          {...props}
+        >
+          <div className="text-sm font-medium leading-none">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+            {children}
+          </p>
+        </a>
+      </NavigationMenuLink>
+    </li>
+  )
+})
+ListItem.displayName = "ListItem"
 
 const ControlPanel = () => {
   const [session, setSession] = useState(null);
@@ -214,6 +260,40 @@ const ControlPanel = () => {
     if (activeTab === 'activities') fetchActivities();
   }, [activeTab]);
 
+  const menuItems = [
+    { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, description: 'Overview and analytics', shortcut: '⌘D' },
+    { value: 'blogs', label: 'Blogs', icon: PenTool, description: 'Manage blog posts', shortcut: '⌘B' },
+    { value: 'categories', label: 'Categories', icon: Folder, description: 'Organize content', shortcut: '⌘C' },
+    { value: 'hotels', label: 'Hotels', icon: Building2, description: 'Hotel management', shortcut: '⌘H' },
+    { value: 'packages', label: 'Packages', icon: Package, description: 'Travel packages', shortcut: '⌘P' },
+    { value: 'transport', label: 'Transport', icon: Car, description: 'Transportation services', shortcut: '⌘T' },
+    { value: 'flights', label: 'Flights', icon: PlaneIcon, description: 'Flight bookings', shortcut: '⌘F' },
+    { value: 'guides', label: 'Guides', icon: Compass, description: 'Tour guides', shortcut: '⌘G' },
+    { value: 'visas', label: 'Visas', icon: Stamp, description: 'Visa services', shortcut: '⌘V' },
+    { value: 'ziarath', label: 'Ziarath', icon: Map, description: 'Ziarath services', shortcut: '⌘Z' },
+    { value: 'leads', label: 'Leads', icon: HeartHandshake, description: 'Customer leads', shortcut: '⌘L' },
+    { value: 'seo', label: 'SEO', icon: Search, description: 'Search optimization', shortcut: '⌘S' },
+    { value: 'activities', label: 'Activities', icon: Ticket, description: 'Manage activities', shortcut: '⌘A' },
+  ];
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey) {
+        const key = event.key.toLowerCase();
+        const menuItem = menuItems.find(
+          item => item.shortcut.toLowerCase().endsWith(key)
+        );
+        if (menuItem) {
+          event.preventDefault();
+          setActiveTab(menuItem.value);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [menuItems]);
+
   if (!session) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
@@ -253,21 +333,50 @@ const ControlPanel = () => {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12 gap-1">
-            <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
-            <TabsTrigger value="blogs" className="text-xs">Blogs</TabsTrigger>
-            <TabsTrigger value="categories" className="text-xs">Categories</TabsTrigger>
-            <TabsTrigger value="hotels" className="text-xs">Hotels</TabsTrigger>
-            <TabsTrigger value="packages" className="text-xs">Packages</TabsTrigger>
-            <TabsTrigger value="transport" className="text-xs">Transport</TabsTrigger>
-            <TabsTrigger value="flights" className="text-xs">Flights</TabsTrigger>
-            <TabsTrigger value="guides" className="text-xs">Guides</TabsTrigger>
-            <TabsTrigger value="visas" className="text-xs">Visas</TabsTrigger>
-            <TabsTrigger value="ziarath" className="text-xs">Ziarath</TabsTrigger>
-            <TabsTrigger value="leads" className="text-xs">Leads</TabsTrigger>
-            <TabsTrigger value="seo" className="text-xs">SEO</TabsTrigger>
-            <TabsTrigger value="activities" className="text-xs">Activities</TabsTrigger>
-          </TabsList>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <NavigationMenu className="w-full max-w-full p-2">
+              <NavigationMenuList className="flex flex-wrap gap-2 justify-start w-full">
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavigationMenuItem key={item.value}>
+                      <NavigationMenuTrigger
+                        onClick={() => setActiveTab(item.value)}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ease-in-out min-w-[40px] sm:min-w-[120px]",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                          "data-[state=open]:bg-accent/50",
+                          "group relative",
+                          activeTab === item.value
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-110" />
+                        <span className="hidden sm:inline">{item.label}</span>
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent>
+                        <div className="w-[16rem] p-3">
+                          <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-accent/5">
+                            <Icon className="w-8 h-8 text-primary p-1.5 bg-primary/10 rounded-md" />
+                            <div className="flex-1">
+                              <h4 className="text-sm font-medium leading-none mb-1">{item.label}</h4>
+                              <p className="text-xs text-muted-foreground">{item.description}</p>
+                            </div>
+                          </div>
+                          <div className="pt-2 text-xs text-muted-foreground border-t">
+                            <span className="font-mono bg-muted px-1.5 py-0.5 rounded">{item.shortcut}</span>
+                            <span className="ml-2">Keyboard shortcut</span>
+                          </div>
+                        </div>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  );
+                })}
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
 
           <TabsContent value="dashboard" className="space-y-6">
             {/* Stats Grid */}

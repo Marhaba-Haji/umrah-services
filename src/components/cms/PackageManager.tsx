@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Upload, X } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ItineraryDay {
   day: number;
@@ -77,6 +78,23 @@ interface Package {
       singlePrivate: string;
     };
   };
+}
+
+interface Hotel {
+  id: string;
+  name: string;
+  city: string;
+  rating: string;
+  distance_from_haram?: string;
+  distance_from_masjid_e_nabawi?: string;
+}
+
+interface Activity {
+  id: string;
+  name: string;
+  city: string;
+  duration: string;
+  price: number;
 }
 
 const PackageManager = () => {
@@ -146,6 +164,13 @@ const PackageManager = () => {
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
   const [itineraryDays, setItineraryDays] = useState<ItineraryDay[]>([]);
   const [copyAdultToChild, setCopyAdultToChild] = useState(false);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [packageImage, setPackageImage] = useState<File | null>(null);
+  const [packageImagePreview, setPackageImagePreview] = useState('');
+  const [useCustomMakkahHotel, setUseCustomMakkahHotel] = useState(false);
+  const [useCustomMadinahHotel, setUseCustomMadinahHotel] = useState(false);
+  const { toast } = useToast();
 
   const inclusionOptions = [
     'Umrah visa', 'Insurance', 'Air tickets', 'Accommodation', 'Makkah ziarath',
@@ -153,6 +178,52 @@ const PackageManager = () => {
     'Laundry', 'Meals', 'Arrival airport transfer', 'Departure airport transfer',
     'Makkah to Madinah transfer', 'Guide', 'GST', 'TCS', 'Sim card', 'Lanyard'
   ];
+
+  const cities = [
+    { id: 'makkah', label: 'Makkah' },
+    { id: 'madinah', label: 'Madinah' },
+    { id: 'taif', label: 'Taif' },
+    { id: 'jeddah', label: 'Jeddah' },
+  ];
+
+  useEffect(() => {
+    fetchHotels();
+    fetchActivities();
+  }, []);
+
+  const fetchHotels = async () => {
+    const { data, error } = await supabase
+      .from('hotels')
+      .select('id, name, city, rating, distance_from_haram, distance_from_masjid_e_nabawi')
+      .order('name');
+    
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch hotels',
+        variant: 'destructive',
+      });
+    } else {
+      setHotels(data || []);
+    }
+  };
+
+  const fetchActivities = async () => {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('id, name, city, duration, price')
+      .order('name');
+    
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch activities',
+        variant: 'destructive',
+      });
+    } else {
+      setActivities(data || []);
+    }
+  };
 
   const form = useForm({
     defaultValues: {
@@ -168,10 +239,12 @@ const PackageManager = () => {
       packageCategory: 'economy',
       inclusions: [],
       mealPlan: 'room only',
+      makkahHotelId: '',
       makkahHotelImage: '',
       makkahHotelName: '',
       makkahHotelStar: '3',
       makkahHotelDistance: '',
+      madinahHotelId: '',
       madinahHotelImage: '',
       madinahHotelName: '',
       madinahHotelStar: '3',
@@ -179,8 +252,13 @@ const PackageManager = () => {
       flightIncluded: true,
       airlineName: '',
       flightType: 'direct',
+      departureCity: '',
+      destinationCity: '',
       departureDate: '',
       returnDate: '',
+      selectedActivities: [],
+      citiesCovered: [],
+      featuredImage: '',
       adultPrice: '',
       childWithBedPrice: '',
       childWithoutBedPrice: '',
@@ -235,78 +313,187 @@ const PackageManager = () => {
     }
   };
 
-  const onSubmit = (data: any) => {
-    const newPackage: Package = {
-      id: editingPackage ? editingPackage.id : Date.now(),
+  const handlePackageImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPackageImage(file);
+    setPackageImagePreview(URL.createObjectURL(file));
+
+    // Upload to Supabase Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    const { data, error } = await supabase.storage
+      .from('package-images')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      });
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('package-images')
+      .getPublicUrl(fileName);
+
+    if (publicUrlData?.publicUrl) {
+      form.setValue('featuredImage', publicUrlData.publicUrl);
+    }
+  };
+
+  const handleMakkahHotelChange = (hotelId: string) => {
+    const selectedHotel = hotels.find(h => h.id === hotelId);
+    if (selectedHotel) {
+      form.setValue('makkahHotelName', selectedHotel.name);
+      form.setValue('makkahHotelDistance', selectedHotel.distance_from_haram || '');
+    }
+  };
+
+  const handleMadinahHotelChange = (hotelId: string) => {
+    const selectedHotel = hotels.find(h => h.id === hotelId);
+    if (selectedHotel) {
+      form.setValue('madinahHotelName', selectedHotel.name);
+      form.setValue('madinahHotelDistance', selectedHotel.distance_from_masjid_e_nabawi || '');
+    }
+  };
+
+  function isValidUuid(val: string | null | undefined) {
+    return typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  }
+
+  const cleanDate = (value: string) => value && value.trim() !== '' ? value : null;
+  const cleanNumber = (value: string) => value && value.trim() !== '' ? Number(value) : null;
+
+  const onSubmit = async (data: any) => {
+    const newPackage: any = {
       name: data.name,
-      price: data.price,
+      price: cleanNumber(data.price),
       duration: data.duration,
-      status: data.status,
+      status: data.status ? data.status.toLowerCase() : 'active',
       description: data.description,
       includes: data.includes.split(',').map((item: string) => item.trim()),
       category: data.category,
-      packageType: data.packageType,
-      packageCategory: data.packageCategory,
+      package_type: data.packageType,
+      package_category: data.packageCategory,
       inclusions: data.inclusions,
-      mealPlan: data.mealPlan,
-      makkahHotel: {
+      meal_plan: data.mealPlan,
+      featured_image: data.featuredImage,
+      makkah_hotel: useCustomMakkahHotel ? {
         image: data.makkahHotelImage,
         name: data.makkahHotelName,
         starCategory: data.makkahHotelStar,
         distanceFromHaram: data.makkahHotelDistance
+      } : {
+        id: isValidUuid(data.makkahHotelId) ? data.makkahHotelId : null,
+        name: data.makkahHotelName,
+        distanceFromHaram: data.makkahHotelDistance
       },
-      madinahHotel: {
+      madinah_hotel: useCustomMadinahHotel ? {
         image: data.madinahHotelImage,
         name: data.madinahHotelName,
         starCategory: data.madinahHotelStar,
         distanceFromMasjid: data.madinahHotelDistance
+      } : {
+        id: isValidUuid(data.madinahHotelId) ? data.madinahHotelId : null,
+        name: data.madinahHotelName,
+        distanceFromMasjid: data.madinahHotelDistance
       },
-      flightIncluded: data.flightIncluded,
-      flightDetails: {
+      flight_included: data.flightIncluded,
+      flight_details: data.flightIncluded ? {
         airlineName: data.airlineName,
-        flightType: data.flightType
-      },
-      departureDate: data.departureDate,
-      returnDate: data.returnDate,
-      durationCategory: data.durationCategory,
+        flightType: data.flightType,
+        departureCity: data.departureCity,
+        destinationCity: data.destinationCity
+      } : null,
+      departure_date: cleanDate(data.departureDate),
+      return_date: cleanDate(data.returnDate),
+      booking_deadline: cleanDate(data.bookingDeadline),
+      duration_category: data.durationCategory,
       itinerary: itineraryDays,
+      activities: data.selectedActivities,
+      cities_covered: data.citiesCovered,
       pricing: {
-        adult: data.adultPrice,
-        childWithBed: data.childWithBedPrice,
-        childWithoutBed: data.childWithoutBedPrice,
-        infant: data.infantPrice
+        adult: cleanNumber(data.adultPrice),
+        childWithBed: cleanNumber(data.childWithBedPrice),
+        childWithoutBed: cleanNumber(data.childWithoutBedPrice),
+        infant: cleanNumber(data.infantPrice)
       },
-      roomTypePricing: {
+      room_type_pricing: {
         adult: {
-          sixSharing: data.adultSixSharingPrice,
-          fiveSharing: data.adultFiveSharingPrice,
-          fourSharing: data.adultFourSharingPrice,
-          triplePrivate: data.adultTriplePrivatePrice,
-          doublePrivate: data.adultDoublePrivatePrice,
-          singlePrivate: data.adultSinglePrivatePrice
+          sixSharing: cleanNumber(data.adultSixSharingPrice),
+          fiveSharing: cleanNumber(data.adultFiveSharingPrice),
+          fourSharing: cleanNumber(data.adultFourSharingPrice),
+          triplePrivate: cleanNumber(data.adultTriplePrivatePrice),
+          doublePrivate: cleanNumber(data.adultDoublePrivatePrice),
+          singlePrivate: cleanNumber(data.adultSinglePrivatePrice)
         },
         childWithBed: {
-          sixSharing: data.childSixSharingPrice,
-          fiveSharing: data.childFiveSharingPrice,
-          fourSharing: data.childFourSharingPrice,
-          triplePrivate: data.childTriplePrivatePrice,
-          doublePrivate: data.childDoublePrivatePrice,
-          singlePrivate: data.childSinglePrivatePrice
+          sixSharing: cleanNumber(data.childSixSharingPrice),
+          fiveSharing: cleanNumber(data.childFiveSharingPrice),
+          fourSharing: cleanNumber(data.childFourSharingPrice),
+          triplePrivate: cleanNumber(data.childTriplePrivatePrice),
+          doublePrivate: cleanNumber(data.childDoublePrivatePrice),
+          singlePrivate: cleanNumber(data.childSinglePrivatePrice)
         }
-      }
+      },
+      makkah_hotel_id: isValidUuid(data.makkahHotelId) ? data.makkahHotelId : null,
+      madinah_hotel_id: isValidUuid(data.madinahHotelId) ? data.madinahHotelId : null,
+      category_id: isValidUuid(data.categoryId) ? data.categoryId : null
     };
 
-    if (editingPackage) {
-      setPackages(packages.map(pkg => pkg.id === editingPackage.id ? newPackage : pkg));
-    } else {
-      setPackages([...packages, newPackage]);
+    if (editingPackage && isValidUuid(editingPackage.id)) {
+      newPackage.id = editingPackage.id;
     }
 
-    setIsDialogOpen(false);
-    setEditingPackage(null);
-    setItineraryDays([]);
-    setCopyAdultToChild(false);
-    form.reset();
+    try {
+      if (editingPackage) {
+        const { error } = await supabase
+          .from('umrah_packages')
+          .update(newPackage)
+          .eq('id', editingPackage.id);
+
+        if (error) throw error;
+        toast({
+          title: 'Success',
+          description: 'Package updated successfully',
+        });
+      } else {
+        const { error } = await supabase
+          .from('umrah_packages')
+          .insert([newPackage]);
+
+        if (error) throw error;
+        toast({
+          title: 'Success',
+          description: 'Package created successfully',
+        });
+      }
+
+      setPackages(editingPackage 
+        ? packages.map(pkg => pkg.id === editingPackage.id ? newPackage : pkg)
+        : [...packages, newPackage]
+      );
+
+      setIsDialogOpen(false);
+      setEditingPackage(null);
+      setItineraryDays([]);
+      setCopyAdultToChild(false);
+      form.reset();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save package',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleEdit = (pkg: Package) => {
@@ -379,6 +566,22 @@ const PackageManager = () => {
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Featured Image */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Featured Image</h4>
+                  <div className="space-y-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePackageImageChange}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    {packageImagePreview && (
+                      <img src={packageImagePreview} alt="Preview" className="mt-2 max-h-40 rounded-md" />
+                    )}
+                  </div>
+                </div>
+
                 {/* Basic Package Information */}
                 <div className="space-y-4">
                   <h4 className="text-lg font-semibold">Basic Information</h4>
@@ -573,137 +776,173 @@ const PackageManager = () => {
                   {/* Makkah Hotel */}
                   <div className="border p-4 rounded space-y-3">
                     <h5 className="font-medium">Makkah Hotel</h5>
-                    <FormField
-                      control={form.control}
-                      name="makkahHotelImage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hotel Image URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://example.com/hotel-image.jpg" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="makkahHotelName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hotel Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Hotel name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        checked={useCustomMakkahHotel}
+                        onCheckedChange={(checked) => setUseCustomMakkahHotel(checked as boolean)}
                       />
+                      <label className="text-sm">Enter hotel details manually</label>
+                    </div>
+
+                    {!useCustomMakkahHotel ? (
                       <FormField
                         control={form.control}
-                        name="makkahHotelStar"
+                        name="makkahHotelId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Star Category</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormLabel>Select Hotel</FormLabel>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                handleMakkahHotelChange(value);
+                              }}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue />
+                                  <SelectValue placeholder="Select a hotel" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="3">3 Star</SelectItem>
-                                <SelectItem value="4">4 Star</SelectItem>
-                                <SelectItem value="5">5 Star</SelectItem>
+                                {hotels
+                                  .filter(hotel => hotel.city.toLowerCase() === 'makkah')
+                                  .map(hotel => (
+                                    <SelectItem key={hotel.id} value={hotel.id}>
+                                      {hotel.name} ({hotel.rating}★)
+                                    </SelectItem>
+                                  ))
+                                }
                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="makkahHotelDistance"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Distance from Haram</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 200m" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    ) : (
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="makkahHotelName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Hotel Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter hotel name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="makkahHotelStar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Star Category</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="3">3 Star</SelectItem>
+                                  <SelectItem value="4">4 Star</SelectItem>
+                                  <SelectItem value="5">5 Star</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Madinah Hotel */}
                   <div className="border p-4 rounded space-y-3">
                     <h5 className="font-medium">Madinah Hotel</h5>
-                    <FormField
-                      control={form.control}
-                      name="madinahHotelImage"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hotel Image URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://example.com/hotel-image.jpg" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="madinahHotelName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Hotel Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Hotel name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                    <div className="flex items-center space-x-2 mb-4">
+                      <Checkbox
+                        checked={useCustomMadinahHotel}
+                        onCheckedChange={(checked) => setUseCustomMadinahHotel(checked as boolean)}
                       />
+                      <label className="text-sm">Enter hotel details manually</label>
+                    </div>
+
+                    {!useCustomMadinahHotel ? (
                       <FormField
                         control={form.control}
-                        name="madinahHotelStar"
+                        name="madinahHotelId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Star Category</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormLabel>Select Hotel</FormLabel>
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                handleMadinahHotelChange(value);
+                              }}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue />
+                                  <SelectValue placeholder="Select a hotel" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="3">3 Star</SelectItem>
-                                <SelectItem value="4">4 Star</SelectItem>
-                                <SelectItem value="5">5 Star</SelectItem>
+                                {hotels
+                                  .filter(hotel => hotel.city.toLowerCase() === 'madinah')
+                                  .map(hotel => (
+                                    <SelectItem key={hotel.id} value={hotel.id}>
+                                      {hotel.name} ({hotel.rating}★)
+                                    </SelectItem>
+                                  ))
+                                }
                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name="madinahHotelDistance"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Distance from Masjid-e-Nabawi</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., 300m" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    ) : (
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="madinahHotelName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Hotel Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter hotel name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="madinahHotelStar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Star Category</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="3">3 Star</SelectItem>
+                                  <SelectItem value="4">4 Star</SelectItem>
+                                  <SelectItem value="5">5 Star</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -752,10 +991,9 @@ const PackageManager = () => {
                   ))}
                 </div>
 
-                {/* Flight & Travel Details */}
+                {/* Flight Details */}
                 <div className="space-y-4">
-                  <h4 className="text-lg font-semibold">Flight & Travel Details</h4>
-                  
+                  <h4 className="text-lg font-semibold">Flight Details</h4>
                   <FormField
                     control={form.control}
                     name="flightIncluded"
@@ -775,7 +1013,33 @@ const PackageManager = () => {
 
                   {form.watch('flightIncluded') && (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="departureCity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Departure City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter departure city" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="destinationCity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Destination City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Enter destination city" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <FormField
                           control={form.control}
                           name="airlineName"
@@ -811,8 +1075,7 @@ const PackageManager = () => {
                           )}
                         />
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
                           name="departureDate"
@@ -842,6 +1105,84 @@ const PackageManager = () => {
                       </div>
                     </>
                   )}
+                </div>
+
+                {/* Activities */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Activities</h4>
+                  <FormField
+                    control={form.control}
+                    name="selectedActivities"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Select Activities</FormLabel>
+                        <FormControl>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {activities.map((activity) => (
+                              <div
+                                key={activity.id}
+                                className="flex items-start space-x-3 p-3 border rounded-md hover:bg-accent/5"
+                              >
+                                <Checkbox
+                                  checked={field.value?.includes(activity.id)}
+                                  onCheckedChange={(checked) => {
+                                    const updatedValue = checked
+                                      ? [...(field.value || []), activity.id]
+                                      : field.value?.filter((id) => id !== activity.id) || [];
+                                    field.onChange(updatedValue);
+                                  }}
+                                />
+                                <div className="space-y-1">
+                                  <label className="text-sm font-medium leading-none">
+                                    {activity.name}
+                                  </label>
+                                  <p className="text-xs text-muted-foreground">
+                                    {activity.city} • {activity.duration} • ${activity.price}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Cities Covered */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-semibold">Cities Covered</h4>
+                  <FormField
+                    control={form.control}
+                    name="citiesCovered"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {cities.map((city) => (
+                              <div
+                                key={city.id}
+                                className="flex items-center space-x-2"
+                              >
+                                <Checkbox
+                                  checked={field.value?.includes(city.id)}
+                                  onCheckedChange={(checked) => {
+                                    const updatedValue = checked
+                                      ? [...(field.value || []), city.id]
+                                      : field.value?.filter((id) => id !== city.id) || [];
+                                    field.onChange(updatedValue);
+                                  }}
+                                />
+                                <label className="text-sm">{city.label}</label>
+                              </div>
+                            ))}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 {/* Pricing */}
