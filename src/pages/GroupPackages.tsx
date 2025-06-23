@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -90,29 +89,34 @@ const GroupPackages = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-r from-emerald-600 to-teal-700">
+      <section className="py-6 bg-gradient-to-r from-emerald-600 to-teal-700">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-8">
-            <Badge className="bg-white/20 text-white border-white/30 mb-4">
-              <Users className="w-4 h-4 mr-1" />
-              Group Packages
-            </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Group Umrah Packages
-            </h1>
-            <p className="text-xl text-emerald-100 max-w-2xl mx-auto">
-              Join fellow pilgrims in our carefully crafted group packages
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 items-center">
+            {/* Left column intentionally left empty for symmetry or future use */}
+            <div className="hidden md:block" />
+            {/* Right column: Title section */}
+            <div className="flex flex-col items-end text-right">
+              <Badge className="bg-white/20 text-white border-white/30 mb-2">
+                <Users className="w-4 h-4 mr-1" />
+                Group Packages
+              </Badge>
+              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
+                Group Umrah Packages
+              </h1>
+              <p className="text-base md:text-lg text-emerald-100 max-w-xl">
+                Join fellow pilgrims in our carefully crafted group packages
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Main Content with Filters */}
-      <section className="py-16">
+      <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="flex gap-8 max-w-7xl mx-auto">
+          <div className="flex gap-8 max-w-7xl mx-auto items-start">
             {/* Left Panel - Filters */}
-            <div className="w-80 flex-shrink-0">
+            <div className="w-80 flex-shrink-0 self-start">
               <UmrahPackageFilters onFiltersChange={handleFiltersChange} />
             </div>
 
