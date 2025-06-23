@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Star } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Hotel {
   id: number;
@@ -33,14 +34,52 @@ const FACILITIES = [
   'WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Laundry', 'Room Service', 'Air Conditioning', 'Breakfast', 'Conference Room', 'Pet Friendly'
 ];
 
-const HotelManager = () => {
-  const [hotels, setHotels] = useState<Hotel[]>([
-    { id: 1, name: 'Hilton Makkah Convention Hotel', location: 'Makkah', rating: 5, pricePerNight: '$299', status: 'Active', description: 'Luxury hotel near Haram', amenities: ['WiFi', 'Pool', 'Spa'], city: 'makkah' },
-    { id: 2, name: 'Al Madinah Holiday Inn', location: 'Madinah', rating: 4, pricePerNight: '$199', status: 'Active', description: 'Comfortable stay in Madinah', amenities: ['WiFi', 'Restaurant'], city: 'madinah' },
-  ]);
+const HotelManager = ({ session }) => {
+  const [hotels, setHotels] = useState<Hotel[]>([]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [viewingHotel, setViewingHotel] = useState<Hotel | null>(null);
+
+  const getSupabaseClient = () => {
+    return supabase;
+  };
+
+  const fetchHotels = async () => {
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
+      .from('hotels')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching hotels:', error);
+    } else {
+      const mappedData = data.map(hotel => ({
+        id: hotel.id,
+        name: hotel.name,
+        location: hotel.location,
+        rating: hotel.rating,
+        pricePerNight: hotel.price_per_night,
+        status: hotel.status,
+        description: hotel.description,
+        amenities: hotel.amenities,
+        city: hotel.city,
+        distanceFromHaram: hotel.distance_from_haram,
+        distanceFromMasjidENabawi: hotel.distance_from_masjid_e_nabawi,
+        images: hotel.images,
+        latitude: hotel.latitude,
+        longitude: hotel.longitude,
+        isShuttle: hotel.is_shuttle,
+        isWalkable: hotel.is_walkable,
+      }));
+      setHotels(mappedData as Hotel[]);
+    }
+  };
+
+  useEffect(() => {
+    fetchHotels();
+  }, []);
 
   const form = useForm({
     defaultValues: {
@@ -62,35 +101,45 @@ const HotelManager = () => {
     }
   });
 
-  const onSubmit = (data: any) => {
-    const newHotel: Hotel = {
-      id: editingHotel ? editingHotel.id : Date.now(),
+  const onSubmit = async (data: any) => {
+    const supabaseClient = getSupabaseClient();
+    const hotelData = {
       name: data.name,
       location: data.location,
       rating: Number(data.rating),
-      pricePerNight: data.pricePerNight,
+      price_per_night: data.pricePerNight ? parseFloat(data.pricePerNight.toString().replace(/[^0-9.]/g, '')) : null,
       status: data.status,
       description: data.description,
       amenities: data.amenities,
       city: data.city,
-      distanceFromHaram: data.city === 'makkah' ? data.distanceFromHaram : undefined,
-      distanceFromMasjidENabawi: data.city === 'madinah' ? data.distanceFromMasjidENabawi : undefined,
+      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? parseInt(data.distanceFromHaram, 10) : null,
+      distance_from_masjid_e_nabawi: data.city === 'madinah' && data.distanceFromMasjidENabawi ? parseInt(data.distanceFromMasjidENabawi, 10) : null,
       images: data.images,
       latitude: data.latitude,
       longitude: data.longitude,
-      isShuttle: data.isShuttle,
-      isWalkable: data.isWalkable,
+      is_shuttle: data.isShuttle,
+      is_walkable: data.isWalkable,
     };
 
+    let error;
     if (editingHotel) {
-      setHotels(hotels.map(hotel => hotel.id === editingHotel.id ? newHotel : hotel));
+      ({ error } = await supabaseClient.from('hotels').update(hotelData).eq('id', editingHotel.id));
     } else {
-      setHotels([...hotels, newHotel]);
+      ({ error } = await supabaseClient.from('hotels').insert([hotelData]));
     }
 
-    setIsDialogOpen(false);
-    setEditingHotel(null);
-    form.reset();
+    if (error) {
+      console.error('Error saving hotel:', error);
+    } else {
+      fetchHotels();
+      setIsDialogOpen(false);
+      setEditingHotel(null);
+      form.reset();
+    }
+  };
+
+  const handleView = (hotel: Hotel) => {
+    setViewingHotel(hotel);
   };
 
   const handleEdit = (hotel: Hotel) => {
@@ -115,8 +164,14 @@ const HotelManager = () => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    setHotels(hotels.filter(hotel => hotel.id !== id));
+  const handleDelete = async (id: number) => {
+    const supabaseClient = getSupabaseClient();
+    const { error } = await supabaseClient.from('hotels').delete().eq('id', id);
+    if (error) {
+      console.error('Error deleting hotel:', error);
+    } else {
+      fetchHotels();
+    }
   };
 
   return (
@@ -461,7 +516,7 @@ const HotelManager = () => {
                     </td>
                     <td className="p-2">
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="outline">
+                        <Button size="sm" variant="outline" onClick={() => handleView(hotel)}>
                           <Eye className="w-3 h-3" />
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => handleEdit(hotel)}>
@@ -479,6 +534,45 @@ const HotelManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      {viewingHotel && (
+        <Dialog open={!!viewingHotel} onOpenChange={() => setViewingHotel(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{viewingHotel.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div><span className="font-semibold">Location:</span> {viewingHotel.location}</div>
+                <div><span className="font-semibold">City:</span> {viewingHotel.city}</div>
+                <div><span className="font-semibold">Rating:</span> {viewingHotel.rating} stars</div>
+                <div><span className="font-semibold">Price/Night:</span> ${viewingHotel.pricePerNight}</div>
+                <div><span className="font-semibold">Status:</span> <Badge variant={viewingHotel.status === 'Active' ? 'default' : 'secondary'}>{viewingHotel.status}</Badge></div>
+                {viewingHotel.city === 'makkah' && <div><span className="font-semibold">Distance from Haram:</span> {viewingHotel.distanceFromHaram}m</div>}
+                {viewingHotel.city === 'madinah' && <div><span className="font-semibold">Distance from Masjid-e-Nabawi:</span> {viewingHotel.distanceFromMasjidENabawi}m</div>}
+                <div><span className="font-semibold">Shuttle:</span> {viewingHotel.isShuttle ? 'Yes' : 'No'}</div>
+                <div><span className="font-semibold">Walkable:</span> {viewingHotel.isWalkable ? 'Yes' : 'No'}</div>
+              </div>
+              <div>
+                <h4 className="font-semibold">Description</h4>
+                <p>{viewingHotel.description}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Amenities</h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingHotel.amenities?.map(amenity => <Badge key={amenity} variant="outline">{amenity}</Badge>)}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold">Images</h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingHotel.images?.map((img, idx) => <img key={idx} src={img} alt="hotel" className="w-24 h-24 object-cover rounded" />)}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

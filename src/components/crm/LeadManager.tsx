@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Phone, Mail, MessageSquare, Search, Filter } from 'lucide-react';
+import HotelEnquiriesManager from '../../pages/cms/HotelEnquiriesManager';
 
 interface Lead {
   id: number;
@@ -467,6 +468,11 @@ const LeadManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <div className="mt-12">
+        <h3 className="text-xl font-semibold mb-4">Hotel Enquiries</h3>
+        <HotelEnquiriesManager />
+      </div>
     </div>
   );
 };

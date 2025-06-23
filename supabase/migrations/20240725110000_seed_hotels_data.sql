@@ -1,0 +1,13 @@
+INSERT INTO public.hotels (name, location, city, rating, price_per_night, status, description, amenities, distance_from_haram, is_shuttle, is_walkable) VALUES
+('Swissôtel Al Maqam Makkah', 'Ibrahim Al Khalil Street, Makkah', 'makkah', 5, 950, 'Active', 'Overlooking the holy city, Swissôtel Al Maqam Makkah stands tall as an oasis of comfort.', ARRAY['WiFi', 'Restaurant', 'Room Service', 'Air Conditioning'], 100, false, true),
+('Elaf Al Mashaer Hotel Makkah', 'Ajyad Street, Makkah', 'makkah', 4, 600, 'Active', 'A modern hotel offering comfortable accommodation just a short walk from the Haram.', ARRAY['WiFi', 'Restaurant', 'Air Conditioning', 'Breakfast'], 400, false, true),
+('Al Ghufran Safwah Hotel Makkah', 'Ajyad Street, Makkah', 'makkah', 5, 1200, 'Active', 'Located in front of King Abdulaziz Gate, offering stunning Haram views.', ARRAY['WiFi', 'Restaurant', 'Gym', 'Room Service'], 50, false, true),
+('Ibis Styles Makkah', 'Al Aziziyah, Makkah', 'makkah', 3, 350, 'Active', 'An economy hotel with modern amenities and a regular shuttle to the Haram.', ARRAY['WiFi', 'Restaurant', 'Breakfast'], 3000, true, false),
+('Le Méridien Makkah', 'King Abdulaziz Road, Makkah', 'makkah', 4, 750, 'Active', 'Elegant hotel offering a mix of luxury and convenience for pilgrims.', ARRAY['WiFi', 'Restaurant', 'Room Service', 'Air Conditioning'], 250, false, true);
+
+INSERT INTO public.hotels (name, location, city, rating, price_per_night, status, description, amenities, distance_from_masjid_e_nabawi, is_shuttle, is_walkable) VALUES
+('Dar Al Hijra InterContinental', 'Central Area, Madinah', 'madinah', 5, 1100, 'Active', 'A luxurious hotel with views of the Prophet''s Mosque plaza.', ARRAY['WiFi', 'Restaurant', 'Gym', 'Room Service'], 150, false, true),
+('Crowne Plaza Madinah', 'King Faisal Street, Madinah', 'madinah', 4, 800, 'Active', 'Modern hotel located south of the Haram, offering high-quality services.', ARRAY['WiFi', 'Restaurant', 'Air Conditioning', 'Breakfast'], 200, false, true),
+('Emaar Royal Hotel Al Madinah', 'Central Area North, Madinah', 'madinah', 3, 450, 'Active', 'Offers comfortable rooms for a pleasant stay near the Prophet''s Mosque.', ARRAY['WiFi', 'Restaurant'], 600, false, false),
+('Anwar Al Madinah Mövenpick Hotel', 'Central Area, Madinah', 'madinah', 5, 1300, 'Active', 'One of the closest hotels to the Prophet''s Mosque, offering premium comfort.', ARRAY['WiFi', 'Pool', 'Restaurant', 'Room Service', 'Gym'], 20, false, true),
+('Taiba Front Hotel', 'Central Area, Madinah', 'madinah', 4, 900, 'Active', 'Located directly in front of the Prophet''s Mosque, providing easy access for prayers.', ARRAY['WiFi', 'Restaurant', 'Air Conditioning'], 50, false, true); 

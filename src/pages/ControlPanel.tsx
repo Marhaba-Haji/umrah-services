@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +22,9 @@ import {
   PenTool,
   Folder
 } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 
 // Import CMS components
 import BlogManager from '../components/cms/BlogManager';
@@ -38,7 +40,24 @@ import LeadManager from '../components/crm/LeadManager';
 import SEOManager from '../components/seo/SEOManager';
 
 const ControlPanel = () => {
+  const [session, setSession] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const stats = [
     { title: 'Total Bookings', value: '1,234', icon: Calendar, color: 'text-blue-600' },
@@ -54,6 +73,21 @@ const ControlPanel = () => {
     { action: 'Package updated', time: '2 hours ago', type: 'package' },
   ];
 
+  if (!session) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+        <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
+          <Auth
+            supabaseClient={supabase}
+            appearance={{ theme: ThemeSupa }}
+            providers={['google', 'github']}
+            theme="default"
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b">
@@ -67,9 +101,9 @@ const ControlPanel = () => {
               <Badge variant="outline" className="text-green-600 border-green-600">
                 System Online
               </Badge>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleLogout}>
                 <Settings className="w-4 h-4 mr-2" />
-                Settings
+                Logout
               </Button>
             </div>
           </div>
@@ -200,7 +234,7 @@ const ControlPanel = () => {
           </TabsContent>
 
           <TabsContent value="hotels">
-            <HotelManager />
+            <HotelManager session={session} />
           </TabsContent>
 
           <TabsContent value="packages">

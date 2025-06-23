@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -103,11 +102,9 @@ const Header = () => {
             </nav>
 
             <div className="hidden md:flex items-center space-x-4">
-              <button onClick={() => handleNavigation('/apply-umrah-visa-online')}>
-                <Button className="bg-[#023f3a] hover:bg-[#023f3a]/90 text-white shadow-lg">
-                  Apply Now
-                </Button>
-              </button>
+              <Button onClick={() => handleNavigation('/apply-umrah-visa-online')} className="bg-[#023f3a] hover:bg-[#023f3a]/90 text-white shadow-lg">
+                Apply Now
+              </Button>
             </div>
 
             {/* Mobile menu button */}
@@ -130,11 +127,9 @@ const Header = () => {
                 <button onClick={() => handleNavigation('/faq')} className="text-gray-700 hover:text-[#023f3a] transition-colors text-left">FAQ</button>
                 
                 <div className="flex flex-col space-y-2 pt-4">
-                  <button onClick={() => handleNavigation('/apply-umrah-visa-online')}>
-                    <Button className="bg-[#023f3a] hover:bg-[#023f3a]/90 w-full">
-                      Apply Now
-                    </Button>
-                  </button>
+                  <Button onClick={() => handleNavigation('/apply-umrah-visa-online')} className="bg-[#023f3a] hover:bg-[#023f3a]/90 w-full">
+                    Apply Now
+                  </Button>
                 </div>
               </nav>
             </div>}
