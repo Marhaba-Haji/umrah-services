@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,13 +17,13 @@ interface Package {
   created_at: string;
   name: string;
   duration: string;
-  price: number; // Changed from string to number to match database
+  price: number;
   description: string;
   category: string;
-  inclusions: string;
-  exclusions: string;
+  inclusions: string[];  // Changed from string to string[] to match database
+  exclusions: string[];  // Changed from string to string[] to match database
   terms_conditions: string;
-  images: string;
+  images: string[];      // Changed from string to string[] to match database
   featured_image: string;
   status: string;
   max_capacity: string;
@@ -129,13 +130,13 @@ const PackageManager = () => {
       id: packageItem.id,
       name: packageItem.name,
       duration: packageItem.duration,
-      price: packageItem.price.toString(), // Convert number to string for form
+      price: packageItem.price.toString(),
       description: packageItem.description,
       category: packageItem.category,
-      inclusions: packageItem.inclusions,
-      exclusions: packageItem.exclusions,
+      inclusions: Array.isArray(packageItem.inclusions) ? packageItem.inclusions.join('\n') : '',
+      exclusions: Array.isArray(packageItem.exclusions) ? packageItem.exclusions.join('\n') : '',
       terms_conditions: packageItem.terms_conditions,
-      images: packageItem.images,
+      images: Array.isArray(packageItem.images) ? packageItem.images.join('\n') : '',
       featured_image: packageItem.featured_image,
       status: packageItem.status,
       max_capacity: packageItem.max_capacity,

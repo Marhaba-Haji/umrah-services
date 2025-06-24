@@ -89,7 +89,7 @@ const TransportBooking = () => {
     // Parse vehicle details JSON if present - fix type inference
     let vehicleDetailsObj: Record<string, any> | null = null;
     if (vehicle.vehicle_details) {
-      if (typeof vehicle.vehicle_details === 'string' && vehicle.vehicle_details.trim().startsWith('{')) {
+      if (typeof vehicle.vehicle_details === 'string') {
         try { 
           vehicleDetailsObj = JSON.parse(vehicle.vehicle_details); 
         } catch {
