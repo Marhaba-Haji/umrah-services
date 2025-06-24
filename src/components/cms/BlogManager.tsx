@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus, Wand2, Upload } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +72,7 @@ const BlogManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
 
   const form = useForm({
@@ -102,7 +104,7 @@ const BlogManager = () => {
       faq_schema: '',
       howto_schema: '',
       local_business_schema: '',
-      author_url: '',
+      author_name: '',
       review_rating: '',
       video_url: '',
       image_gallery: '',
@@ -164,6 +166,134 @@ const BlogManager = () => {
       .replace(/(^-|-$)/g, '');
   };
 
+  const handleImageUpload = async (file: File) => {
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `blog-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('blog-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('blog-images')
+        .getPublicUrl(filePath);
+
+      form.setValue('featured_image', publicUrl);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const generateFAQSchema = () => {
+    const title = form.getValues('title');
+    const content = form.getValues('content');
+    
+    const faqSchema = {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": `What is ${title}?`,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": content ? content.substring(0, 200) + "..." : "Learn more about this topic in our comprehensive guide."
+          }
+        }
+      ]
+    };
+    
+    form.setValue('faq_schema', JSON.stringify(faqSchema, null, 2));
+    toast({
+      title: "Success",
+      description: "FAQ Schema generated successfully",
+    });
+  };
+
+  const generateHowToSchema = () => {
+    const title = form.getValues('title');
+    const content = form.getValues('content');
+    
+    const howToSchema = {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": title,
+      "description": form.getValues('meta_description') || "Step-by-step guide",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "name": "Step 1",
+          "text": content ? content.substring(0, 100) : "Follow the instructions provided"
+        }
+      ]
+    };
+    
+    form.setValue('howto_schema', JSON.stringify(howToSchema, null, 2));
+    toast({
+      title: "Success",
+      description: "HowTo Schema generated successfully",
+    });
+  };
+
+  const generateLocalBusinessSchema = () => {
+    const title = form.getValues('title');
+    
+    const localBusinessSchema = {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "name": title,
+      "description": form.getValues('meta_description') || "Local business information",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Your Street Address",
+        "addressLocality": "Your City",
+        "addressRegion": "Your State",
+        "postalCode": "Your Postal Code",
+        "addressCountry": "Your Country"
+      }
+    };
+    
+    form.setValue('local_business_schema', JSON.stringify(localBusinessSchema, null, 2));
+    toast({
+      title: "Success",
+      description: "Local Business Schema generated successfully",
+    });
+  };
+
+  const generateSpeakableSchema = () => {
+    const title = form.getValues('title');
+    const content = form.getValues('content');
+    
+    const speakableSchema = {
+      "@context": "https://schema.org",
+      "@type": "SpeakableSpecification",
+      "xpath": ["/html/head/title", "//*[@id='main-content']"],
+      "cssSelector": ["h1", ".main-content"]
+    };
+    
+    form.setValue('speakable_schema', JSON.stringify(speakableSchema, null, 2));
+    toast({
+      title: "Success",
+      description: "Speakable Schema generated successfully",
+    });
+  };
+
   const onSubmit = async (data: any) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -205,7 +335,7 @@ const BlogManager = () => {
         faq_schema: data.faq_schema ? JSON.parse(data.faq_schema) : null,
         howto_schema: data.howto_schema ? JSON.parse(data.howto_schema) : null,
         local_business_schema: data.local_business_schema ? JSON.parse(data.local_business_schema) : null,
-        author_url: data.author_url || null,
+        author_url: null, // Removed author_url field
         review_rating: data.review_rating ? parseFloat(data.review_rating) : null,
         video_url: data.video_url || null,
         image_gallery: data.image_gallery ? data.image_gallery.split(',').map(url => url.trim()) : null,
@@ -279,7 +409,9 @@ const BlogManager = () => {
       faq_schema: post.faq_schema ? JSON.stringify(post.faq_schema) : '',
       howto_schema: post.howto_schema ? JSON.stringify(post.howto_schema) : '',
       local_business_schema: post.local_business_schema ? JSON.stringify(post.local_business_schema) : '',
-      author_url: post.author_url || '',
+      author_name: post.profiles?.first_name && post.profiles?.last_name 
+        ? `${post.profiles.first_name} ${post.profiles.last_name}` 
+        : '',
       review_rating: post.review_rating ? post.review_rating.toString() : '',
       video_url: post.video_url || '',
       image_gallery: post.image_gallery ? post.image_gallery.join(', ') : '',
@@ -392,7 +524,7 @@ const BlogManager = () => {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <div className="min-h-[300px]">
+                        <div className="min-h-[500px]">
                           <ReactQuill
                             theme="snow"
                             value={field.value}
@@ -411,7 +543,7 @@ const BlogManager = () => {
                               'list', 'bullet', 'link', 'image', 'video'
                             ]}
                             placeholder="Write your blog content here..."
-                            style={{ minHeight: 300 }}
+                            style={{ minHeight: '450px' }}
                           />
                         </div>
                       </FormControl>
@@ -426,9 +558,40 @@ const BlogManager = () => {
                     name="featured_image"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Featured Image URL</FormLabel>
+                        <FormLabel>Featured Image</FormLabel>
                         <FormControl>
-                          <Input placeholder="https://example.com/image.jpg" {...field} />
+                          <div className="space-y-2">
+                            <Input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleImageUpload(file);
+                                }
+                              }}
+                              disabled={uploadingImage}
+                            />
+                            {uploadingImage && <p className="text-sm text-gray-500">Uploading...</p>}
+                            {field.value && (
+                              <div className="mt-2">
+                                <img src={field.value} alt="Preview" className="max-w-32 h-20 object-cover rounded" />
+                                <Input 
+                                  value={field.value} 
+                                  onChange={field.onChange}
+                                  placeholder="Or paste image URL"
+                                  className="mt-2"
+                                />
+                              </div>
+                            )}
+                            {!field.value && (
+                              <Input 
+                                value={field.value} 
+                                onChange={field.onChange}
+                                placeholder="Or paste image URL"
+                              />
+                            )}
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -584,9 +747,20 @@ const BlogManager = () => {
                       name="faq_schema"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>FAQ Schema (JSON)</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            FAQ Schema (JSON)
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={generateFAQSchema}
+                            >
+                              <Wand2 className="w-3 h-3 mr-1" />
+                              Generate
+                            </Button>
+                          </FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Paste FAQPage JSON-LD here" {...field} />
+                            <Textarea placeholder="Paste FAQPage JSON-LD here" {...field} rows={6} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -597,9 +771,20 @@ const BlogManager = () => {
                       name="howto_schema"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>HowTo Schema (JSON)</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            HowTo Schema (JSON)
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={generateHowToSchema}
+                            >
+                              <Wand2 className="w-3 h-3 mr-1" />
+                              Generate
+                            </Button>
+                          </FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Paste HowTo JSON-LD here" {...field} />
+                            <Textarea placeholder="Paste HowTo JSON-LD here" {...field} rows={6} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -610,9 +795,20 @@ const BlogManager = () => {
                       name="local_business_schema"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Local Business Schema (JSON)</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            Local Business Schema (JSON)
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={generateLocalBusinessSchema}
+                            >
+                              <Wand2 className="w-3 h-3 mr-1" />
+                              Generate
+                            </Button>
+                          </FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Paste LocalBusiness JSON-LD here" {...field} />
+                            <Textarea placeholder="Paste LocalBusiness JSON-LD here" {...field} rows={6} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -623,9 +819,20 @@ const BlogManager = () => {
                       name="speakable_schema"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Speakable Schema (JSON)</FormLabel>
+                          <FormLabel className="flex items-center gap-2">
+                            Speakable Schema (JSON)
+                            <Button 
+                              type="button" 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={generateSpeakableSchema}
+                            >
+                              <Wand2 className="w-3 h-3 mr-1" />
+                              Generate
+                            </Button>
+                          </FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Paste Speakable JSON-LD here" {...field} />
+                            <Textarea placeholder="Paste Speakable JSON-LD here" {...field} rows={6} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -633,12 +840,12 @@ const BlogManager = () => {
                     />
                     <FormField
                       control={form.control}
-                      name="author_url"
+                      name="author_name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Author URL</FormLabel>
+                          <FormLabel>Author Name</FormLabel>
                           <FormControl>
-                            <Input placeholder="https://example.com/author" {...field} />
+                            <Input placeholder="Author full name" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
