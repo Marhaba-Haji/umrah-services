@@ -30,7 +30,8 @@ import {
   Stamp,
   Map,
   HeartHandshake,
-  Search
+  Search,
+  Database
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { Auth } from '@supabase/auth-ui-react';
@@ -63,6 +64,7 @@ import SaudiVisasManager from '../components/cms/SaudiVisasManager';
 import ZiarathManager from '../components/cms/ZiarathManager';
 import LeadManager from '../components/crm/LeadManager';
 import SEOManager from '../components/seo/SEOManager';
+import DatabaseBackupManager from '../components/cms/DatabaseBackupManager';
 
 const ListItem = React.forwardRef<
   React.ElementRef<"a">,
@@ -274,6 +276,7 @@ const ControlPanel = () => {
     { value: 'leads', label: 'Leads', icon: HeartHandshake, description: 'Customer leads', shortcut: '⌘L' },
     { value: 'seo', label: 'SEO', icon: Search, description: 'Search optimization', shortcut: '⌘S' },
     { value: 'activities', label: 'Activities', icon: Ticket, description: 'Manage activities', shortcut: '⌘A' },
+    { value: 'backups', label: 'Backups', icon: Database, description: 'Database backups', shortcut: '⌘K' },
   ];
 
   useEffect(() => {
@@ -662,6 +665,10 @@ const ControlPanel = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="backups">
+            <DatabaseBackupManager />
           </TabsContent>
         </Tabs>
       </div>

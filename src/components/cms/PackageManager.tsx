@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,19 +19,19 @@ interface Package {
   price: number;
   description: string;
   category: string;
-  inclusions: string[];  // Changed from string to string[] to match database
-  exclusions: string[];  // Changed from string to string[] to match database
+  inclusions: string[];
+  exclusions: string[];
   terms_conditions: string;
-  images: string[];      // Changed from string to string[] to match database
+  images: string[];
   featured_image: string;
   status: string;
-  max_capacity: string;
-  available_spots: string;
+  max_capacity: number;  // Changed from string to number to match database
+  available_spots: number;  // Changed from string to number to match database
   departure_date: string;
   return_date: string;
   booking_deadline: string;
   is_group_package: boolean;
-  min_participants: string;
+  min_participants: number;  // Changed from string to number to match database
 }
 
 interface Category {
@@ -139,13 +138,13 @@ const PackageManager = () => {
       images: Array.isArray(packageItem.images) ? packageItem.images.join('\n') : '',
       featured_image: packageItem.featured_image,
       status: packageItem.status,
-      max_capacity: packageItem.max_capacity,
-      available_spots: packageItem.available_spots,
+      max_capacity: packageItem.max_capacity?.toString() || '',
+      available_spots: packageItem.available_spots?.toString() || '',
       departure_date: packageItem.departure_date,
       return_date: packageItem.return_date,
       booking_deadline: packageItem.booking_deadline,
       is_group_package: packageItem.is_group_package,
-      min_participants: packageItem.min_participants,
+      min_participants: packageItem.min_participants?.toString() || '',
     });
   };
 
