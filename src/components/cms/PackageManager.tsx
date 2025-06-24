@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -11,8 +11,25 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-interface UmrahPackage {
+interface DatabasePackage {
   id?: string;
+  name: string;
+  description: string;
+  duration: string;
+  price: number;
+  status: 'draft' | 'active' | 'inactive';
+  category: string;
+  inclusions: string[];
+  exclusions: string[];
+  images: string[];
+  makkah_hotel: any;
+  madinah_hotel: any;
+  flight_details: any;
+  itinerary: any;
+  pricing: any;
+}
+
+interface FormPackage {
   name: string;
   description: string;
   duration: string;
@@ -30,12 +47,12 @@ interface UmrahPackage {
 }
 
 const PackageManager = () => {
-  const [packages, setPackages] = useState<UmrahPackage[]>([]);
-  const [editingPackage, setEditingPackage] = useState<UmrahPackage | null>(null);
+  const [packages, setPackages] = useState<DatabasePackage[]>([]);
+  const [editingPackage, setEditingPackage] = useState<DatabasePackage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const [formData, setFormData] = useState<UmrahPackage>({
+  const [formData, setFormData] = useState<FormPackage>({
     name: '',
     description: '',
     duration: '',
@@ -78,11 +95,37 @@ const PackageManager = () => {
     }
   };
 
-  const handleInputChange = (field: keyof UmrahPackage, value: any) => {
+  const handleInputChange = (field: keyof FormPackage, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
+  };
+
+  const convertFormToDatabase = (formPackage: FormPackage): Omit<DatabasePackage, 'id'> => {
+    const statusMap: Record<FormPackage['status'], DatabasePackage['status']> = {
+      'draft': 'draft',
+      'published': 'active',
+      'archived': 'inactive'
+    };
+
+    return {
+      ...formPackage,
+      status: statusMap[formPackage.status]
+    };
+  };
+
+  const convertDatabaseToForm = (dbPackage: DatabasePackage): FormPackage => {
+    const statusMap: Record<DatabasePackage['status'], FormPackage['status']> = {
+      'draft': 'draft',
+      'active': 'published',
+      'inactive': 'archived'
+    };
+
+    return {
+      ...dbPackage,
+      status: statusMap[dbPackage.status]
+    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,10 +133,12 @@ const PackageManager = () => {
     setIsLoading(true);
 
     try {
+      const dbData = convertFormToDatabase(formData);
+      
       if (editingPackage?.id) {
         const { error } = await supabase
           .from('umrah_packages')
-          .update(formData)
+          .update(dbData)
           .eq('id', editingPackage.id);
 
         if (error) throw error;
@@ -104,7 +149,7 @@ const PackageManager = () => {
       } else {
         const { error } = await supabase
           .from('umrah_packages')
-          .insert([formData]);
+          .insert([dbData]);
 
         if (error) throw error;
         toast({
@@ -147,9 +192,9 @@ const PackageManager = () => {
     setEditingPackage(null);
   };
 
-  const handleEdit = (pkg: UmrahPackage) => {
+  const handleEdit = (pkg: DatabasePackage) => {
     setEditingPackage(pkg);
-    setFormData(pkg);
+    setFormData(convertDatabaseToForm(pkg));
   };
 
   const handleDelete = async (id: string) => {
@@ -299,7 +344,7 @@ const PackageManager = () => {
                           <div className="flex gap-2 mt-2">
                             <Badge variant="outline">{pkg.duration}</Badge>
                             <Badge variant="outline">${pkg.price}</Badge>
-                            <Badge variant={pkg.status === 'published' ? 'default' : 'secondary'}>
+                            <Badge variant={pkg.status === 'active' ? 'default' : 'secondary'}>
                               {pkg.status}
                             </Badge>
                           </div>
