@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
+type PackageStatus = 'draft' | 'active' | 'inactive';
+
 interface Package {
   id: string;
   created_at: string;
@@ -26,7 +28,7 @@ interface Package {
   terms_conditions: string;
   images: string[];
   featured_image: string;
-  status: string;
+  status: PackageStatus;
   max_capacity: number;
   min_participants: number;
   available_spots: number;
@@ -50,7 +52,11 @@ interface Package {
   updated_at: string;
 }
 
-// Simplified form state interface
+interface Category {
+  id: string;
+  name: string;
+}
+
 interface FormState {
   id?: string;
   name: string;
@@ -63,7 +69,7 @@ interface FormState {
   terms_conditions: string;
   images: string;
   featured_image: string;
-  status: string;
+  status: PackageStatus;
   max_capacity: string;
   min_participants: string;
   available_spots: string;
@@ -78,7 +84,7 @@ interface FormState {
   meal_plan: string;
 }
 
-const packageStatuses = [
+const packageStatuses: { value: PackageStatus; label: string }[] = [
   { value: 'draft', label: 'Draft' },
   { value: 'active', label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
@@ -86,7 +92,7 @@ const packageStatuses = [
 
 const PackageManager = () => {
   const [packages, setPackages] = useState<Package[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
@@ -212,7 +218,7 @@ const PackageManager = () => {
       terms_conditions: packageItem.terms_conditions,
       images: Array.isArray(packageItem.images) ? packageItem.images.join('\n') : '',
       featured_image: packageItem.featured_image,
-      status: (packageItem.status as 'draft' | 'active' | 'inactive') || 'draft',
+      status: packageItem.status || 'draft',
       max_capacity: packageItem.max_capacity?.toString() || '',
       min_participants: packageItem.min_participants?.toString() || '',
       available_spots: packageItem.available_spots?.toString() || '',
@@ -251,12 +257,12 @@ const PackageManager = () => {
         images: imagesArray,
         featured_image: form.featured_image,
         status: form.status,
-        max_capacity: parseInt(form.max_capacity),
-        min_participants: parseInt(form.min_participants),
-        available_spots: parseInt(form.available_spots),
-        departure_date: form.departure_date,
-        return_date: form.return_date,
-        booking_deadline: form.booking_deadline,
+        max_capacity: parseInt(form.max_capacity) || null,
+        min_participants: parseInt(form.min_participants) || null,
+        available_spots: parseInt(form.available_spots) || null,
+        departure_date: form.departure_date || null,
+        return_date: form.return_date || null,
+        booking_deadline: form.booking_deadline || null,
         package_type: form.package_type,
         package_category: form.package_category,
         cities_covered: citiesCoveredArray,
@@ -373,7 +379,7 @@ const PackageManager = () => {
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((category: any) => (
+                        {categories.map((category) => (
                           <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -447,7 +453,7 @@ const PackageManager = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="status">Status</Label>
-                    <Select onValueChange={(value: 'draft' | 'active' | 'inactive') => setForm(prev => ({ ...prev, status: value }))} value={form.status}>
+                    <Select onValueChange={(value: PackageStatus) => setForm(prev => ({ ...prev, status: value }))} value={form.status}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a status" />
                       </SelectTrigger>
@@ -617,7 +623,7 @@ const PackageManager = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{packageItem.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap">${packageItem.price}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={packageItem.status === 'published' ? 'default' : 'secondary'}>{packageItem.status}</Badge>
+                        <Badge variant={packageItem.status === 'active' ? 'default' : 'secondary'}>{packageItem.status}</Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <Button size="sm" variant="outline" onClick={() => openEditDialog(packageItem)}>Edit</Button>
