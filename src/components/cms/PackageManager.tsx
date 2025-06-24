@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactQuill from 'react-quill';
@@ -25,9 +26,9 @@ interface Package {
   images: string[];
   featured_image: string;
   status: string;
-  max_capacity: number; // Changed from string to number to match database
-  min_participants: number; // Changed from string to number to match database
-  available_spots: number; // Changed from string to number to match database
+  max_capacity: number;
+  min_participants: number;
+  available_spots: number;
   departure_date: string;
   return_date: string;
   booking_deadline: string;
@@ -60,7 +61,7 @@ interface FormState {
   terms_conditions: string;
   images: string;
   featured_image: string;
-  status: string;
+  status: 'draft' | 'active' | 'inactive';
   max_capacity: string;
   min_participants: string;
   available_spots: string;
@@ -77,8 +78,8 @@ interface FormState {
 
 const packageStatuses = [
   { value: 'draft', label: 'Draft' },
-  { value: 'published', label: 'Published' },
-  { value: 'archived', label: 'Archived' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
 ];
 
 const PackageManager = () => {
@@ -152,7 +153,9 @@ const PackageManager = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = 'checked' in e.target ? (e.target as HTMLInputElement).checked : false;
+    
     setForm(prevForm => ({
       ...prevForm,
       [name]: type === 'checkbox' ? checked : value,
@@ -207,10 +210,10 @@ const PackageManager = () => {
       terms_conditions: packageItem.terms_conditions,
       images: Array.isArray(packageItem.images) ? packageItem.images.join('\n') : '',
       featured_image: packageItem.featured_image,
-      status: packageItem.status,
-      max_capacity: packageItem.max_capacity?.toString() || '', // Convert number to string
-      min_participants: packageItem.min_participants?.toString() || '', // Convert number to string
-      available_spots: packageItem.available_spots?.toString() || '', // Convert number to string
+      status: (packageItem.status as 'draft' | 'active' | 'inactive') || 'draft',
+      max_capacity: packageItem.max_capacity?.toString() || '',
+      min_participants: packageItem.min_participants?.toString() || '',
+      available_spots: packageItem.available_spots?.toString() || '',
       departure_date: packageItem.departure_date,
       return_date: packageItem.return_date,
       booking_deadline: packageItem.booking_deadline,
@@ -363,12 +366,12 @@ const PackageManager = () => {
                   </div>
                   <div>
                     <Label htmlFor="category">Category</Label>
-                    <Select onValueChange={(value) => setForm(prev => ({ ...prev, category: value }))} defaultValue={form.category}>
+                    <Select onValueChange={(value) => setForm(prev => ({ ...prev, category: value }))} value={form.category}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((category) => (
+                        {categories.map((category: any) => (
                           <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -442,7 +445,7 @@ const PackageManager = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="status">Status</Label>
-                    <Select onValueChange={(value) => setForm(prev => ({ ...prev, status: value }))} defaultValue={form.status}>
+                    <Select onValueChange={(value: 'draft' | 'active' | 'inactive') => setForm(prev => ({ ...prev, status: value }))} value={form.status}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a status" />
                       </SelectTrigger>

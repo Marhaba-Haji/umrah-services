@@ -45,7 +45,12 @@ const DatabaseBackupManager = () => {
         console.error('Error fetching backups:', error);
         toast.error('Failed to fetch backups');
       } else {
-        setBackups(data || []);
+        // Type assertion to handle the database type mismatch
+        setBackups((data as any[])?.map(item => ({
+          ...item,
+          backup_type: item.backup_type as 'full' | 'schema' | 'data',
+          status: item.status as 'completed' | 'in_progress' | 'failed'
+        })) || []);
       }
     } finally {
       setLoading(false);
