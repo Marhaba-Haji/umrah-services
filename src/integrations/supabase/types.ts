@@ -418,6 +418,42 @@ export type Database = {
           },
         ]
       }
+      database_backups: {
+        Row: {
+          backup_data: Json
+          backup_name: string
+          backup_type: string
+          created_at: string | null
+          id: string
+          size_bytes: number
+          status: string
+          table_count: number
+          updated_at: string | null
+        }
+        Insert: {
+          backup_data: Json
+          backup_name: string
+          backup_type: string
+          created_at?: string | null
+          id?: string
+          size_bytes?: number
+          status?: string
+          table_count?: number
+          updated_at?: string | null
+        }
+        Update: {
+          backup_data?: Json
+          backup_name?: string
+          backup_type?: string
+          created_at?: string | null
+          id?: string
+          size_bytes?: number
+          status?: string
+          table_count?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       faqs: {
         Row: {
           answer: string
