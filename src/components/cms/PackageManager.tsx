@@ -161,11 +161,11 @@ const PackageManager = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    const checked = 'checked' in e.target ? (e.target as HTMLInputElement).checked : false;
+    const target = e.target as HTMLInputElement;
+    const { name, value, type, checked } = target;
     
-    setForm(prevForm => ({
-      ...prevForm,
+    setForm(prev => ({
+      ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
   };
