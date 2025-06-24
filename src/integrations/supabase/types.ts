@@ -9,29 +9,78 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          city: string
+          created_at: string
+          description: string
+          duration: string | null
+          featured_image: string | null
+          id: string
+          is_featured: boolean
+          name: string
+          price: number | null
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          created_at?: string
+          description: string
+          duration?: string | null
+          featured_image?: string | null
+          id?: string
+          is_featured?: boolean
+          name: string
+          price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          created_at?: string
+          description?: string
+          duration?: string | null
+          featured_image?: string | null
+          id?: string
+          is_featured?: boolean
+          name?: string
+          price?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string | null
+          author_url: string | null
           canonical_url: string | null
           category_id: string | null
           content: string | null
           created_at: string | null
+          date_modified: string | null
           excerpt: string | null
+          faq_schema: Json | null
           featured: boolean | null
           featured_image: string | null
           featured_image_alt: string | null
+          howto_schema: Json | null
           id: string
+          image_gallery: string[] | null
+          local_business_schema: Json | null
           meta_description: string | null
           meta_keywords: string | null
           meta_title: string | null
+          news_keywords: string | null
           og_description: string | null
           og_image: string | null
           og_title: string | null
           og_type: string | null
           og_url: string | null
           publish_date: string | null
+          related_searches: string[] | null
+          review_rating: number | null
           schema_markup: Json | null
           slug: string
+          speakable_schema: Json | null
           status: Database["public"]["Enums"]["blog_status"] | null
           title: string
           twitter_card_type: string | null
@@ -39,30 +88,41 @@ export type Database = {
           twitter_image: string | null
           twitter_title: string | null
           updated_at: string | null
+          video_url: string | null
           view_count: number | null
         }
         Insert: {
           author_id?: string | null
+          author_url?: string | null
           canonical_url?: string | null
           category_id?: string | null
           content?: string | null
           created_at?: string | null
+          date_modified?: string | null
           excerpt?: string | null
+          faq_schema?: Json | null
           featured?: boolean | null
           featured_image?: string | null
           featured_image_alt?: string | null
+          howto_schema?: Json | null
           id?: string
+          image_gallery?: string[] | null
+          local_business_schema?: Json | null
           meta_description?: string | null
           meta_keywords?: string | null
           meta_title?: string | null
+          news_keywords?: string | null
           og_description?: string | null
           og_image?: string | null
           og_title?: string | null
           og_type?: string | null
           og_url?: string | null
           publish_date?: string | null
+          related_searches?: string[] | null
+          review_rating?: number | null
           schema_markup?: Json | null
           slug: string
+          speakable_schema?: Json | null
           status?: Database["public"]["Enums"]["blog_status"] | null
           title: string
           twitter_card_type?: string | null
@@ -70,30 +130,41 @@ export type Database = {
           twitter_image?: string | null
           twitter_title?: string | null
           updated_at?: string | null
+          video_url?: string | null
           view_count?: number | null
         }
         Update: {
           author_id?: string | null
+          author_url?: string | null
           canonical_url?: string | null
           category_id?: string | null
           content?: string | null
           created_at?: string | null
+          date_modified?: string | null
           excerpt?: string | null
+          faq_schema?: Json | null
           featured?: boolean | null
           featured_image?: string | null
           featured_image_alt?: string | null
+          howto_schema?: Json | null
           id?: string
+          image_gallery?: string[] | null
+          local_business_schema?: Json | null
           meta_description?: string | null
           meta_keywords?: string | null
           meta_title?: string | null
+          news_keywords?: string | null
           og_description?: string | null
           og_image?: string | null
           og_title?: string | null
           og_type?: string | null
           og_url?: string | null
           publish_date?: string | null
+          related_searches?: string[] | null
+          review_rating?: number | null
           schema_markup?: Json | null
           slug?: string
+          speakable_schema?: Json | null
           status?: Database["public"]["Enums"]["blog_status"] | null
           title?: string
           twitter_card_type?: string | null
@@ -101,6 +172,7 @@ export type Database = {
           twitter_image?: string | null
           twitter_title?: string | null
           updated_at?: string | null
+          video_url?: string | null
           view_count?: number | null
         }
         Relationships: [
@@ -580,6 +652,62 @@ export type Database = {
           },
         ]
       }
+      hotel_enquiries: {
+        Row: {
+          check_in: string | null
+          check_out: string | null
+          country_code: string | null
+          email: string | null
+          hotel_id: string | null
+          hotel_name: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          rooms: Json | null
+          status: Database["public"]["Enums"]["enquiry_status"] | null
+          submitted_at: string | null
+        }
+        Insert: {
+          check_in?: string | null
+          check_out?: string | null
+          country_code?: string | null
+          email?: string | null
+          hotel_id?: string | null
+          hotel_name: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          rooms?: Json | null
+          status?: Database["public"]["Enums"]["enquiry_status"] | null
+          submitted_at?: string | null
+        }
+        Update: {
+          check_in?: string | null
+          check_out?: string | null
+          country_code?: string | null
+          email?: string | null
+          hotel_id?: string | null
+          hotel_name?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          rooms?: Json | null
+          status?: Database["public"]["Enums"]["enquiry_status"] | null
+          submitted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hotel_enquiries_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hotel_rooms: {
         Row: {
           amenities: string[] | null
@@ -640,15 +768,21 @@ export type Database = {
           created_at: string | null
           description: string | null
           distance_from_haram: string | null
+          distance_from_masjid_e_nabawi: number | null
           featured: boolean | null
           google_maps_url: string | null
           id: string
           images: string[] | null
           is_active: boolean | null
+          is_shuttle: boolean | null
+          is_walkable: boolean | null
+          latitude: string | null
           location: string
+          longitude: string | null
           name: string
           price_per_night: number
-          rating: Database["public"]["Enums"]["hotel_rating"]
+          rating: number
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -660,15 +794,21 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           distance_from_haram?: string | null
+          distance_from_masjid_e_nabawi?: number | null
           featured?: boolean | null
           google_maps_url?: string | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
+          is_shuttle?: boolean | null
+          is_walkable?: boolean | null
+          latitude?: string | null
           location: string
+          longitude?: string | null
           name: string
           price_per_night: number
-          rating: Database["public"]["Enums"]["hotel_rating"]
+          rating: number
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -680,15 +820,21 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           distance_from_haram?: string | null
+          distance_from_masjid_e_nabawi?: number | null
           featured?: boolean | null
           google_maps_url?: string | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
+          is_shuttle?: boolean | null
+          is_walkable?: boolean | null
+          latitude?: string | null
           location?: string
+          longitude?: string | null
           name?: string
           price_per_night?: number
-          rating?: Database["public"]["Enums"]["hotel_rating"]
+          rating?: number
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -880,6 +1026,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      routes: {
+        Row: {
+          description: string | null
+          id: string
+          route_name: string
+          trip_distance: string | null
+          trip_duration: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          route_name: string
+          trip_distance?: string | null
+          trip_duration?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          route_name?: string
+          trip_distance?: string | null
+          trip_duration?: string | null
+        }
+        Relationships: []
       }
       saudi_visas: {
         Row: {
@@ -1089,7 +1259,11 @@ export type Database = {
           luggage_capacity: string | null
           price: number
           route: string
+          trip_distance: string | null
+          trip_duration: string | null
           vehicle_details: Json | null
+          vehicle_image: string | null
+          vehicle_name: string | null
           vehicle_type: Database["public"]["Enums"]["transport_type"]
         }
         Insert: {
@@ -1105,7 +1279,11 @@ export type Database = {
           luggage_capacity?: string | null
           price: number
           route: string
+          trip_distance?: string | null
+          trip_duration?: string | null
           vehicle_details?: Json | null
+          vehicle_image?: string | null
+          vehicle_name?: string | null
           vehicle_type: Database["public"]["Enums"]["transport_type"]
         }
         Update: {
@@ -1121,86 +1299,141 @@ export type Database = {
           luggage_capacity?: string | null
           price?: number
           route?: string
+          trip_distance?: string | null
+          trip_duration?: string | null
           vehicle_details?: Json | null
+          vehicle_image?: string | null
+          vehicle_name?: string | null
           vehicle_type?: Database["public"]["Enums"]["transport_type"]
         }
         Relationships: []
       }
       umrah_packages: {
         Row: {
+          activities: string[] | null
           available_spots: number | null
           booking_deadline: string | null
+          category: string | null
           category_id: string | null
+          cities_covered: string[] | null
           created_at: string | null
           departure_date: string | null
           description: string | null
           duration: string
+          duration_category: string | null
           exclusions: string[] | null
           featured_image: string | null
+          flight_details: Json | null
+          flight_included: boolean | null
           id: string
           images: string[] | null
+          includes: string[] | null
           inclusions: string[] | null
           is_group_package: boolean | null
           itinerary: Json | null
+          madinah_hotel: Json | null
           madinah_hotel_id: string | null
+          makkah_hotel: Json | null
           makkah_hotel_id: string | null
           max_capacity: number | null
+          meal_plan: string | null
+          mealPlan: string | null
           min_participants: number | null
           name: string
+          package_category: string | null
+          package_type: string | null
+          packageCategory: string | null
+          packageType: string | null
           price: number
+          pricing: Json | null
           return_date: string | null
+          room_type_pricing: Json | null
           status: Database["public"]["Enums"]["package_status"] | null
           terms_conditions: string | null
           updated_at: string | null
         }
         Insert: {
+          activities?: string[] | null
           available_spots?: number | null
           booking_deadline?: string | null
+          category?: string | null
           category_id?: string | null
+          cities_covered?: string[] | null
           created_at?: string | null
           departure_date?: string | null
           description?: string | null
           duration: string
+          duration_category?: string | null
           exclusions?: string[] | null
           featured_image?: string | null
+          flight_details?: Json | null
+          flight_included?: boolean | null
           id?: string
           images?: string[] | null
+          includes?: string[] | null
           inclusions?: string[] | null
           is_group_package?: boolean | null
           itinerary?: Json | null
+          madinah_hotel?: Json | null
           madinah_hotel_id?: string | null
+          makkah_hotel?: Json | null
           makkah_hotel_id?: string | null
           max_capacity?: number | null
+          meal_plan?: string | null
+          mealPlan?: string | null
           min_participants?: number | null
           name: string
+          package_category?: string | null
+          package_type?: string | null
+          packageCategory?: string | null
+          packageType?: string | null
           price: number
+          pricing?: Json | null
           return_date?: string | null
+          room_type_pricing?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
           updated_at?: string | null
         }
         Update: {
+          activities?: string[] | null
           available_spots?: number | null
           booking_deadline?: string | null
+          category?: string | null
           category_id?: string | null
+          cities_covered?: string[] | null
           created_at?: string | null
           departure_date?: string | null
           description?: string | null
           duration?: string
+          duration_category?: string | null
           exclusions?: string[] | null
           featured_image?: string | null
+          flight_details?: Json | null
+          flight_included?: boolean | null
           id?: string
           images?: string[] | null
+          includes?: string[] | null
           inclusions?: string[] | null
           is_group_package?: boolean | null
           itinerary?: Json | null
+          madinah_hotel?: Json | null
           madinah_hotel_id?: string | null
+          makkah_hotel?: Json | null
           makkah_hotel_id?: string | null
           max_capacity?: number | null
+          meal_plan?: string | null
+          mealPlan?: string | null
           min_participants?: number | null
           name?: string
+          package_category?: string | null
+          package_type?: string | null
+          packageCategory?: string | null
+          packageType?: string | null
           price?: number
+          pricing?: Json | null
           return_date?: string | null
+          room_type_pricing?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
           updated_at?: string | null
@@ -1257,6 +1490,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vehicles: {
+        Row: {
+          capacity: number
+          description: string | null
+          features: string[] | null
+          id: string
+          luggage_capacity: string | null
+          vehicle_image: string | null
+          vehicle_name: string
+          vehicle_type: string
+        }
+        Insert: {
+          capacity: number
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          luggage_capacity?: string | null
+          vehicle_image?: string | null
+          vehicle_name: string
+          vehicle_type: string
+        }
+        Update: {
+          capacity?: number
+          description?: string | null
+          features?: string[] | null
+          id?: string
+          luggage_capacity?: string | null
+          vehicle_image?: string | null
+          vehicle_name?: string
+          vehicle_type?: string
+        }
+        Relationships: []
       }
       ziarath_services: {
         Row: {
@@ -1336,6 +1602,7 @@ export type Database = {
     Enums: {
       blog_status: "draft" | "published" | "archived"
       booking_status: "pending" | "confirmed" | "cancelled" | "completed"
+      enquiry_status: "new" | "contacted" | "closed"
       flight_type: "direct" | "connecting"
       guide_service_type:
         | "personal_guide"
@@ -1346,7 +1613,17 @@ export type Database = {
       lead_status: "new" | "contacted" | "qualified" | "converted" | "lost"
       package_status: "active" | "inactive" | "draft"
       room_type: "single" | "double" | "triple" | "quad" | "family"
-      transport_type: "bus" | "car" | "van" | "luxury_car"
+      transport_type:
+        | "bus"
+        | "car"
+        | "van"
+        | "luxury_car"
+        | "Sedan"
+        | "Mini Van"
+        | "GMC"
+        | "Van"
+        | "Mini Bus"
+        | "Bus"
       visa_status: "active" | "suspended" | "discontinued"
       ziarath_type:
         | "makkah_ziarath"
@@ -1471,6 +1748,7 @@ export const Constants = {
     Enums: {
       blog_status: ["draft", "published", "archived"],
       booking_status: ["pending", "confirmed", "cancelled", "completed"],
+      enquiry_status: ["new", "contacted", "closed"],
       flight_type: ["direct", "connecting"],
       guide_service_type: [
         "personal_guide",
@@ -1482,7 +1760,18 @@ export const Constants = {
       lead_status: ["new", "contacted", "qualified", "converted", "lost"],
       package_status: ["active", "inactive", "draft"],
       room_type: ["single", "double", "triple", "quad", "family"],
-      transport_type: ["bus", "car", "van", "luxury_car"],
+      transport_type: [
+        "bus",
+        "car",
+        "van",
+        "luxury_car",
+        "Sedan",
+        "Mini Van",
+        "GMC",
+        "Van",
+        "Mini Bus",
+        "Bus",
+      ],
       visa_status: ["active", "suspended", "discontinued"],
       ziarath_type: [
         "makkah_ziarath",
