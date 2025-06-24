@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,6 +50,7 @@ interface Package {
   updated_at: string;
 }
 
+// Simplified form state interface
 interface FormState {
   id?: string;
   name: string;
@@ -61,7 +63,7 @@ interface FormState {
   terms_conditions: string;
   images: string;
   featured_image: string;
-  status: 'draft' | 'active' | 'inactive';
+  status: string;
   max_capacity: string;
   min_participants: string;
   available_spots: string;
@@ -84,7 +86,7 @@ const packageStatuses = [
 
 const PackageManager = () => {
   const [packages, setPackages] = useState<Package[]>([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);

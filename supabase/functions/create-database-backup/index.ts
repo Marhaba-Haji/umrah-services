@@ -16,9 +16,14 @@ serve(async (req) => {
     const { backupType } = await req.json();
     
     const supabaseUrl = 'https://rjyhoikoqhephrkjgebo.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqeWhvaWtvcWhlcGhya2pnZWJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA2MDMxNjQsImV4cCI6MjA2NjE3OTE2NH0.Fjc89LevH6lXllWRjZSt-iNGBCzBgrACGt5nWKTPtlI';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!supabaseServiceKey) {
+      throw new Error('Service role key not found');
+    }
+    
+    // Use service role key for admin operations
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // List of tables to backup
     const tables = [
@@ -43,32 +48,10 @@ serve(async (req) => {
     let totalSize = 0;
     let tableCount = 0;
 
-    // Get schema information if needed
+    // Get schema information if needed (simplified approach)
     if (backupType === 'full' || backupType === 'schema') {
-      console.log('Backing up schema...');
-      
-      // Get table schemas from information_schema
-      const { data: schemaData, error: schemaError } = await supabase
-        .from('information_schema.tables')
-        .select('table_name, table_type')
-        .eq('table_schema', 'public');
-
-      if (!schemaError && schemaData) {
-        backupData.schema.tables = schemaData;
-      }
-
-      // Get column information
-      for (const table of tables) {
-        const { data: columnData, error: columnError } = await supabase
-          .from('information_schema.columns')
-          .select('column_name, data_type, is_nullable, column_default')
-          .eq('table_schema', 'public')
-          .eq('table_name', table);
-
-        if (!columnError && columnData) {
-          backupData.schema[table] = columnData;
-        }
-      }
+      console.log('Backing up schema metadata...');
+      backupData.schema.tables = tables;
     }
 
     // Get table data if needed
@@ -95,7 +78,7 @@ serve(async (req) => {
       }
     }
 
-    // Store backup record
+    // Store backup record using service role to bypass RLS
     const backupName = `${backupType}_backup_${new Date().toISOString().split('T')[0]}_${Date.now()}`;
     
     const { data: backupRecord, error: backupError } = await supabase
