@@ -10,12 +10,13 @@ import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
 import { useTransportCart } from '../hooks/useTransportCart';
 import { supabase } from '../lib/supabaseClient';
+import { TransportService, VehicleType } from '../types/transport';
 
 const TransportBooking = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartItems, addToCart, removeFromCart, updateCartItemCount, clearCart, getTotalAmount, getTotalItems } = useTransportCart();
-  const [transports, setTransports] = useState([]);
+  const [transports, setTransports] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -63,7 +64,7 @@ const TransportBooking = () => {
   if (error) return <div className="text-red-600">{error}</div>;
 
   // Group transports by vehicle_type
-  const vehicleTypeMap = {};
+  const vehicleTypeMap: Record<string, VehicleType> = {};
   for (const t of transports) {
     if (!vehicleTypeMap[t.vehicle_type]) {
       vehicleTypeMap[t.vehicle_type] = {
@@ -74,7 +75,6 @@ const TransportBooking = () => {
         luggage_capacity: t.luggage_capacity,
         features: t.features,
         vehicle_details: t.vehicle_details,
-        // Use the first transport as the base for vehicle info
         routes: []
       };
     }
@@ -82,7 +82,7 @@ const TransportBooking = () => {
   }
   const vehicleTypes = Object.values(vehicleTypeMap);
 
-  const VehicleCard = ({ vehicle }: { vehicle: typeof vehicleTypes[0] }) => {
+  const VehicleCard = ({ vehicle }: { vehicle: VehicleType }) => {
     const [selectedRouteId, setSelectedRouteId] = useState('');
     const [vehicleCount, setVehicleCount] = useState(1);
 
@@ -100,7 +100,7 @@ const TransportBooking = () => {
     const handleAddToCart = () => {
       if (!selectedRoute) return;
       addToCart({
-        vehicleId: vehicle.vehicle_type, // using vehicle_type as id for cart
+        vehicleId: vehicle.vehicle_type,
         routeId: selectedRoute.id,
         vehicleName: vehicle.vehicle_name,
         routeName: selectedRoute.route,
