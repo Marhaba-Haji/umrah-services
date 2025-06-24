@@ -10,8 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 
 type PackageStatus = 'draft' | 'active' | 'inactive';
 
@@ -57,32 +55,51 @@ interface Category {
   name: string;
 }
 
-interface FormState {
+// Simplified form state - breaking it into smaller pieces
+interface BasicFormFields {
   id?: string;
   name: string;
   duration: string;
   price: string;
   description: string;
   category: string;
-  inclusions: string;
-  exclusions: string;
-  terms_conditions: string;
-  images: string;
-  featured_image: string;
   status: PackageStatus;
-  max_capacity: string;
-  min_participants: string;
-  available_spots: string;
+}
+
+interface DateFormFields {
   departure_date: string;
   return_date: string;
   booking_deadline: string;
-  package_type: string;
-  package_category: string;
+}
+
+interface CapacityFormFields {
+  max_capacity: string;
+  min_participants: string;
+  available_spots: string;
+}
+
+interface ContentFormFields {
+  inclusions: string;
+  exclusions: string;
+  terms_conditions: string;
   cities_covered: string;
   activities: string;
+}
+
+interface MediaFormFields {
+  images: string;
+  featured_image: string;
+}
+
+interface TypeFormFields {
+  package_type: string;
+  package_category: string;
   flight_included: boolean;
   meal_plan: string;
 }
+
+// Combined form state
+type FormState = BasicFormFields & DateFormFields & CapacityFormFields & ContentFormFields & MediaFormFields & TypeFormFields;
 
 const packageStatuses: { value: PackageStatus; label: string }[] = [
   { value: 'draft', label: 'Draft' },
@@ -96,6 +113,8 @@ const PackageManager = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+  
+  // Initialize form with explicit typing
   const [form, setForm] = useState<FormState>({
     name: '',
     duration: '',
@@ -107,7 +126,7 @@ const PackageManager = () => {
     terms_conditions: '',
     images: '',
     featured_image: '',
-    status: 'draft',
+    status: 'draft' as PackageStatus,
     max_capacity: '',
     min_participants: '',
     available_spots: '',
@@ -160,14 +179,19 @@ const PackageManager = () => {
     }
   };
 
+  // Simplified input change handler
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const target = e.target as HTMLInputElement;
-    const { name, value, type, checked } = target;
+    const target = e.target;
+    const name = target.name;
+    const value = target.value;
+    const checked = target.type === 'checkbox' ? (target as HTMLInputElement).checked : false;
     
-    setForm(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    setForm(prevForm => {
+      return {
+        ...prevForm,
+        [name]: target.type === 'checkbox' ? checked : value,
+      };
+    });
   };
 
   const resetForm = () => {
@@ -182,7 +206,7 @@ const PackageManager = () => {
       terms_conditions: '',
       images: '',
       featured_image: '',
-      status: 'draft',
+      status: 'draft' as PackageStatus,
       max_capacity: '',
       min_participants: '',
       available_spots: '',
@@ -218,7 +242,7 @@ const PackageManager = () => {
       terms_conditions: packageItem.terms_conditions,
       images: Array.isArray(packageItem.images) ? packageItem.images.join('\n') : '',
       featured_image: packageItem.featured_image,
-      status: packageItem.status || 'draft',
+      status: packageItem.status || 'draft' as PackageStatus,
       max_capacity: packageItem.max_capacity?.toString() || '',
       min_participants: packageItem.min_participants?.toString() || '',
       available_spots: packageItem.available_spots?.toString() || '',
