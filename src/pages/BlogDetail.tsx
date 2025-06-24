@@ -1,121 +1,41 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, ArrowLeft, FileText, Hotel, Car, Plane, Package } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 const BlogDetail = () => {
   const { slug } = useParams();
+  const [blog, setBlog] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample blog data - in real app, this would come from an API
-  const blog = {
-    id: 1,
-    title: "Umrah Season 2025-2026: Dates, Visa Guide & Complete Information",
-    slug: "umrah-season-2025-2026-dates-visa-guide-marhaba-haji",
-    image: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=800&h=400&fit=crop",
-    author: "Marhaba Haji Team",
-    date: "2024-12-15",
-    readTime: "5 min read",
-    category: "Visa Guide",
-    content: `
-      <p>The Umrah season 2025-2026 is approaching, and millions of Muslims worldwide are preparing for this sacred journey. Understanding the key dates, visa requirements, and preparation steps is crucial for a smooth pilgrimage experience.</p>
+  useEffect(() => {
+    const fetchBlog = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('slug', slug)
+        .eq('status', 'published')
+        .single();
+      if (error) {
+        setError(error.message);
+        setBlog(null);
+      } else {
+        setBlog(data);
+      }
+      setLoading(false);
+    };
+    if (slug) fetchBlog();
+  }, [slug]);
 
-      <h2>Important Dates for Umrah 2025-2026</h2>
-      <p>The Umrah season runs year-round, but certain periods are more popular among pilgrims. Here are the key dates to consider for your 2025-2026 Umrah journey:</p>
-      <ul>
-        <li><strong>Peak Season:</strong> November 2025 - January 2026</li>
-        <li><strong>Ramadan Umrah:</strong> March 2026 (dates may vary based on moon sighting)</li>
-        <li><strong>Off-Peak Season:</strong> June - August 2025</li>
-      </ul>
-
-      <div class="cta-section">
-        <p><strong>Ready to apply for your Umrah visa?</strong> Our expert team can help you process your visa application quickly and efficiently. <a href="/apply" class="cta-link">Start your visa application today</a> and secure your spot for the upcoming season.</p>
-      </div>
-
-      <h2>Visa Requirements and Documentation</h2>
-      <p>Obtaining an Umrah visa requires proper documentation and following specific procedures. Here's what you need to know:</p>
-      
-      <h3>Required Documents:</h3>
-      <ul>
-        <li>Valid passport with at least 6 months validity</li>
-        <li>Completed visa application form</li>
-        <li>Recent passport-sized photographs</li>
-        <li>Proof of accommodation in Saudi Arabia</li>
-        <li>Flight booking confirmation</li>
-        <li>Vaccination certificates (if required)</li>
-      </ul>
-
-      <div class="cta-section">
-        <p>Planning your stay in the holy cities? <a href="/hotel" class="cta-link">Browse our curated selection of hotels</a> near Haram in Makkah and Madinah, with options for every budget and preference.</p>
-      </div>
-
-      <h2>Best Time to Perform Umrah</h2>
-      <p>While Umrah can be performed year-round, timing your visit can significantly impact your experience:</p>
-      
-      <h3>Weather Considerations:</h3>
-      <ul>
-        <li><strong>Winter (November-February):</strong> Pleasant weather, ideal for pilgrimage</li>
-        <li><strong>Spring (March-May):</strong> Moderate temperatures, good for elderly pilgrims</li>
-        <li><strong>Summer (June-August):</strong> Hot weather but fewer crowds</li>
-        <li><strong>Autumn (September-October):</strong> Cooling temperatures, comfortable for rituals</li>
-      </ul>
-
-      <div class="cta-section">
-        <p>Need reliable transportation during your Umrah journey? <a href="/transport" class="cta-link">Book your airport transfers and intercity transport</a> in advance to ensure comfortable and timely travel between holy sites.</p>
-      </div>
-
-      <h2>Preparation Tips for First-Time Pilgrims</h2>
-      <p>If this is your first Umrah, proper preparation is key to a meaningful pilgrimage:</p>
-      
-      <ol>
-        <li><strong>Learn the Rituals:</strong> Familiarize yourself with the steps of Umrah</li>
-        <li><strong>Physical Preparation:</strong> Build stamina for walking long distances</li>
-        <li><strong>Spiritual Preparation:</strong> Increase prayers and recitation</li>
-        <li><strong>Practical Preparation:</strong> Pack appropriate clothing and essentials</li>
-      </ol>
-
-      <div class="cta-section">
-        <p>Consider joining one of our <a href="/group-packages" class="cta-link">group Umrah packages</a> for first-time pilgrims. Our experienced guides will assist you throughout the journey, making your pilgrimage smooth and spiritually fulfilling.</p>
-      </div>
-
-      <h2>Health and Safety Guidelines</h2>
-      <p>Your health and safety are paramount during the pilgrimage. Here are essential guidelines:</p>
-      
-      <ul>
-        <li>Stay hydrated, especially during summer months</li>
-        <li>Wear comfortable walking shoes</li>
-        <li>Follow crowd management instructions</li>
-        <li>Keep emergency contacts handy</li>
-        <li>Maintain personal hygiene</li>
-      </ul>
-
-      <div class="cta-section">
-        <p>Looking for a comprehensive Umrah experience? Explore our <a href="/custom-packages" class="cta-link">custom Umrah packages</a> that can be tailored to your specific needs, including accommodation, transport, and guided tours.</p>
-      </div>
-
-      <h2>Financial Planning for Umrah</h2>
-      <p>Budgeting properly for your Umrah journey ensures a stress-free pilgrimage experience. Consider these cost factors:</p>
-      
-      <ul>
-        <li>Visa processing fees</li>
-        <li>Flight tickets</li>
-        <li>Accommodation costs</li>
-        <li>Local transportation</li>
-        <li>Food and beverages</li>
-        <li>Shopping and souvenirs</li>
-        <li>Emergency funds</li>
-      </ul>
-
-      <p>We hope this comprehensive guide helps you prepare for your Umrah journey in 2025-2026. May your pilgrimage be blessed and spiritually rewarding.</p>
-
-      <div class="cta-section">
-        <p>Ready to embark on your spiritual journey? <a href="/apply" class="cta-link">Apply for your Umrah visa today</a> and let us handle all the details while you focus on your spiritual preparation.</p>
-      </div>
-    `
-  };
+  if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
+  if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
+  if (!blog) return <div className="text-center text-gray-500 py-8">Blog not found.</div>;
 
   const sidebarServices = [
     {

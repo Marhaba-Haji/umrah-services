@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +46,17 @@ interface BlogPost {
   updated_at: string;
   categories?: { name: string };
   profiles?: { first_name: string; last_name: string };
+  speakable_schema?: any;
+  faq_schema?: any;
+  howto_schema?: any;
+  local_business_schema?: any;
+  author_url?: string | null;
+  review_rating?: number | null;
+  video_url?: string | null;
+  image_gallery?: string[] | null;
+  related_searches?: string[] | null;
+  news_keywords?: string | null;
+  date_modified?: string | null;
 }
 
 interface Category {
@@ -88,6 +98,17 @@ const BlogManager = () => {
       featured_image: '',
       featured_image_alt: '',
       featured: false,
+      speakable_schema: '',
+      faq_schema: '',
+      howto_schema: '',
+      local_business_schema: '',
+      author_url: '',
+      review_rating: '',
+      video_url: '',
+      image_gallery: '',
+      related_searches: '',
+      news_keywords: '',
+      date_modified: '',
     }
   });
 
@@ -180,6 +201,17 @@ const BlogManager = () => {
         twitter_image: data.twitter_image || null,
         twitter_card_type: data.twitter_card_type || null,
         featured: data.featured || false,
+        speakable_schema: data.speakable_schema ? JSON.parse(data.speakable_schema) : null,
+        faq_schema: data.faq_schema ? JSON.parse(data.faq_schema) : null,
+        howto_schema: data.howto_schema ? JSON.parse(data.howto_schema) : null,
+        local_business_schema: data.local_business_schema ? JSON.parse(data.local_business_schema) : null,
+        author_url: data.author_url || null,
+        review_rating: data.review_rating ? parseFloat(data.review_rating) : null,
+        video_url: data.video_url || null,
+        image_gallery: data.image_gallery ? data.image_gallery.split(',').map(url => url.trim()) : null,
+        related_searches: data.related_searches ? data.related_searches.split(',').map(keyword => keyword.trim()) : null,
+        news_keywords: data.news_keywords || null,
+        date_modified: data.date_modified || null,
       };
 
       let result;
@@ -243,6 +275,17 @@ const BlogManager = () => {
       featured_image: post.featured_image || '',
       featured_image_alt: post.featured_image_alt || '',
       featured: post.featured || false,
+      speakable_schema: post.speakable_schema ? JSON.stringify(post.speakable_schema) : '',
+      faq_schema: post.faq_schema ? JSON.stringify(post.faq_schema) : '',
+      howto_schema: post.howto_schema ? JSON.stringify(post.howto_schema) : '',
+      local_business_schema: post.local_business_schema ? JSON.stringify(post.local_business_schema) : '',
+      author_url: post.author_url || '',
+      review_rating: post.review_rating ? post.review_rating.toString() : '',
+      video_url: post.video_url || '',
+      image_gallery: post.image_gallery ? post.image_gallery.join(', ') : '',
+      related_searches: post.related_searches ? post.related_searches.join(', ') : '',
+      news_keywords: post.news_keywords || '',
+      date_modified: post.date_modified || '',
     });
     setIsDialogOpen(true);
   };
@@ -349,7 +392,7 @@ const BlogManager = () => {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <div className="min-h-[200px]">
+                        <div className="min-h-[300px]">
                           <ReactQuill
                             theme="snow"
                             value={field.value}
@@ -368,7 +411,7 @@ const BlogManager = () => {
                               'list', 'bullet', 'link', 'image', 'video'
                             ]}
                             placeholder="Write your blog content here..."
-                            style={{ minHeight: 200 }}
+                            style={{ minHeight: 300 }}
                           />
                         </div>
                       </FormControl>
@@ -524,6 +567,156 @@ const BlogManager = () => {
                           <FormLabel>Canonical URL</FormLabel>
                           <FormControl>
                             <Input placeholder="https://example.com/blog-post" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Advanced SEO & SERP */}
+                <div className="border-t pt-4">
+                  <h4 className="text-lg font-semibold mb-4">Advanced SEO & SERP</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="faq_schema"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>FAQ Schema (JSON)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Paste FAQPage JSON-LD here" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="howto_schema"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>HowTo Schema (JSON)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Paste HowTo JSON-LD here" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="local_business_schema"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Local Business Schema (JSON)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Paste LocalBusiness JSON-LD here" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="speakable_schema"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Speakable Schema (JSON)</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Paste Speakable JSON-LD here" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="author_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Author URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/author" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="review_rating"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Review Rating (1-5)</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="1" max="5" step="0.1" placeholder="4.5" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="video_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Video URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://youtube.com/..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="image_gallery"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Image Gallery (comma separated URLs)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://img1.jpg, https://img2.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="related_searches"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Related Searches (comma separated)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="umrah tips, hajj guide, saudi travel" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="news_keywords"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>News Keywords</FormLabel>
+                          <FormControl>
+                            <Input placeholder="umrah, hajj, saudi arabia" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="date_modified"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Date Modified</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

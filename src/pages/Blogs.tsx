@@ -1,81 +1,35 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, ArrowRight, Plane, Hotel, Car, FileText } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
 
 const Blogs = () => {
-  const blogs = [
-    {
-      id: 1,
-      title: "Umrah Season 2025-2026: Dates, Visa Guide & Complete Information",
-      slug: "umrah-season-2025-2026-dates-visa-guide-marhaba-haji",
-      excerpt: "Everything you need to know about the upcoming Umrah season including important dates, visa requirements, and essential preparation tips.",
-      image: "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=400&h=250&fit=crop",
-      author: "Marhaba Haji Team",
-      date: "2024-12-15",
-      readTime: "5 min read",
-      category: "Visa Guide"
-    },
-    {
-      id: 2,
-      title: "Best Hotels in Makkah: Your Ultimate Accommodation Guide",
-      slug: "best-hotels-makkah-accommodation-guide",
-      excerpt: "Discover the top-rated hotels in Makkah for your Umrah journey, from luxury stays to budget-friendly options near Haram.",
-      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=250&fit=crop",
-      author: "Travel Expert",
-      date: "2024-12-10",
-      readTime: "7 min read",
-      category: "Hotels"
-    },
-    {
-      id: 3,
-      title: "Complete Transportation Guide for Umrah Pilgrims",
-      slug: "transportation-guide-umrah-pilgrims",
-      excerpt: "Navigate Saudi Arabia with ease. Learn about airport transfers, intercity transport, and local transportation options.",
-      image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&h=250&fit=crop",
-      author: "Transport Guide",
-      date: "2024-12-05",
-      readTime: "6 min read",
-      category: "Transport"
-    },
-    {
-      id: 4,
-      title: "Group Umrah Packages: Benefits and What to Expect",
-      slug: "group-umrah-packages-benefits-guide",
-      excerpt: "Discover the advantages of choosing group Umrah packages and what makes them perfect for first-time pilgrims.",
-      image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&h=250&fit=crop",
-      author: "Package Expert",
-      date: "2024-11-30",
-      readTime: "8 min read",
-      category: "Packages"
-    },
-    {
-      id: 5,
-      title: "Essential Duas and Prayers for Umrah Journey",
-      slug: "essential-duas-prayers-umrah-journey",
-      excerpt: "A comprehensive collection of important duas and prayers to recite during your blessed Umrah pilgrimage.",
-      image: "https://images.unsplash.com/photo-1542816417-0983c9c9ad53?w=400&h=250&fit=crop",
-      author: "Islamic Scholar",
-      date: "2024-11-25",
-      readTime: "10 min read",
-      category: "Spiritual Guide"
-    },
-    {
-      id: 6,
-      title: "Umrah Packing Checklist: Everything You Need to Know",
-      slug: "umrah-packing-checklist-complete-guide",
-      excerpt: "Don't forget anything important! Complete packing checklist for your Umrah journey with essential items and tips.",
-      image: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=250&fit=crop",
-      author: "Travel Guide",
-      date: "2024-11-20",
-      readTime: "5 min read",
-      category: "Travel Tips"
-    }
-  ];
+  const [blogs, setBlogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('status', 'published')
+        .order('publish_date', { ascending: false });
+      if (error) {
+        setError(error.message);
+        setBlogs([]);
+      } else {
+        setBlogs(data || []);
+      }
+      setLoading(false);
+    };
+    fetchBlogs();
+  }, []);
 
   const sidebarServices = [
     {
@@ -110,6 +64,9 @@ const Blogs = () => {
 
   const featuredBlogs = blogs.slice(0, 3);
   const recentBlogs = blogs.slice(3, 6);
+
+  if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
+  if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
