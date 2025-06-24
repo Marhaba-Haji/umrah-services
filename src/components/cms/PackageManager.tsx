@@ -16,7 +16,7 @@ interface Package {
   created_at: string;
   name: string;
   duration: string;
-  price: string;
+  price: number; // Changed from string to number to match database
   description: string;
   category: string;
   inclusions: string;
@@ -129,7 +129,7 @@ const PackageManager = () => {
       id: packageItem.id,
       name: packageItem.name,
       duration: packageItem.duration,
-      price: packageItem.price,
+      price: packageItem.price.toString(), // Convert number to string for form
       description: packageItem.description,
       category: packageItem.category,
       inclusions: packageItem.inclusions,

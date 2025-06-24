@@ -86,12 +86,18 @@ const TransportBooking = () => {
     const [selectedRouteId, setSelectedRouteId] = useState('');
     const [vehicleCount, setVehicleCount] = useState(1);
 
-    // Parse vehicle details JSON if present
-    let vehicleDetailsObj = null;
-    if (vehicle.vehicle_details && typeof vehicle.vehicle_details === 'string' && vehicle.vehicle_details.trim().startsWith('{')) {
-      try { vehicleDetailsObj = JSON.parse(vehicle.vehicle_details); } catch {}
-    } else if (typeof vehicle.vehicle_details === 'object') {
-      vehicleDetailsObj = vehicle.vehicle_details;
+    // Parse vehicle details JSON if present - fix type inference
+    let vehicleDetailsObj: Record<string, any> | null = null;
+    if (vehicle.vehicle_details) {
+      if (typeof vehicle.vehicle_details === 'string' && vehicle.vehicle_details.trim().startsWith('{')) {
+        try { 
+          vehicleDetailsObj = JSON.parse(vehicle.vehicle_details); 
+        } catch {
+          // Silent catch for invalid JSON
+        }
+      } else if (typeof vehicle.vehicle_details === 'object') {
+        vehicleDetailsObj = vehicle.vehicle_details;
+      }
     }
 
     const selectedRoute = vehicle.routes.find(r => r.id === selectedRouteId);
