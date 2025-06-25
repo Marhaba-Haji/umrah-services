@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -309,7 +308,7 @@ const BuildYourOwnUmrah = () => {
   const getFilteredHotels = () => {
     return hotels.filter(hotel => {
       if (searchTerm && !hotel.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.city && hotel.city !== filters.city) return false;
+      if (filters.city && filters.city !== 'all' && hotel.city !== filters.city) return false;
       return true;
     });
   };
@@ -325,7 +324,7 @@ const BuildYourOwnUmrah = () => {
   const getFilteredVisaServices = () => {
     return visaServices.filter(visa => {
       if (searchTerm && !visa.visa_type.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.nationality && !visa.description?.toLowerCase().includes(filters.nationality.toLowerCase())) return false;
+      if (filters.nationality && filters.nationality !== 'all' && !visa.description?.toLowerCase().includes(filters.nationality.toLowerCase())) return false;
       return true;
     });
   };
@@ -333,8 +332,8 @@ const BuildYourOwnUmrah = () => {
   const getFilteredTransports = () => {
     return transports.filter(transport => {
       if (searchTerm && !transport.route.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.type && transport.vehicle_type !== filters.type) return false;
-      if (filters.route && !transport.route.includes(filters.route)) return false;
+      if (filters.type && filters.type !== 'all' && transport.vehicle_type !== filters.type) return false;
+      if (filters.route && filters.route !== 'all' && !transport.route.includes(filters.route)) return false;
       return true;
     });
   };
@@ -342,8 +341,8 @@ const BuildYourOwnUmrah = () => {
   const getFilteredGuideServices = () => {
     return guideServices.filter(guide => {
       if (searchTerm && !guide.guide_name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.city && guide.guide_city !== filters.city) return false;
-      if (filters.language && !(guide.languages || []).includes(filters.language)) return false;
+      if (filters.city && filters.city !== 'all' && guide.guide_city !== filters.city) return false;
+      if (filters.language && filters.language !== 'all' && !(guide.languages || []).includes(filters.language)) return false;
       return true;
     });
   };
@@ -351,7 +350,7 @@ const BuildYourOwnUmrah = () => {
   const getFilteredZiarathServices = () => {
     return ziarathServices.filter(ziarath => {
       if (searchTerm && !ziarath.title.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.duration && !ziarath.duration.includes(filters.duration)) return false;
+      if (filters.duration && filters.duration !== 'all' && !ziarath.duration.includes(filters.duration)) return false;
       return true;
     });
   };
@@ -834,12 +833,12 @@ const BuildYourOwnUmrah = () => {
       case 1: // Hotels
         return (
           <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value })}>
+            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="City" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
                 <SelectItem value="Makkah">Makkah</SelectItem>
                 <SelectItem value="Madinah">Madinah</SelectItem>
                 <SelectItem value="Jeddah">Jeddah</SelectItem>
@@ -867,12 +866,12 @@ const BuildYourOwnUmrah = () => {
       case 3: // Visa Services
         return (
           <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.nationality} onValueChange={(value) => setFilters({ ...filters, nationality: value })}>
+            <Select value={filters.nationality} onValueChange={(value) => setFilters({ ...filters, nationality: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Nationality" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Nationalities</SelectItem>
+                <SelectItem value="all">All Nationalities</SelectItem>
                 <SelectItem value="indian">Indian</SelectItem>
                 <SelectItem value="pakistani">Pakistani</SelectItem>
                 <SelectItem value="bangladeshi">Bangladeshi</SelectItem>
@@ -885,23 +884,23 @@ const BuildYourOwnUmrah = () => {
       case 4: // Transport
         return (
           <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.type} onValueChange={(value) => setFilters({ ...filters, type: value })}>
+            <Select value={filters.type} onValueChange={(value) => setFilters({ ...filters, type: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Vehicle Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="car">Car</SelectItem>
                 <SelectItem value="bus">Bus</SelectItem>
                 <SelectItem value="van">Van</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.route} onValueChange={(value) => setFilters({ ...filters, route: value })}>
+            <Select value={filters.route} onValueChange={(value) => setFilters({ ...filters, route: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Route" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Routes</SelectItem>
+                <SelectItem value="all">All Routes</SelectItem>
                 <SelectItem value="airport">Airport Transfer</SelectItem>
                 <SelectItem value="makkah">Makkah</SelectItem>
                 <SelectItem value="madinah">Madinah</SelectItem>
@@ -912,22 +911,22 @@ const BuildYourOwnUmrah = () => {
       case 5: // Guide Services
         return (
           <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value })}>
+            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="City" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
                 <SelectItem value="Makkah">Makkah</SelectItem>
                 <SelectItem value="Madinah">Madinah</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.language} onValueChange={(value) => setFilters({ ...filters, language: value })}>
+            <Select value={filters.language} onValueChange={(value) => setFilters({ ...filters, language: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Language" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Languages</SelectItem>
+                <SelectItem value="all">All Languages</SelectItem>
                 <SelectItem value="English">English</SelectItem>
                 <SelectItem value="Arabic">Arabic</SelectItem>
                 <SelectItem value="Urdu">Urdu</SelectItem>
@@ -939,12 +938,12 @@ const BuildYourOwnUmrah = () => {
       case 6: // Ziarath Services
         return (
           <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.duration} onValueChange={(value) => setFilters({ ...filters, duration: value })}>
+            <Select value={filters.duration} onValueChange={(value) => setFilters({ ...filters, duration: value === 'all' ? '' : value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Duration" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Durations</SelectItem>
+                <SelectItem value="all">All Durations</SelectItem>
                 <SelectItem value="half">Half Day</SelectItem>
                 <SelectItem value="full">Full Day</SelectItem>
                 <SelectItem value="2">2 Days</SelectItem>
