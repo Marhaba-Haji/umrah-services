@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { CalendarIcon, Search, Plane, Clock, Plus, Minus, ArrowRightLeft } from 
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { searchFlights, AmadeusFlightOffer } from '@/services/flightService';
 
 export interface FlightSearchParams {
   originLocationCode: string;
@@ -72,6 +72,46 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
   const [searchPerformed, setSearchPerformed] = useState(false);
   const { toast } = useToast();
 
+  const transformAmadeusToFlightOffer = (amadeusOffer: AmadeusFlightOffer, carriers: Record<string, string>, aircraft: Record<string, string>): FlightOffer => {
+    const firstSegment = amadeusOffer.itineraries[0].segments[0];
+    const lastSegment = amadeusOffer.itineraries[0].segments[amadeusOffer.itineraries[0].segments.length - 1];
+    
+    const carrierCode = firstSegment.carrierCode;
+    const airlineName = carriers[carrierCode] || carrierCode;
+    
+    const aircraftCode = firstSegment.aircraft.code;
+    const aircraftName = aircraft[aircraftCode] || aircraftCode;
+    
+    const stops = amadeusOffer.itineraries[0].segments.length - 1;
+    
+    // Get cabin class from traveler pricing
+    const cabin = amadeusOffer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin || 'ECONOMY';
+
+    return {
+      id: amadeusOffer.id,
+      airline: airlineName,
+      flightNumber: `${carrierCode} ${firstSegment.number}`,
+      departure: {
+        iataCode: firstSegment.departure.iataCode,
+        terminal: firstSegment.departure.terminal,
+        at: firstSegment.departure.at
+      },
+      arrival: {
+        iataCode: lastSegment.arrival.iataCode,
+        terminal: lastSegment.arrival.terminal,
+        at: lastSegment.arrival.at
+      },
+      duration: amadeusOffer.itineraries[0].duration,
+      stops: stops,
+      price: {
+        total: amadeusOffer.price.total,
+        currency: amadeusOffer.price.currency
+      },
+      cabin: cabin,
+      aircraft: aircraftName
+    };
+  };
+
   const handleSearch = async () => {
     if (!searchParams.originLocationCode || !searchParams.destinationLocationCode || !searchParams.departureDate) {
       toast({
@@ -86,66 +126,48 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
     setSearchPerformed(true);
     
     try {
-      // This will be replaced with actual Amadeus API call
-      // For now, showing sample data structure
-      const mockResults: FlightOffer[] = [
-        {
-          id: '1',
-          airline: 'Emirates',
-          flightNumber: 'EK 555',
-          departure: {
-            iataCode: searchParams.originLocationCode,
-            at: format(searchParams.departureDate, "yyyy-MM-dd") + 'T08:00:00'
-          },
-          arrival: {
-            iataCode: searchParams.destinationLocationCode,
-            at: format(searchParams.departureDate, "yyyy-MM-dd") + 'T14:30:00'
-          },
-          duration: 'PT6H30M',
-          stops: 0,
-          price: {
-            total: '850.00',
-            currency: 'USD'
-          },
-          cabin: searchParams.travelClass,
-          aircraft: 'Boeing 777-300ER'
-        },
-        {
-          id: '2',
-          airline: 'Qatar Airways',
-          flightNumber: 'QR 123',
-          departure: {
-            iataCode: searchParams.originLocationCode,
-            at: format(searchParams.departureDate, "yyyy-MM-dd") + 'T10:15:00'
-          },
-          arrival: {
-            iataCode: searchParams.destinationLocationCode,
-            at: format(searchParams.departureDate, "yyyy-MM-dd") + 'T17:45:00'
-          },
-          duration: 'PT7H30M',
-          stops: 1,
-          price: {
-            total: '720.00',
-            currency: 'USD'
-          },
-          cabin: searchParams.travelClass,
-          aircraft: 'Airbus A350-900'
-        }
-      ];
+      const searchRequest = {
+        originLocationCode: searchParams.originLocationCode,
+        destinationLocationCode: searchParams.destinationLocationCode,
+        departureDate: format(searchParams.departureDate, "yyyy-MM-dd"),
+        returnDate: searchParams.returnDate ? format(searchParams.returnDate, "yyyy-MM-dd") : undefined,
+        adults: searchParams.adults,
+        children: searchParams.children > 0 ? searchParams.children : undefined,
+        infants: searchParams.infants > 0 ? searchParams.infants : undefined,
+        travelClass: searchParams.travelClass,
+        nonStop: searchParams.nonStop,
+        max: 10 // Limit results to 10 for better performance
+      };
 
-      // TODO: Replace with actual Amadeus API call
-      // const results = await searchFlights(searchParams);
-      setFlightResults(mockResults);
-      
-      toast({
-        title: "Search Complete",
-        description: `Found ${mockResults.length} flights for your search.`,
-      });
+      console.log('Searching flights with request:', searchRequest);
+      const response = await searchFlights(searchRequest);
+      console.log('Flight search response:', response);
+
+      if (response.data && response.data.length > 0) {
+        const transformedFlights = response.data.map(offer => 
+          transformAmadeusToFlightOffer(offer, response.dictionaries.carriers, response.dictionaries.aircraft)
+        );
+        
+        setFlightResults(transformedFlights);
+        
+        toast({
+          title: "Search Complete",
+          description: `Found ${transformedFlights.length} flights for your search.`,
+        });
+      } else {
+        setFlightResults([]);
+        toast({
+          title: "No Flights Found",
+          description: "No flights found for your search criteria. Try adjusting your search parameters.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Flight search error:', error);
+      setFlightResults([]);
       toast({
         title: "Search Failed",
-        description: "Unable to search flights. Please try again.",
+        description: error instanceof Error ? error.message : "Unable to search flights. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -200,7 +222,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Trip Type */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-2 block">Trip Type</label>
             <Select value={searchParams.tripType} onValueChange={(value: 'ONE_WAY' | 'ROUND_TRIP' | 'MULTI_CITY') => 
@@ -216,7 +237,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
             </Select>
           </div>
 
-          {/* Origin and Destination */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-gray-700 mb-2 block">From</label>
@@ -259,7 +279,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
             </div>
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Departure Date</label>
@@ -314,7 +333,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
             )}
           </div>
 
-          {/* Passengers */}
           <div className="bg-gray-50 rounded-lg p-4">
             <label className="text-sm font-medium text-gray-700 mb-3 block">Passengers</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -413,7 +431,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
             </div>
           </div>
 
-          {/* Travel Class and Options */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Travel Class</label>
@@ -447,7 +464,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
             </div>
           </div>
 
-          {/* Search Button */}
           <Button 
             onClick={handleSearch}
             disabled={loading}
@@ -468,7 +484,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
         </CardContent>
       </Card>
 
-      {/* Flight Results */}
       {searchPerformed && (
         <Card>
           <CardHeader>
@@ -535,10 +550,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
 
                       <div className="text-right">
                         <div className="text-2xl font-bold text-emerald-600">
-                          ${flight.price.total}
+                          {flight.price.currency} {flight.price.total}
                         </div>
                         <div className="text-sm text-gray-500 mb-3">
-                          {flight.price.currency}
+                          per person
                         </div>
                         <Button 
                           size="sm"
