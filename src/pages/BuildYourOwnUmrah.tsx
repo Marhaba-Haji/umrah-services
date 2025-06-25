@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import FlightStep from '../components/FlightStep';
 
 interface Hotel {
   id: string;
@@ -445,7 +446,7 @@ const BuildYourOwnUmrah = () => {
       case 1:
         return renderHotels();
       case 2:
-        return renderFlights();
+        return <FlightStep onFlightSelect={(flight) => addToCart(flight)} />;
       case 3:
         return renderVisaServices();
       case 4:
@@ -551,64 +552,6 @@ const BuildYourOwnUmrah = () => {
               </Card>
             );
           })}
-        </div>
-      )}
-    </div>
-  );
-
-  const renderFlights = () => (
-    <div className="space-y-6">
-      {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {getFilteredFlights().map(flight => (
-            <Card key={flight.id} className="hover:shadow-lg transition-shadow duration-300">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                      <Plane className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg">{flight.airline}</h3>
-                      <p className="text-gray-600">{flight.sector}</p>
-                      <p className="text-sm text-gray-500">Flight {flight.flight_number}</p>
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm text-gray-600 mb-1">
-                      {flight.departure_time} - {flight.arrival_time}
-                    </div>
-                    <div className="text-xs text-gray-500">{flight.duration}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-emerald-600">${flight.price}</div>
-                    <Button 
-                      size="sm"
-                      onClick={() => addToCart({
-                        id: flight.id,
-                        type: 'flight',
-                        name: `${flight.airline} - ${flight.sector}`,
-                        price: flight.price,
-                        details: { 
-                          flight_number: flight.flight_number,
-                          departure_date: flight.departure_date,
-                          departure_time: flight.departure_time,
-                          arrival_time: flight.arrival_time
-                        }
-                      })}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
       )}
     </div>
