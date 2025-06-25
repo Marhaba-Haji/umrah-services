@@ -2,16 +2,24 @@
 import React from 'react';
 import FlightSearch, { FlightOffer } from './FlightSearch';
 
+interface CartItem {
+  id: string;
+  type: 'hotel' | 'flight' | 'transport' | 'visa' | 'guide' | 'ziarath';
+  name: string;
+  price: number;
+  details?: any;
+}
+
 interface FlightStepProps {
-  onFlightSelect: (flight: FlightOffer) => void;
+  onFlightSelect: (flight: Omit<CartItem, 'quantity'>) => void;
 }
 
 const FlightStep: React.FC<FlightStepProps> = ({ onFlightSelect }) => {
   const handleFlightSelect = (flight: FlightOffer) => {
     // Transform FlightOffer to CartItem format
-    const cartItem = {
+    const cartItem: Omit<CartItem, 'quantity'> = {
       id: flight.id,
-      type: 'flight' as const,
+      type: 'flight',
       name: `${flight.airline} ${flight.flightNumber} - ${flight.departure.iataCode} to ${flight.arrival.iataCode}`,
       price: parseFloat(flight.price.total),
       details: {
@@ -26,7 +34,7 @@ const FlightStep: React.FC<FlightStepProps> = ({ onFlightSelect }) => {
       }
     };
     
-    onFlightSelect(cartItem as any);
+    onFlightSelect(cartItem);
   };
 
   return <FlightSearch onFlightSelect={handleFlightSelect} />;
