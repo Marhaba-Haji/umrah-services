@@ -561,55 +561,58 @@ export type Database = {
       guide_services: {
         Row: {
           availability_schedule: Json | null
+          country_code: string | null
           created_at: string | null
           description: string | null
           experience: string | null
           guide_city: string
-          guide_contact: string | null
           guide_name: string
           guide_photo: string | null
           id: string
           languages: string[] | null
+          phone_number: string | null
           qualifications: string[] | null
           rating: number | null
           service_prices: Json | null
-          service_type: Database["public"]["Enums"]["guide_service_type"]
+          service_type: string[] | null
           specializations: string[] | null
           status: string | null
         }
         Insert: {
           availability_schedule?: Json | null
+          country_code?: string | null
           created_at?: string | null
           description?: string | null
           experience?: string | null
           guide_city: string
-          guide_contact?: string | null
           guide_name: string
           guide_photo?: string | null
           id?: string
           languages?: string[] | null
+          phone_number?: string | null
           qualifications?: string[] | null
           rating?: number | null
           service_prices?: Json | null
-          service_type: Database["public"]["Enums"]["guide_service_type"]
+          service_type?: string[] | null
           specializations?: string[] | null
           status?: string | null
         }
         Update: {
           availability_schedule?: Json | null
+          country_code?: string | null
           created_at?: string | null
           description?: string | null
           experience?: string | null
           guide_city?: string
-          guide_contact?: string | null
           guide_name?: string
           guide_photo?: string | null
           id?: string
           languages?: string[] | null
+          phone_number?: string | null
           qualifications?: string[] | null
           rating?: number | null
           service_prices?: Json | null
-          service_type?: Database["public"]["Enums"]["guide_service_type"]
+          service_type?: string[] | null
           specializations?: string[] | null
           status?: string | null
         }
