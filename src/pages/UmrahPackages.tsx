@@ -35,8 +35,8 @@ const UmrahPackages = () => {
       image: "photo-1466442929976-97f336a657be"
     },
     {
-      title: "Custom Umrah Packages",
-      description: "Personalized pilgrimage experiences tailored to your specific needs, preferences, and budget",
+      title: "Independent Short Umrah Packages",
+      description: "Pre-curated short Umrah packages based on popular customer plans. Enjoy flexibility and independence with handpicked options.",
       icon: Package,
       route: "/custom-packages",
       gradient: "from-blue-500 to-indigo-600",
@@ -52,11 +52,37 @@ const UmrahPackages = () => {
       benefits: [
         "Complete flexibility",
         "Privacy and comfort",
-        "Customized experience",
+        "Curated for you",
         "Personal attention"
       ],
       popular: false,
       image: "photo-1523712999610-f77fbcfc3843"
+    },
+    {
+      title: "Build Your Own Umrah Package",
+      description: "Create a fully personalized Umrah journey. Select your preferred flights, hotels in Makkah & Madinah, visa, transport, ziarath tours, guides, and more—all in one place.",
+      icon: Star,
+      route: "/build-your-own-umrah",
+      gradient: "from-purple-500 to-pink-600",
+      price: "Fully Customizable",
+      duration: "Any Duration",
+      features: [
+        "Choose flights",
+        "Select hotels in Makkah & Madinah",
+        "Visa processing",
+        "Transport options",
+        "Ziarath tours",
+        "Guided or independent",
+        "Add-on services"
+      ],
+      benefits: [
+        "Ultimate flexibility",
+        "Tailored to your needs",
+        "Mix & match services",
+        "Transparent pricing"
+      ],
+      popular: false,
+      image: "photo-1506744038136-46273834b3fb"
     }
   ];
 
@@ -64,30 +90,30 @@ const UmrahPackages = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
       
-      {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 relative overflow-hidden">
+      {/* Hero Section - compact */}
+      <section className="py-6 md:py-10 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20" />
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <Badge className="bg-white/20 text-white border-white/30 mb-6 px-4 py-2">
+        <div className="container mx-auto px-4 text-center relative z-10 flex flex-col items-center justify-center">
+          <Badge className="bg-white/20 text-white border-white/30 mb-2 px-3 py-1 text-xs md:text-sm">
             ✨ Premium Umrah Experience
           </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
             Choose Your Umrah Package
           </h1>
-          <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto leading-snug">
             Select between our comprehensive group packages or create your own personalized pilgrimage experience
           </p>
         </div>
       </section>
 
-      {/* Package Options */}
-      <section className="py-20 -mt-16 relative z-20">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+      {/* Package Options - grid moved up */}
+      <section className="py-6 md:py-10 -mt-6 md:-mt-10 relative z-20">
+        <div className="container mx-auto px-2 md:px-4">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
             {packageTypes.map((packageType, index) => (
               <Card 
                 key={index}
-                className="group relative overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-4 bg-white"
+                className="group relative flex flex-col h-full min-h-[540px] md:min-h-[560px] overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-3 bg-white"
               >
                 {packageType.popular && (
                   <div className="absolute top-6 right-6 z-20">
@@ -97,64 +123,56 @@ const UmrahPackages = () => {
                     </Badge>
                   </div>
                 )}
-
-                {/* Background Image */}
-                <div className="absolute inset-0 z-0">
-                  <div 
-                    className="w-full h-full bg-cover bg-center opacity-5 group-hover:opacity-10 transition-opacity duration-500"
-                    style={{
-                      backgroundImage: `url(https://images.unsplash.com/${packageType.image}?w=800&h=600&fit=crop)`
-                    }}
+                {/* Prominent Image */}
+                <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-t-2xl mb-0">
+                  <img 
+                    src={`https://images.unsplash.com/${packageType.image}?w=800&h=400&fit=crop`} 
+                    alt={packageType.title}
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-br ${packageType.gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-500`} />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${packageType.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-500`} />
                 </div>
-
-                <CardHeader className="relative z-10 p-8">
-                  <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${packageType.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <packageType.icon className="w-10 h-10 text-white" />
+                <CardHeader className="relative z-10 p-5 pb-2 flex-1 flex flex-col">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${packageType.gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
+                    <packageType.icon className="w-7 h-7 text-white" />
                   </div>
-                  
-                  <CardTitle className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 group-hover:text-emerald-700 transition-colors">
+                  <CardTitle className="text-lg md:text-xl font-bold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">
                     {packageType.title}
                   </CardTitle>
-                  
-                  <p className="text-gray-600 text-lg leading-relaxed mb-6">
+                  <p className="text-gray-600 text-sm md:text-base leading-relaxed mb-2">
                     {packageType.description}
                   </p>
-
-                  <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center justify-between mb-3 p-2 bg-gray-50 rounded-xl">
                     <div>
-                      <div className="text-2xl font-bold text-emerald-600">
+                      <div className="text-lg font-bold text-emerald-600">
                         {packageType.price}
                       </div>
-                      <div className="text-sm text-gray-500">per person</div>
+                      <div className="text-xs text-gray-500">per person</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-gray-900">
+                      <div className="text-sm font-semibold text-gray-900">
                         {packageType.duration}
                       </div>
-                      <div className="text-sm text-gray-500">flexible</div>
+                      <div className="text-xs text-gray-500">flexible</div>
                     </div>
                   </div>
                 </CardHeader>
-
-                <CardContent className="relative z-10 p-8 pt-0">
+                <CardContent className="relative z-10 p-5 pt-0 flex flex-col flex-1">
                   {/* Features */}
-                  <div className="mb-8">
-                    <h4 className="font-semibold text-gray-900 mb-4 text-lg">Package Includes:</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Package Includes:</h4>
+                    <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
                       {packageType.features.map((feature, featureIndex) => (
                         <div key={featureIndex} className="flex items-center space-x-2">
                           <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">{feature}</span>
+                          <span className="text-xs md:text-sm text-gray-700">{feature}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-
                   {/* Benefits */}
-                  <div className="mb-8">
-                    <h4 className="font-semibold text-gray-900 mb-4 text-lg">Key Benefits:</h4>
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Key Benefits:</h4>
                     <div className="flex flex-wrap gap-2">
                       {packageType.benefits.map((benefit, benefitIndex) => (
                         <Badge 
@@ -167,15 +185,16 @@ const UmrahPackages = () => {
                       ))}
                     </div>
                   </div>
-                  
-                  <Link to={packageType.route}>
-                    <Button 
-                      className={`w-full bg-gradient-to-r ${packageType.gradient} hover:opacity-90 transform transition-all duration-300 hover:scale-105 shadow-lg text-lg py-6`}
-                      size="lg"
-                    >
-                      Explore {packageType.title.split(' ')[0]} Packages
-                    </Button>
-                  </Link>
+                  <div className="mt-auto">
+                    <Link to={packageType.route}>
+                      <Button 
+                        className={`w-full bg-gradient-to-r ${packageType.gradient} hover:opacity-90 transform transition-all duration-300 hover:scale-105 shadow-lg text-base py-3`}
+                        size="lg"
+                      >
+                        {packageType.title === 'Build Your Own Umrah Package' ? 'Start Building' : `Explore ${packageType.title.split(' ')[0]} Packages`}
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             ))}

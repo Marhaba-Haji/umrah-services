@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,8 @@ import LeadCapturePopup from '../components/LeadCapturePopup';
 import { useTransportCart } from '../hooks/useTransportCart';
 import { supabase } from '../lib/supabaseClient';
 import { TransportService, VehicleType } from '../types/transport';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const TransportBooking = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -19,6 +21,16 @@ const TransportBooking = () => {
   const [transports, setTransports] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Filter state
+  const [capacityRange, setCapacityRange] = useState<[number, number]>([1, 50]);
+  const [selectedVehicleTypes, setSelectedVehicleTypes] = useState<string[]>([]);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const filterBarRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   // Check if popup was already shown on this page
   React.useEffect(() => {
@@ -60,6 +72,46 @@ const TransportBooking = () => {
     fetchTransports();
   }, []);
 
+  // Restore filters from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('transportFilters');
+    if (saved) {
+      const { capacityRange, selectedVehicleTypes, selectedFeatures } = JSON.parse(saved);
+      setCapacityRange(capacityRange);
+      setSelectedVehicleTypes(selectedVehicleTypes);
+      setSelectedFeatures(selectedFeatures);
+    }
+  }, []);
+
+  // Save filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('transportFilters', JSON.stringify({ capacityRange, selectedVehicleTypes, selectedFeatures }));
+  }, [capacityRange, selectedVehicleTypes, selectedFeatures]);
+
+  // Auto-scroll to filters on load
+  useEffect(() => {
+    if (filterBarRef.current) {
+      filterBarRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
+  // Minimize hero section on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (heroRef.current) {
+        if (window.scrollY > 40) {
+          heroRef.current.style.maxHeight = '60px';
+          heroRef.current.style.overflow = 'hidden';
+        } else {
+          heroRef.current.style.maxHeight = '';
+          heroRef.current.style.overflow = '';
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   if (loading) return <div>Loading transport options...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
 
@@ -81,6 +133,20 @@ const TransportBooking = () => {
     vehicleTypeMap[t.vehicle_type].routes.push(t);
   }
   const vehicleTypes = Object.values(vehicleTypeMap);
+
+  // Collect all vehicle types and features for filter options
+  const allVehicleTypes = Array.from(new Set(vehicleTypes.map(v => v.vehicle_type)));
+  const allFeatures = Array.from(new Set(vehicleTypes.flatMap(v => v.features || [])));
+  const minCapacity = Math.min(...vehicleTypes.map(v => v.capacity));
+  const maxCapacity = Math.max(...vehicleTypes.map(v => v.capacity));
+
+  // Filter logic
+  const filteredVehicleTypes = vehicleTypes.filter(v => {
+    const matchesCapacity = v.capacity >= capacityRange[0] && v.capacity <= capacityRange[1];
+    const matchesType = selectedVehicleTypes.length === 0 || selectedVehicleTypes.includes(v.vehicle_type);
+    const matchesFeatures = selectedFeatures.length === 0 || (v.features && selectedFeatures.every(f => v.features.includes(f)));
+    return matchesCapacity && matchesType && matchesFeatures;
+  });
 
   const VehicleCard = ({ vehicle }: { vehicle: VehicleType }) => {
     const [selectedRouteId, setSelectedRouteId] = useState('');
@@ -359,34 +425,117 @@ const TransportBooking = () => {
         </div>
       )}
       
-      {/* Hero Section */}
-      <section className="relative py-12 md:py-20">
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
-          <div className="absolute bottom-20 right-20 w-24 h-24 border-2 border-amber-600 rounded-lg transform rotate-12"></div>
+      {/* Hero Section - compact and auto-minimizing */}
+      <div ref={heroRef} className="transition-all duration-300 ease-in-out max-h-[180px] overflow-hidden flex flex-col items-center justify-center py-4 mb-2">
+        <div className="flex items-center gap-2 text-3xl font-bold mb-1">
+          <span role="img" aria-label="car">🚗</span> Book Your <span className="text-emerald-600">Transport</span>
         </div>
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              🚗 Book Your <span className="text-emerald-600">Transport</span>
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Safe, comfortable, and reliable transportation for your sacred journey. Select your vehicles, routes, and add to cart for easy booking.
-            </p>
-          </div>
-
-          {/* Vehicle Selection */}
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold text-center mb-8">Available Transport Vehicles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {vehicleTypes.map((vehicle) => (
-                <VehicleCard key={vehicle.vehicle_type} vehicle={vehicle} />
-              ))}
+        <div className="text-base text-gray-600 text-center max-w-2xl mx-auto leading-tight">
+          Safe, comfortable, and reliable transportation for your sacred journey. Select your vehicles, routes, and add to cart for easy booking.
+        </div>
+      </div>
+      <div className="container mx-auto px-2 py-4">
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <aside ref={filterBarRef} id="filter-bar" className={`w-72 shrink-0 ${isMobile ? 'fixed z-40 top-0 left-0 h-full bg-white shadow-lg transition-transform' : 'sticky top-8'} ${isMobile && !sidebarOpen ? '-translate-x-full' : ''}`}>
+            <div className="p-6 border-r border-emerald-100 h-full flex flex-col gap-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-emerald-800">Filters</h3>
+                {isMobile && (
+                  <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-gray-700"><X className="w-6 h-6" /></button>
+                )}
+              </div>
+              {/* Capacity Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Capacity</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={minCapacity}
+                    max={capacityRange[1]}
+                    value={capacityRange[0]}
+                    onChange={e => setCapacityRange([Number(e.target.value), capacityRange[1]])}
+                    className="w-16 border rounded px-2 py-1 text-sm"
+                  />
+                  <span>-</span>
+                  <input
+                    type="number"
+                    min={capacityRange[0]}
+                    max={maxCapacity}
+                    value={capacityRange[1]}
+                    onChange={e => setCapacityRange([capacityRange[0], Number(e.target.value)])}
+                    className="w-16 border rounded px-2 py-1 text-sm"
+                  />
+                </div>
+              </div>
+              {/* Vehicle Type Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Vehicle Type</label>
+                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                  {allVehicleTypes.map(type => (
+                    <label key={type} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedVehicleTypes.includes(type)}
+                        onCheckedChange={checked => {
+                          setSelectedVehicleTypes(checked ? [...selectedVehicleTypes, type] : selectedVehicleTypes.filter(t => t !== type));
+                        }}
+                      />
+                      <span>{type}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {/* Features Filter */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Features</label>
+                <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                  {allFeatures.map(feature => (
+                    <label key={feature} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedFeatures.includes(feature)}
+                        onCheckedChange={checked => {
+                          setSelectedFeatures(checked ? [...selectedFeatures, feature] : selectedFeatures.filter(f => f !== feature));
+                        }}
+                      />
+                      <span>{feature}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {isMobile && (
+                <Button className="mt-4 w-full" onClick={() => setSidebarOpen(false)}>Apply Filters</Button>
+              )}
             </div>
-          </div>
+          </aside>
+          {/* Mobile sidebar toggle button */}
+          {isMobile && !sidebarOpen && (
+            <button
+              className="fixed top-4 left-4 z-50 bg-emerald-600 text-white rounded-full shadow-lg p-3 hover:bg-emerald-700 transition"
+              onClick={() => setSidebarOpen(true)}
+            >
+              Filters
+            </button>
+          )}
+          {/* Main Content */}
+          <main className="flex-1">
+            <div className="mb-12">
+              <h2 className="text-xl font-bold text-left mb-4">Available Transport Vehicles</h2>
+              {/* Cart suggestion placeholder */}
+              {/* TODO: Show add-on suggestions after add to cart */}
+              {/* Backend automation: auto-assign vehicle and send notification after booking (see backend integration) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredVehicleTypes.length === 0 ? (
+                  <div className="col-span-full text-center text-gray-500 py-12">No vehicles match your filters.</div>
+                ) : (
+                  filteredVehicleTypes.map(vehicle => (
+                    <VehicleCard key={vehicle.vehicle_type} vehicle={vehicle} />
+                  ))
+                )}
+              </div>
+            </div>
+          </main>
         </div>
-      </section>
+      </div>
 
       <Footer />
     </div>
