@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { CalendarIcon, Search, Filter, Star, MapPin, Users, Clock, Plane, Car, UserCheck, Mountain, ShoppingCart, Plus, Minus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-// Define interfaces for our data
 interface Hotel {
   id: string;
   name: string;
@@ -115,9 +115,9 @@ const BuildYourOwnUmrah = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const { toast } = useToast();
 
-  // Data states
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [transports, setTransports] = useState<Transport[]>([]);
@@ -126,12 +126,11 @@ const BuildYourOwnUmrah = () => {
   const [ziarathServices, setZiarathServices] = useState<ZiarathService[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Filter states with proper typing
   const [filters, setFilters] = useState<FilterState>({
     city: '',
     checkin: undefined,
     checkout: undefined,
-    rooms: [{ id: '1', guests: 1 }], // Default: 1 room with 1 guest
+    rooms: [{ id: '1', guests: 1 }],
     nationality: '',
     type: '',
     route: '',
@@ -139,7 +138,6 @@ const BuildYourOwnUmrah = () => {
     duration: ''
   });
 
-  // Calculate number of nights
   const calculateNights = () => {
     if (filters.checkin && filters.checkout) {
       const diffTime = Math.abs(filters.checkout.getTime() - filters.checkin.getTime());
@@ -149,12 +147,10 @@ const BuildYourOwnUmrah = () => {
     return 0;
   };
 
-  // Get total guests across all rooms
   const getTotalGuests = () => {
     return filters.rooms.reduce((total, room) => total + room.guests, 0);
   };
 
-  // Room management functions
   const addRoom = () => {
     const newRoom: RoomConfig = {
       id: (filters.rooms.length + 1).toString(),
@@ -193,7 +189,6 @@ const BuildYourOwnUmrah = () => {
     { id: 6, title: 'Ziarath Tours', icon: Mountain, description: 'Spiritual journeys' },
   ];
 
-  // Fetch data functions
   const fetchHotels = async () => {
     setLoading(true);
     try {
@@ -332,7 +327,6 @@ const BuildYourOwnUmrah = () => {
     }
   };
 
-  // Load data when step changes
   useEffect(() => {
     switch (activeStep) {
       case 1:
@@ -356,7 +350,6 @@ const BuildYourOwnUmrah = () => {
     }
   }, [activeStep]);
 
-  // Filter functions with proper typing
   const getFilteredHotels = () => {
     return hotels.filter(hotel => {
       if (searchTerm && !hotel.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -407,7 +400,6 @@ const BuildYourOwnUmrah = () => {
     });
   };
 
-  // Cart functions
   const addToCart = (item: Omit<CartItem, 'quantity'>) => {
     const existingItem = cart.find(cartItem => cartItem.id === item.id && cartItem.type === item.type);
     
@@ -448,7 +440,6 @@ const BuildYourOwnUmrah = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  // Component render functions
   const renderStepContent = () => {
     switch (activeStep) {
       case 1:
@@ -468,7 +459,6 @@ const BuildYourOwnUmrah = () => {
     }
   };
 
-  // Enhanced hotel rendering with nights calculation
   const renderHotels = () => (
     <div className="space-y-6">
       {loading ? (
@@ -510,7 +500,6 @@ const BuildYourOwnUmrah = () => {
                     <p className="text-xs text-gray-500 mb-2">{hotel.distance_from_haram} from Haram</p>
                   )}
                   
-                  {/* Booking Details */}
                   {nights > 0 && (
                     <div className="bg-gray-50 rounded-lg p-3 mb-3 text-sm">
                       <div className="flex justify-between items-center mb-1">
@@ -923,10 +912,9 @@ const BuildYourOwnUmrah = () => {
 
   const renderFilters = () => {
     switch (activeStep) {
-      case 1: // Hotels
+      case 1:
         return (
           <div className="space-y-4">
-            {/* First row - City and dates */}
             <div className="grid grid-cols-3 gap-4">
               <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
                 <SelectTrigger>
@@ -977,7 +965,6 @@ const BuildYourOwnUmrah = () => {
               </Popover>
             </div>
 
-            {/* Nights display */}
             {calculateNights() > 0 && (
               <div className="text-center">
                 <Badge variant="secondary" className="text-sm">
@@ -986,7 +973,6 @@ const BuildYourOwnUmrah = () => {
               </div>
             )}
 
-            {/* Room and Guest Configuration */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium text-gray-700">Rooms & Guests</span>
@@ -1057,7 +1043,7 @@ const BuildYourOwnUmrah = () => {
             </div>
           </div>
         );
-      case 3: // Visa Services
+      case 3:
         return (
           <div className="grid grid-cols-2 gap-4">
             <Select value={filters.nationality} onValueChange={(value) => setFilters({ ...filters, nationality: value === 'all' ? '' : value })}>
@@ -1075,7 +1061,7 @@ const BuildYourOwnUmrah = () => {
             </Select>
           </div>
         );
-      case 4: // Transport
+      case 4:
         return (
           <div className="grid grid-cols-2 gap-4">
             <Select value={filters.type} onValueChange={(value) => setFilters({ ...filters, type: value === 'all' ? '' : value })}>
@@ -1102,7 +1088,7 @@ const BuildYourOwnUmrah = () => {
             </Select>
           </div>
         );
-      case 5: // Guide Services
+      case 5:
         return (
           <div className="grid grid-cols-2 gap-4">
             <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
@@ -1129,7 +1115,7 @@ const BuildYourOwnUmrah = () => {
             </Select>
           </div>
         );
-      case 6: // Ziarath Services
+      case 6:
         return (
           <div className="grid grid-cols-2 gap-4">
             <Select value={filters.duration} onValueChange={(value) => setFilters({ ...filters, duration: value === 'all' ? '' : value })}>
@@ -1161,14 +1147,11 @@ const BuildYourOwnUmrah = () => {
       return;
     }
 
-    // Here you would typically integrate with a payment processor
-    // For now, we'll just show a success message
     toast({
       title: "Package Created!",
       description: `Your custom Umrah package (${cart.length} items, $${getTotalPrice()}) has been created. We'll contact you shortly to finalize the booking.`,
     });
 
-    // Clear cart after successful creation
     setCart([]);
   };
 
@@ -1177,7 +1160,6 @@ const BuildYourOwnUmrah = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-800 rounded-full px-4 py-2 mb-4">
             <ShoppingCart className="w-5 h-5" />
@@ -1192,9 +1174,8 @@ const BuildYourOwnUmrah = () => {
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-8">
-          {/* Left Panel - Steps Navigation */}
-          <div className="lg:col-span-3">
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-1">
             <Card className="sticky top-6">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-gray-900">Package Builder</CardTitle>
@@ -1277,8 +1258,7 @@ const BuildYourOwnUmrah = () => {
             </Card>
           </div>
 
-          {/* Center Panel - Content */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-3">
             <Card className="mb-6">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
@@ -1303,7 +1283,6 @@ const BuildYourOwnUmrah = () => {
                   </div>
                 </div>
                 
-                {/* Filters */}
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-2 mb-3">
                     <Filter className="w-4 h-4 text-gray-500" />
@@ -1317,88 +1296,110 @@ const BuildYourOwnUmrah = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Right Panel - Cart */}
-          <div className="lg:col-span-3">
-            <Card className="sticky top-6">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Your Package</span>
-                  <Badge variant="secondary">{cart.length} items</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                {cart.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p className="text-sm">Your package is empty</p>
-                    <p className="text-xs text-gray-400 mt-1">Start adding services to build your custom Umrah package</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {cart.map((item) => (
-                      <div key={`${item.type}-${item.id}`} className="bg-gray-50 rounded-lg p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm text-gray-900 truncate">{item.name}</h4>
-                            <p className="text-xs text-gray-500 capitalize">{item.type}</p>
-                          </div>
-                          <button
-                            onClick={() => removeFromCart(item.id, item.type)}
-                            className="text-gray-400 hover:text-red-500 p-1"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => updateQuantity(item.id, item.type, item.quantity - 1)}
-                              className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.id, item.type, item.quantity + 1)}
-                              className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center hover:bg-gray-300"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <span className="font-semibold text-emerald-600">
-                            ${(item.price * item.quantity).toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="border-t pt-4 mt-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <span className="font-semibold text-lg text-gray-900">Total</span>
-                        <span className="font-bold text-2xl text-emerald-600">
-                          ${getTotalPrice().toFixed(2)}
-                        </span>
-                      </div>
-                      
-                      <Button 
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3"
-                        onClick={handleProceedToCheckout}
-                      >
-                        Create Package
-                      </Button>
-                      
-                      <p className="text-xs text-gray-500 text-center mt-2">
-                        We'll contact you to finalize your booking
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
+
+      <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
+        <SheetTrigger asChild>
+          <Button
+            className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 z-40"
+            size="lg"
+          >
+            <div className="relative">
+              <ShoppingCart className="w-6 h-6" />
+              {cart.length > 0 && (
+                <Badge 
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
+                >
+                  {cart.length}
+                </Badge>
+              )}
+            </div>
+          </Button>
+        </SheetTrigger>
+        
+        <SheetContent className="w-[400px] sm:w-[540px] bg-white/95 backdrop-blur-md border-l border-gray-200">
+          <SheetHeader>
+            <SheetTitle className="flex items-center justify-between">
+              <span>Your Package</span>
+              <Badge variant="secondary">{cart.length} items</Badge>
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="mt-6 h-full flex flex-col">
+            {cart.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center py-8 text-gray-500">
+                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm">Your package is empty</p>
+                  <p className="text-xs text-gray-400 mt-1">Start adding services to build your custom Umrah package</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                  {cart.map((item) => (
+                    <div key={`${item.type}-${item.id}`} className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-gray-100 shadow-sm">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm text-gray-900 truncate">{item.name}</h4>
+                          <p className="text-xs text-gray-500 capitalize">{item.type}</p>
+                        </div>
+                        <button
+                          onClick={() => removeFromCart(item.id, item.type)}
+                          className="text-gray-400 hover:text-red-500 p-1 ml-2"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.type, item.quantity - 1)}
+                            className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.type, item.quantity + 1)}
+                            className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <span className="font-semibold text-emerald-600">
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="border-t pt-4 mt-4 bg-white/80 backdrop-blur-sm rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-semibold text-lg text-gray-900">Total</span>
+                    <span className="font-bold text-2xl text-emerald-600">
+                      ${getTotalPrice().toFixed(2)}
+                    </span>
+                  </div>
+                  
+                  <Button 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3"
+                    onClick={handleProceedToCheckout}
+                  >
+                    Create Package
+                  </Button>
+                  
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    We'll contact you to finalize your booking
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <Footer />
     </div>
