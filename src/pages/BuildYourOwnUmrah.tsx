@@ -94,10 +94,16 @@ interface CartItem {
   details?: any;
 }
 
+interface RoomConfig {
+  id: string;
+  guests: number;
+}
+
 interface FilterState {
   city: string;
   checkin: Date | undefined;
   checkout: Date | undefined;
+  rooms: RoomConfig[];
   nationality: string;
   type: string;
   route: string;
@@ -125,12 +131,58 @@ const BuildYourOwnUmrah = () => {
     city: '',
     checkin: undefined,
     checkout: undefined,
+    rooms: [{ id: '1', guests: 1 }], // Default: 1 room with 1 guest
     nationality: '',
     type: '',
     route: '',
     language: '',
     duration: ''
   });
+
+  // Calculate number of nights
+  const calculateNights = () => {
+    if (filters.checkin && filters.checkout) {
+      const diffTime = Math.abs(filters.checkout.getTime() - filters.checkin.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+    return 0;
+  };
+
+  // Get total guests across all rooms
+  const getTotalGuests = () => {
+    return filters.rooms.reduce((total, room) => total + room.guests, 0);
+  };
+
+  // Room management functions
+  const addRoom = () => {
+    const newRoom: RoomConfig = {
+      id: (filters.rooms.length + 1).toString(),
+      guests: 1
+    };
+    setFilters(prev => ({
+      ...prev,
+      rooms: [...prev.rooms, newRoom]
+    }));
+  };
+
+  const removeRoom = (roomId: string) => {
+    if (filters.rooms.length > 1) {
+      setFilters(prev => ({
+        ...prev,
+        rooms: prev.rooms.filter(room => room.id !== roomId)
+      }));
+    }
+  };
+
+  const updateRoomGuests = (roomId: string, guests: number) => {
+    setFilters(prev => ({
+      ...prev,
+      rooms: prev.rooms.map(room => 
+        room.id === roomId ? { ...room, guests: Math.max(1, Math.min(4, guests)) } : room
+      )
+    }));
+  };
 
   const steps = [
     { id: 1, title: 'Hotels', icon: MapPin, description: 'Choose your accommodation' },
@@ -416,6 +468,7 @@ const BuildYourOwnUmrah = () => {
     }
   };
 
+  // Enhanced hotel rendering with nights calculation
   const renderHotels = () => (
     <div className="space-y-6">
       {loading ? (
@@ -424,51 +477,91 @@ const BuildYourOwnUmrah = () => {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {getFilteredHotels().map(hotel => (
-            <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-              <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-blue-100">
-                {hotel.images && hotel.images[0] ? (
-                  <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <MapPin className="w-12 h-12 text-emerald-600" />
+          {getFilteredHotels().map(hotel => {
+            const nights = calculateNights();
+            const totalGuests = getTotalGuests();
+            const totalRooms = filters.rooms.length;
+            const totalPrice = hotel.price_per_night * nights * totalRooms;
+            
+            return (
+              <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-blue-100">
+                  {hotel.images && hotel.images[0] ? (
+                    <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <MapPin className="w-12 h-12 text-emerald-600" />
+                    </div>
+                  )}
+                  <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                    <div className="flex items-center space-x-1">
+                      <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                      <span className="text-xs font-medium">{hotel.rating}</span>
+                    </div>
                   </div>
-                )}
-                <div className="absolute top-2 right-2 bg-white rounded-full p-1">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                    <span className="text-xs font-medium">{hotel.rating}</span>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-lg mb-2">{hotel.name}</h3>
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    <span className="text-sm">{hotel.city}</span>
                   </div>
-                </div>
-              </div>
-              <CardContent className="p-4">
-                <h3 className="font-semibold text-lg mb-2">{hotel.name}</h3>
-                <div className="flex items-center text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{hotel.city}</span>
-                </div>
-                {hotel.distance_from_haram && (
-                  <p className="text-xs text-gray-500 mb-2">{hotel.distance_from_haram} from Haram</p>
-                )}
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold text-emerald-600">${hotel.price_per_night}/night</span>
-                  <Button 
-                    size="sm"
-                    onClick={() => addToCart({
-                      id: hotel.id,
-                      type: 'hotel',
-                      name: hotel.name,
-                      price: hotel.price_per_night,
-                      details: { city: hotel.city, rating: hotel.rating }
-                    })}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  {hotel.distance_from_haram && (
+                    <p className="text-xs text-gray-500 mb-2">{hotel.distance_from_haram} from Haram</p>
+                  )}
+                  
+                  {/* Booking Details */}
+                  {nights > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-3 mb-3 text-sm">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-gray-600">Duration:</span>
+                        <span className="font-medium">{nights} nights</span>
+                      </div>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-gray-600">Rooms:</span>
+                        <span className="font-medium">{totalRooms}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Guests:</span>
+                        <span className="font-medium">{totalGuests}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="text-right">
+                      <div className="text-sm text-gray-500">${hotel.price_per_night}/night</div>
+                      {nights > 0 && (
+                        <div className="text-xl font-bold text-emerald-600">${totalPrice}</div>
+                      )}
+                    </div>
+                    <Button 
+                      size="sm"
+                      onClick={() => addToCart({
+                        id: hotel.id,
+                        type: 'hotel',
+                        name: `${hotel.name} (${nights} nights)`,
+                        price: totalPrice,
+                        details: { 
+                          city: hotel.city, 
+                          rating: hotel.rating,
+                          nights: nights,
+                          rooms: totalRooms,
+                          guests: totalGuests,
+                          checkin: filters.checkin,
+                          checkout: filters.checkout
+                        }
+                      })}
+                      disabled={!filters.checkin || !filters.checkout}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
@@ -832,35 +925,136 @@ const BuildYourOwnUmrah = () => {
     switch (activeStep) {
       case 1: // Hotels
         return (
-          <div className="grid grid-cols-2 gap-4">
-            <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="City" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Cities</SelectItem>
-                <SelectItem value="Makkah">Makkah</SelectItem>
-                <SelectItem value="Madinah">Madinah</SelectItem>
-                <SelectItem value="Jeddah">Jeddah</SelectItem>
-              </SelectContent>
-            </Select>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("justify-start text-left font-normal", !filters.checkin && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {filters.checkin ? format(filters.checkin, "PPP") : "Check-in date"}
+          <div className="space-y-4">
+            {/* First row - City and dates */}
+            <div className="grid grid-cols-3 gap-4">
+              <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="City" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  <SelectItem value="Makkah">Makkah</SelectItem>
+                  <SelectItem value="Madinah">Madinah</SelectItem>
+                  <SelectItem value="Jeddah">Jeddah</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal", !filters.checkin && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.checkin ? format(filters.checkin, "PPP") : "Check-in date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.checkin}
+                    onSelect={(date) => setFilters({ ...filters, checkin: date })}
+                    disabled={(date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal", !filters.checkout && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {filters.checkout ? format(filters.checkout, "PPP") : "Check-out date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={filters.checkout}
+                    onSelect={(date) => setFilters({ ...filters, checkout: date })}
+                    disabled={(date) => date < new Date() || (filters.checkin && date <= filters.checkin)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Nights display */}
+            {calculateNights() > 0 && (
+              <div className="text-center">
+                <Badge variant="secondary" className="text-sm">
+                  {calculateNights()} {calculateNights() === 1 ? 'night' : 'nights'}
+                </Badge>
+              </div>
+            )}
+
+            {/* Room and Guest Configuration */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-gray-700">Rooms & Guests</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRoom}
+                  className="h-8"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Room
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={filters.checkin}
-                  onSelect={(date) => setFilters({ ...filters, checkin: date })}
-                  disabled={(date) => date < new Date()}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+              </div>
+              
+              <div className="space-y-3">
+                {filters.rooms.map((room, index) => (
+                  <div key={room.id} className="flex items-center justify-between bg-white rounded-lg p-3">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm font-medium text-gray-600">
+                        Room {index + 1}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">Guests:</span>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => updateRoomGuests(room.id, room.guests - 1)}
+                            disabled={room.guests <= 1}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-8 text-center text-sm font-medium">{room.guests}</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={() => updateRoomGuests(room.id, room.guests + 1)}
+                            disabled={room.guests >= 4}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    {filters.rooms.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                        onClick={() => removeRoom(room.id)}
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-3 text-sm text-gray-600 text-center">
+                Total: {filters.rooms.length} {filters.rooms.length === 1 ? 'room' : 'rooms'}, {getTotalGuests()} {getTotalGuests() === 1 ? 'guest' : 'guests'}
+              </div>
+            </div>
           </div>
         );
       case 3: // Visa Services
