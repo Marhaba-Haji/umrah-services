@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -30,7 +29,7 @@ const CustomPackages = () => {
       reviews: 156,
       flexibility: "Complete flexibility",
       customization: "Fully customizable",
-      includes: ["Choice of hotel", "Private transport", "Personal guide", "Custom itinerary"],
+      includes: ["Choice of hotel", "Private transport", "Custom itinerary"],
       highlights: ["Flexible dates", "Personal preferences", "Private tours", "Custom meals"],
       popular: true,
       image: "photo-1466442929976-97f336a657be"

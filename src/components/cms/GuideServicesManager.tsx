@@ -215,6 +215,7 @@ const GuideServicesManager = () => {
 
   // Add or update guide
   const onSubmit = async (data: any) => {
+    console.log('Form data on submit:', data); // Debug log
     // serviceType is already an array of labels
     const serviceTypes = (Array.isArray(data.serviceType) ? data.serviceType : []).map(label => SERVICE_TYPE_ENUM_MAP[label] || label);
     // Languages as array
@@ -223,10 +224,10 @@ const GuideServicesManager = () => {
     const pricesObj = (servicePrices && Object.keys(servicePrices).length > 0) ? servicePrices : null;
 
     // Required fields
-    if (!data.guideName || !data.guideCity || serviceTypes.length === 0) {
+    if (!data.guideName || !data.guideCity || serviceTypes.length === 0 || !data.guidePhoto) {
       toast({
         title: 'Validation Error',
-        description: 'Guide Name, Guide City, and at least one Service Type are required.',
+        description: 'Guide Name, Guide City, at least one Service Type, and Guide Photo are required.',
         variant: 'destructive',
       });
       return;
@@ -268,10 +269,10 @@ const GuideServicesManager = () => {
     }
     if (!error) {
       await fetchGuides();
-      setIsDialogOpen(false);
-      setEditingGuide(null);
-      setServicePrices({});
-      form.reset();
+    setIsDialogOpen(false);
+    setEditingGuide(null);
+    setServicePrices({});
+    form.reset();
     } else {
       toast({
         title: 'Supabase Error',
@@ -563,37 +564,37 @@ const GuideServicesManager = () => {
                       <FormItem>
                         <FormLabel>Service Types & Prices</FormLabel>
                         <div className="flex flex-col gap-2">
-                          {SERVICE_TYPES.map(type => (
+                            {SERVICE_TYPES.map(type => (
                             <div key={type} className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={field.value?.includes(type)}
-                                onChange={e => {
-                                  let newTypes = field.value || [];
-                                  if (e.target.checked) {
-                                    newTypes = [...newTypes, type];
-                                  } else {
-                                    newTypes = newTypes.filter((t: string) => t !== type);
-                                    // Remove price if unchecked
-                                    const newPrices = { ...servicePrices };
-                                    delete newPrices[type];
-                                    setServicePrices(newPrices);
-                                  }
-                                  field.onChange(newTypes);
-                                }}
-                              />
+                                <input
+                                  type="checkbox"
+                                  checked={field.value?.includes(type)}
+                                  onChange={e => {
+                                    let newTypes = field.value || [];
+                                    if (e.target.checked) {
+                                      newTypes = [...newTypes, type];
+                                    } else {
+                                      newTypes = newTypes.filter((t: string) => t !== type);
+                                      // Remove price if unchecked
+                                      const newPrices = { ...servicePrices };
+                                      delete newPrices[type];
+                                      setServicePrices(newPrices);
+                                    }
+                                    field.onChange(newTypes);
+                                  }}
+                                />
                               <span className="w-48">{type}</span>
-                              <Input
+                                <Input 
                                 className="w-32"
                                 placeholder={`Price`}
-                                value={servicePrices[type] || ''}
-                                onChange={e => handleServicePriceChange(type, e.target.value)}
+                                  value={servicePrices[type] || ''}
+                                  onChange={e => handleServicePriceChange(type, e.target.value)}
                                 disabled={!field.value?.includes(type)}
                                 type="number"
                                 min="0"
-                              />
-                            </div>
-                          ))}
+                                />
+                              </div>
+                            ))}
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -653,7 +654,7 @@ const GuideServicesManager = () => {
                   )}
                 />
                 <div className="flex gap-2 pt-4">
-                  <Button type="submit">
+                  <Button type="submit" disabled={!form.watch('guidePhoto')}>
                     {editingGuide ? 'Update Guide' : 'Create Guide'}
                   </Button>
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
@@ -671,56 +672,56 @@ const GuideServicesManager = () => {
           {loading ? (
             <div className="text-center py-8">Loading guides...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Guide</th>
-                    <th className="text-left p-2">City</th>
-                    <th className="text-left p-2">Service Type</th>
-                    <th className="text-left p-2">Rating</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {guides.map(guide => (
-                    <tr key={guide.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
-                        <div className="flex items-center space-x-3">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-2">Guide</th>
+                  <th className="text-left p-2">City</th>
+                  <th className="text-left p-2">Service Type</th>
+                  <th className="text-left p-2">Rating</th>
+                  <th className="text-left p-2">Status</th>
+                  <th className="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {guides.map(guide => (
+                  <tr key={guide.id} className="border-b hover:bg-gray-50">
+                    <td className="p-2">
+                      <div className="flex items-center space-x-3">
                           <img src={guide.guide_photo} alt={guide.guide_name} className="w-10 h-10 rounded-full object-cover" />
-                          <div>
+                        <div>
                             <div className="font-medium">{guide.guide_name}</div>
                             <div className="text-sm text-gray-500">{guide.country_code}{guide.phone_number}</div>
                           </div>
-                        </div>
-                      </td>
+                      </div>
+                    </td>
                       <td className="p-2">{guide.guide_city}</td>
                       <td className="p-2">{Array.isArray(guide.service_type) ? guide.service_type.map((type, idx) => <span key={guide.id + '-' + type + '-' + idx}>{type}{idx < guide.service_type.length - 1 ? ', ' : ''}</span>) : guide.service_type}</td>
-                      <td className="p-2">⭐ {guide.rating}</td>
-                      <td className="p-2">
-                        <Badge variant={guide.status === 'Active' ? 'default' : 'secondary'}>
-                          {guide.status}
-                        </Badge>
-                      </td>
-                      <td className="p-2">
-                        <div className="flex space-x-1">
+                    <td className="p-2">⭐ {guide.rating}</td>
+                    <td className="p-2">
+                      <Badge variant={guide.status === 'Active' ? 'default' : 'secondary'}>
+                        {guide.status}
+                      </Badge>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex space-x-1">
                           <Button size="sm" variant="outline" onClick={() => setViewingGuide(guide)}>
-                            <Eye className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleEdit(guide)}>
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDelete(guide.id)}>
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          <Eye className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(guide)}>
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleDelete(guide.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           )}
         </CardContent>
       </Card>

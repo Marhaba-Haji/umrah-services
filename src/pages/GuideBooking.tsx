@@ -145,8 +145,15 @@ const GuideBooking = () => {
   const filteredGuides = guides.filter(guide => {
     // Language filter
     if (filterLanguage.length > 0 && !(guide.languages || []).some(l => filterLanguage.includes(l))) return false;
-    // Service type filter
-    if (filterServiceType.length > 0 && !filterServiceType.includes(guide.service_type)) return false;
+    // Service type filter (handle array or string)
+    if (
+      filterServiceType.length > 0 &&
+      !(
+        Array.isArray(guide.service_type)
+          ? guide.service_type.some(type => filterServiceType.includes(type))
+          : filterServiceType.includes(guide.service_type)
+      )
+    ) return false;
     // Experience filter (assume guide.experience is a string like '5 years')
     if (filterExperience !== 'any') {
       const years = parseInt((guide.experience || '').split(' ')[0]);
@@ -169,6 +176,9 @@ const GuideBooking = () => {
     }
   });
 
+  // Filter out unwanted service types from the filter UI
+  const filteredServiceTypes = allServiceTypes.filter(type => !['Group Guide', 'Personal Guide', 'Ziarath Guide'].includes(type));
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedGuides.length === 0 || !bookingDate) {
@@ -182,12 +192,12 @@ const GuideBooking = () => {
     setIsLoading(true);
     try {
       for (const guide of selectedGuides) {
-        const bookingData = {
-          ...bookingForm,
+      const bookingData = {
+        ...bookingForm,
           guide_id: guide.id,
-          service_date: bookingDate,
-          status: 'pending'
-        };
+        service_date: bookingDate,
+        status: 'pending'
+      };
         // TODO: submit bookingData to backend (Supabase or API)
       }
       toast({
@@ -314,7 +324,7 @@ const GuideBooking = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
                   <div className="flex flex-wrap gap-2">
-                    {allServiceTypes.map(type => (
+                    {filteredServiceTypes.map(type => (
                       <Button
                         key={type}
                         size="sm"
@@ -331,7 +341,7 @@ const GuideBooking = () => {
                 <Button variant="outline" onClick={() => { setFilterLanguage([]); setFilterExperience('any'); setFilterServiceType([]); }} className="w-full border-gray-300 text-gray-600 text-xs">Clear All</Button>
               </CardContent>
             </Card>
-          </div>
+        </div>
 
           {/* Guide Cards */}
           <div className="lg:col-span-6">
@@ -341,7 +351,7 @@ const GuideBooking = () => {
                   <h2 className="text-xl font-semibold flex items-center">
                     <Award className="w-5 h-5 mr-2 text-emerald-600" />
                     Choose Your Guide(s)
-                  </h2>
+                </h2>
                   <Select value={sortOption} onValueChange={setSortOption}>
                     <SelectTrigger className="w-44">
                       <SelectValue placeholder="Sort by" />
@@ -369,8 +379,8 @@ const GuideBooking = () => {
                       // Calculate the lowest price for this guide
                       const minPrice = getMinPrice(guide);
                       return (
-                        <Card 
-                          key={guide.id} 
+                      <Card 
+                        key={guide.id} 
                           className={`transition-all duration-300 hover:shadow-xl ${
                             isSelected ? 'ring-2 ring-emerald-500 shadow-lg' : 'hover:shadow-md'
                           }`}
@@ -420,12 +430,24 @@ const GuideBooking = () => {
                                     ? prev.filter(g => g.id !== guide.id)
                                     : [...prev, guide]
                                 );
+                                if (!isSelected) {
+                                  const availableTypes = Array.isArray(guide.service_type) ? guide.service_type : (guide.service_type ? [guide.service_type] : []);
+                                  setSelectedGuidesDetails(prev => ({
+                                    ...prev,
+                                    [guide.id]: {
+                                      ...prev[guide.id],
+                                      serviceType: availableTypes[0] || '',
+                                      numberOfPeople: 1,
+                                      specialRequests: '',
+                                    }
+                                  }));
+                                }
                               }}
                             >
                               {isSelected ? 'Remove' : 'Add'}
                             </Button>
-                          </CardContent>
-                        </Card>
+                        </CardContent>
+                      </Card>
                       );
                     })}
                   </div>
@@ -454,7 +476,6 @@ const GuideBooking = () => {
                             <SelectItem value="ziarath">Ziarath Tour Guide</SelectItem>
                             <SelectItem value="city_tour">City Tour Guide</SelectItem>
                             <SelectItem value="religious_guidance">Religious Guidance</SelectItem>
-                            <SelectItem value="translation">Translation Service</SelectItem>
                             <SelectItem value="airport_assistance">Airport Assistance</SelectItem>
                           </SelectContent>
                         </Select>
@@ -606,12 +627,12 @@ const GuideBooking = () => {
                               <SelectContent>
                                 {availableTypes.map(type => (
                                   <SelectItem key={type} value={type} className="capitalize text-xs">
-                                    {type.replace('_', ' ')}
+                                    {type}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                          </div>
+                      </div>
                           {/* Number of People */}
                           <div className="mb-2">
                             <label className="block text-xs font-medium mb-1">Number of People</label>
@@ -625,20 +646,20 @@ const GuideBooking = () => {
                               }))}
                               className="w-20 text-xs"
                             />
-                          </div>
+                    </div>
                           {/* Show price for selected type */}
                           {details.serviceType && (
                             <div className="text-xs mb-1">
                               Price: <span className="font-semibold">${price}</span>
-                            </div>
-                          )}
+                      </div>
+                    )}
                           {/* Subtotal */}
                           {details.serviceType && (
                             <div className="text-xs font-bold text-emerald-700">
                               Subtotal: ${subtotal}
-                            </div>
-                          )}
-                        </div>
+                      </div>
+                    )}
+                      </div>
                       );
                     })}
                     {/* Order Total */}

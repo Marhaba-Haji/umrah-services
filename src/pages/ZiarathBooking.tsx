@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,13 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Clock, Users, Star, Bookmark, CheckCircle, Heart } from 'lucide-react';
+import { CalendarIcon, MapPin, Clock, Users, Star, Bookmark, CheckCircle, Heart, X, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { useZiarathCart } from '@/hooks/useZiarathCart';
+import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
 
 interface ZiarathService {
   id: string;
@@ -49,6 +50,17 @@ const ZiarathBooking = () => {
     specialRequests: '',
     preferredTime: ''
   });
+
+  const {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    updateCartItemCount,
+    clearCart,
+    getTotalAmount,
+    getTotalItems,
+  } = useZiarathCart();
+  const [cartOpen, setCartOpen] = useState(false);
 
   useEffect(() => {
     fetchZiarathServices();
@@ -148,7 +160,79 @@ const ZiarathBooking = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
       <Header />
-      
+      {/* Floating Cart Button */}
+      <button
+        className="fixed bottom-6 right-6 z-50 bg-purple-600 text-white rounded-full shadow-lg flex items-center px-4 py-3 hover:bg-purple-700 transition"
+        onClick={() => setCartOpen(true)}
+      >
+        <ShoppingCart className="w-5 h-5 mr-2" />
+        Cart ({getTotalItems()})
+      </button>
+      {/* Cart Modal */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end bg-black bg-opacity-30">
+          <div className="bg-white rounded-t-2xl shadow-2xl w-full max-w-md p-6 m-4 relative animate-slide-up">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700"
+              onClick={() => setCartOpen(false)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h3 className="text-lg font-semibold mb-4 flex items-center">
+              <ShoppingCart className="w-5 h-5 mr-2" />
+              Your Ziarath Cart
+            </h3>
+            {cartItems.length === 0 ? (
+              <div className="text-center text-gray-500 py-8">Your cart is empty.</div>
+            ) : (
+              <div className="space-y-4">
+                {cartItems.map(item => (
+                  <div key={item.id} className="flex items-center gap-3 border-b pb-3">
+                    <img
+                      src={item.image || '/public/placeholder.svg'}
+                      alt={item.title}
+                      className="w-16 h-16 object-cover rounded-lg border"
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">{item.title}</div>
+                      <div className="text-sm text-gray-500">${item.price} x </div>
+                      <input
+                        type="number"
+                        min={1}
+                        value={item.count}
+                        onChange={e => updateCartItemCount(item.id, parseInt(e.target.value))}
+                        className="w-16 border rounded px-2 py-1 text-sm mt-1"
+                      />
+                    </div>
+                    <button
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-4">
+                  <span className="font-semibold">Total:</span>
+                  <span className="text-lg font-bold text-purple-700">${getTotalAmount().toFixed(2)}</span>
+                </div>
+                <button
+                  className="w-full bg-purple-600 text-white py-2 rounded-lg mt-4 hover:bg-purple-700 transition"
+                  onClick={() => { setCartOpen(false); setCurrentStep(2); }}
+                >
+                  Proceed to Booking
+                </button>
+                <button
+                  className="w-full text-gray-500 text-sm mt-2 underline"
+                  onClick={clearCart}
+                >
+                  Clear Cart
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}
         <div className="text-center mb-12">
@@ -203,77 +287,79 @@ const ZiarathBooking = () => {
                   </Card>
                 ) : (
                   <div className="space-y-6">
-                    {ziarathServices.map((service) => (
-                      <Card 
-                        key={service.id} 
-                        className={`cursor-pointer transition-all duration-300 hover:shadow-xl ${
-                          selectedService?.id === service.id 
-                            ? 'ring-2 ring-purple-500 shadow-lg' 
-                            : 'hover:shadow-md'
-                        }`}
-                        onClick={() => setSelectedService(service)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-xl font-semibold mb-2 text-gray-900">{service.title}</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <MapPin className="w-4 h-4" />
-                                  <span className="text-sm">{service.location}</span>
-                                </div>
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <Clock className="w-4 h-4" />
-                                  <span className="text-sm">{service.duration}</span>
-                                </div>
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <Users className="w-4 h-4" />
-                                  <span className="text-sm">Max {service.max_participants} people</span>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right ml-6">
-                              <div className="text-2xl font-bold text-purple-600">${service.price}</div>
-                              <div className="text-sm text-gray-500">per person</div>
-                            </div>
-                          </div>
-
-                          <p className="text-gray-700 mb-4">{service.description}</p>
-
-                          <div className="grid md:grid-cols-2 gap-6 mb-4">
-                            <div>
-                              <h4 className="font-semibold text-sm mb-2 text-purple-800">Historical Significance:</h4>
-                              <p className="text-sm text-gray-600">{service.historical_importance}</p>
-                            </div>
-                            
-                            <div>
-                              <h4 className="font-semibold text-sm mb-2 text-purple-800">Religious Significance:</h4>
-                              <p className="text-sm text-gray-600">{service.significance}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <Badge variant="outline">{service.ziarath_type}</Badge>
-                              <Badge variant="secondary">Best: {service.best_time}</Badge>
-                            </div>
-                            
-                            {service.inclusions && service.inclusions.length > 0 && (
-                              <div className="flex flex-wrap gap-1">
-                                {service.inclusions.slice(0, 3).map((inclusion, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {inclusion}
-                                  </Badge>
-                                ))}
-                                {service.inclusions.length > 3 && (
-                                  <span className="text-xs text-gray-500">+{service.inclusions.length - 3} more</span>
-                                )}
-                              </div>
+                    {ziarathServices.map((service) => {
+                      const inCart = cartItems.some(item => item.id === service.id);
+                      const featuredImage = service.images && service.images.length > 0 ? service.images[0] : '/public/placeholder.svg';
+                      return (
+                        <Card key={service.id} className="relative">
+                          <div className="absolute top-4 right-4 z-10">
+                            {inCart ? (
+                              <Button size="sm" variant="destructive" onClick={() => removeFromCart(service.id)}>
+                                Remove
+                              </Button>
+                            ) : (
+                              <Button size="sm" onClick={() => addToCart({ id: service.id, title: service.title, price: service.price, image: featuredImage })}>
+                                Add to Cart
+                              </Button>
                             )}
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          <CardContent className="p-6">
+                            <div className="flex gap-6">
+                              <img
+                                src={featuredImage}
+                                alt={service.title}
+                                className="w-40 h-32 object-cover rounded-lg border"
+                              />
+                              <div className="flex-1">
+                                <h3 className="text-xl font-semibold mb-2 text-gray-900">{service.title}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                  <div className="flex items-center space-x-2 text-gray-600">
+                                    <MapPin className="w-4 h-4" />
+                                    <span className="text-sm">{service.location}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-gray-600">
+                                    <Clock className="w-4 h-4" />
+                                    <span className="text-sm">{service.duration}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2 text-gray-600">
+                                    <Users className="w-4 h-4" />
+                                    <span className="text-sm">Max {service.max_participants} people</span>
+                                  </div>
+                                </div>
+                                <div className="text-2xl font-bold text-purple-600 mb-2">${service.price}</div>
+                                <p className="text-gray-700 mb-2">{service.description}</p>
+                                <div className="grid md:grid-cols-2 gap-6 mb-4">
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-2 text-purple-800">Historical Significance:</h4>
+                                    <p className="text-sm text-gray-600">{service.historical_importance}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-2 text-purple-800">Religious Significance:</h4>
+                                    <p className="text-sm text-gray-600">{service.significance}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                  <Badge variant="outline">{service.ziarath_type}</Badge>
+                                  <Badge variant="secondary">Best: {service.best_time}</Badge>
+                                </div>
+                                {service.inclusions && service.inclusions.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {service.inclusions.slice(0, 3).map((inclusion, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {inclusion}
+                                      </Badge>
+                                    ))}
+                                    {service.inclusions.length > 3 && (
+                                      <span className="text-xs text-gray-500">+{service.inclusions.length - 3} more</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>

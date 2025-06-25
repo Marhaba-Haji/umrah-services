@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -46,7 +45,6 @@ const UmrahPackages = () => {
       features: [
         "Private accommodations",
         "Flexible itinerary",
-        "Personal guide option",
         "Custom meal plans",
         "Private transportation",
         "Personalized services"

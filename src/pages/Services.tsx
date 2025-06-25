@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
@@ -35,7 +34,7 @@ const Services = () => {
       icon: Package,
       route: "/umrah-packages",
       gradient: "from-blue-500 to-indigo-600",
-      features: ["Customizable", "Flexible dates", "Personal guide"],
+      features: ["Customizable", "Flexible dates"],
       popular: false
     },
     {
