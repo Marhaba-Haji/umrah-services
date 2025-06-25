@@ -22,7 +22,7 @@ interface GuideService {
   guide_photo?: string;
   guide_city: string;
   guide_contact?: string;
-  service_type: string;
+  service_type: string[];
   languages?: string[];
   experience?: string;
   rating?: number;
@@ -33,6 +33,13 @@ interface GuideService {
   specializations?: string[];
   status?: string;
   created_at?: string;
+}
+
+interface GuideDetailsState {
+  serviceType: string;
+  date?: string;
+  numberOfPeople?: number;
+  specialRequests?: string;
 }
 
 const GuideBooking = () => {
@@ -75,23 +82,18 @@ const GuideBooking = () => {
 
   // Add selectedGuidesDetails state
   const [selectedGuidesDetails, setSelectedGuidesDetails] = useState<{
-    [guideId: string]: {
-      serviceType: string;
-      date?: string;
-      numberOfPeople?: number;
-      specialRequests?: string;
-    }
+    [guideId: string]: GuideDetailsState;
   }>({});
 
   // Helper to get price for a guide and selected service type
-  const getGuideServicePrice = (guide, serviceType) => {
+  const getGuideServicePrice = (guide: GuideService, serviceType: string) => {
     if (!guide.service_prices || !serviceType) return 0;
     const price = guide.service_prices[serviceType];
     return price ? (typeof price === 'string' ? parseFloat(price) : Number(price)) : 0;
   };
 
   // Helper to get subtotal for a guide
-  const getGuideSubtotal = (guide, details) => {
+  const getGuideSubtotal = (guide: GuideService, details: GuideDetailsState) => {
     const price = getGuideServicePrice(guide, details?.serviceType);
     const qty = details?.numberOfPeople || 1;
     return price * qty;
@@ -106,7 +108,7 @@ const GuideBooking = () => {
   };
 
   // Helper to get the minimum price for a guide (used in guide card rendering)
-  const getMinPrice = (guide) => {
+  const getMinPrice = (guide: GuideService) => {
     if (!guide.service_prices) return Infinity;
     const prices = Object.values(guide.service_prices)
       .map(p => typeof p === 'string' ? parseFloat(p) : Number(p))
@@ -128,7 +130,14 @@ const GuideBooking = () => {
         .order('rating', { ascending: false });
 
       if (error) throw error;
-      setGuides(data || []);
+      if (data) {
+        // Transform the data to match our interface
+        const transformedGuides = data.map(guide => ({
+          ...guide,
+          service_type: Array.isArray(guide.service_type) ? guide.service_type : [guide.service_type].filter(Boolean)
+        }));
+        setGuides(transformedGuides);
+      }
     } catch (error) {
       console.error('Error fetching guides:', error);
       toast({
@@ -151,7 +160,7 @@ const GuideBooking = () => {
       !(
         Array.isArray(guide.service_type)
           ? guide.service_type.some(type => filterServiceType.includes(type))
-          : filterServiceType.includes(guide.service_type)
+          : filterServiceType.includes(guide.service_type as string)
       )
     ) return false;
     // Experience filter (assume guide.experience is a string like '5 years')
@@ -192,12 +201,12 @@ const GuideBooking = () => {
     setIsLoading(true);
     try {
       for (const guide of selectedGuides) {
-      const bookingData = {
-        ...bookingForm,
+        const bookingData = {
+          ...bookingForm,
           guide_id: guide.id,
-        service_date: bookingDate,
-        status: 'pending'
-      };
+          service_date: bookingDate,
+          status: 'pending'
+        };
         // TODO: submit bookingData to backend (Supabase or API)
       }
       toast({
@@ -598,7 +607,7 @@ const GuideBooking = () => {
                 {selectedGuides.length > 0 ? (
                   <div className="space-y-4">
                     {selectedGuides.map(guide => {
-                      const details = selectedGuidesDetails[guide.id] || {};
+                      const details = selectedGuidesDetails[guide.id] || { serviceType: '', numberOfPeople: 1 };
                       const availableTypes = Array.isArray(guide.service_type) ? guide.service_type : (guide.service_type ? [guide.service_type] : []);
                       const price = getGuideServicePrice(guide, details.serviceType);
                       const subtotal = getGuideSubtotal(guide, details);
@@ -632,7 +641,7 @@ const GuideBooking = () => {
                                 ))}
                               </SelectContent>
                             </Select>
-                      </div>
+                          </div>
                           {/* Number of People */}
                           <div className="mb-2">
                             <label className="block text-xs font-medium mb-1">Number of People</label>
@@ -646,20 +655,20 @@ const GuideBooking = () => {
                               }))}
                               className="w-20 text-xs"
                             />
-                    </div>
+                          </div>
                           {/* Show price for selected type */}
                           {details.serviceType && (
                             <div className="text-xs mb-1">
                               Price: <span className="font-semibold">${price}</span>
-                      </div>
-                    )}
+                            </div>
+                          )}
                           {/* Subtotal */}
                           {details.serviceType && (
                             <div className="text-xs font-bold text-emerald-700">
                               Subtotal: ${subtotal}
-                      </div>
-                    )}
-                      </div>
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                     {/* Order Total */}

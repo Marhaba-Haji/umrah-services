@@ -7,210 +7,162 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm, Controller } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, MapPin } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { useForm } from 'react-hook-form';
+import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
-interface Ziarath {
+interface ZiarathService {
   id: string;
-  ziarath_type: string;
   title: string;
   location: string;
   duration: string;
   price: number;
-  description: string | null;
-  inclusions: string[] | null;
-  significance: string | null;
-  best_time: string | null;
-  historical_importance: string | null;
-  images: string[] | null;
-  guide_id: string | null;
-  max_participants: number | null;
-  status: string;
-  created_at: string | null;
-  vehicles?: { [vehicleType: string]: string };
+  description?: string;
+  inclusions?: string[];
+  max_participants?: number;
+  ziarath_type?: string;
+  significance?: string;
+  historical_importance?: string;
+  best_time?: string;
+  images?: string[];
+  status?: string;
 }
 
-const defaultValues = {
-  ziarath_type: '',
-  title: '',
-  location: '',
-  duration: '',
-  price: '',
-  description: '',
-  inclusions: '',
-  significance: '',
-  best_time: '',
-  historical_importance: '',
-  guide_id: '',
-  max_participants: '',
-  status: 'active',
-  vehicles: {},
-};
-
 const ZiarathManager = () => {
-  const [ziaraths, setZiaraths] = useState<Ziarath[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingZiarath, setEditingZiarath] = useState<Ziarath | null>(null);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [ziaraths, setZiaraths] = useState<ZiarathService[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingZiarath, setEditingZiarath] = useState<ZiarathService | null>(null);
+  const [viewingZiarath, setViewingZiarath] = useState<ZiarathService | null>(null);
 
   const form = useForm({
-    defaultValues
+    defaultValues: {
+      title: '',
+      location: '',
+      duration: '',
+      price: '',
+      description: '',
+      ziarathType: '',
+      maxParticipants: '',
+      inclusions: '',
+      significance: '',
+      historicalImportance: '',
+      bestTime: '',
+      images: '',
+      status: 'active',
+    }
   });
 
-  // Fetch all ziaraths from Supabase
+  useEffect(() => {
+    fetchZiaraths();
+  }, []);
+
   const fetchZiaraths = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('ziarath_services')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching ziaraths:', error);
-    } else {
-      setZiaraths(data || []);
+      .select('*');
+    if (!error && data) {
+      setZiaraths(data);
     }
     setLoading(false);
   };
 
-  // Fetch all vehicles
-  const fetchVehicles = async () => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .order('vehicle_name');
-    
-    if (error) {
-      console.error('Error fetching vehicles:', error);
-    } else {
-      setVehicles(data || []);
-    }
-  };
-
-  useEffect(() => {
-    fetchZiaraths();
-    fetchVehicles();
-  }, []);
-
   const onSubmit = async (data: any) => {
-    // Convert comma-separated inclusions to array
-    const inclusionsArray = data.inclusions
-      ? data.inclusions.split(',').map((item: string) => item.trim())
-      : null;
-
-    const payload = {
-      ziarath_type: data.ziarath_type,
+    const newZiarath = {
       title: data.title,
       location: data.location,
       duration: data.duration,
       price: parseFloat(data.price),
-      description: data.description || null,
-      inclusions: inclusionsArray,
-      significance: data.significance || null,
-      best_time: data.best_time || null,
-      historical_importance: data.historical_importance || null,
-      guide_id: data.guide_id || null,
-      max_participants: data.max_participants ? parseInt(data.max_participants) : null,
+      description: data.description,
+      ziarath_type: data.ziarathType,
+      max_participants: data.maxParticipants ? parseInt(data.maxParticipants) : undefined,
+      inclusions: data.inclusions ? data.inclusions.split(',').map((i: string) => i.trim()) : [],
+      significance: data.significance,
+      historical_importance: data.historicalImportance,
+      best_time: data.bestTime,
+      images: data.images ? data.images.split(',').map((i: string) => i.trim()) : [],
       status: data.status,
-      vehicles: data.vehicles // Store vehicle prices
     };
 
-    let result;
-    if (editingZiarath) {
-      result = await supabase
-        .from('ziarath_services')
-        .update(payload)
-        .eq('id', editingZiarath.id);
+    let error;
+    if (editingZiarath && editingZiarath.id) {
+      ({ error } = await supabase.from('ziarath_services').update(newZiarath).eq('id', editingZiarath.id));
     } else {
-      result = await supabase
-        .from('ziarath_services')
-        .insert([payload]);
+      ({ error } = await supabase.from('ziarath_services').insert([newZiarath]));
     }
-
-    if (result.error) {
-      console.error('Error saving ziarath:', result.error);
-      return;
+    if (!error) {
+      await fetchZiaraths();
+      setIsDialogOpen(false);
+      setEditingZiarath(null);
+      form.reset();
+    } else {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save ziarath service',
+        variant: 'destructive',
+      });
     }
-
-    setIsDialogOpen(false);
-    setEditingZiarath(null);
-    form.reset(defaultValues);
-    fetchZiaraths();
   };
 
-  const handleEdit = (ziarath: Ziarath) => {
+  const handleEdit = (ziarath: ZiarathService) => {
     setEditingZiarath(ziarath);
     form.reset({
-      ...ziarath,
-      inclusions: ziarath.inclusions ? ziarath.inclusions.join(', ') : '',
+      title: ziarath.title,
+      location: ziarath.location,
+      duration: ziarath.duration,
       price: ziarath.price.toString(),
-      max_participants: ziarath.max_participants?.toString() || '',
-      vehicles: ziarath.vehicles || {},
+      description: ziarath.description,
+      ziarathType: ziarath.ziarath_type,
+      maxParticipants: ziarath.max_participants?.toString() || '',
+      inclusions: ziarath.inclusions?.join(', ') || '',
+      significance: ziarath.significance || '',
+      historicalImportance: ziarath.historical_importance || '',
+      bestTime: ziarath.best_time || '',
+      images: ziarath.images?.join(', ') || '',
+      status: ziarath.status || 'active'
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('ziarath_services')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting ziarath:', error);
+    if (!id) {
+      toast({
+        title: 'Error',
+        description: 'Invalid ziarath ID for delete.',
+        variant: 'destructive',
+      });
       return;
     }
-
-    fetchZiaraths();
+    if (!window.confirm('Are you sure you want to delete this ziarath service? This action cannot be undone.')) return;
+    const { error } = await supabase.from('ziarath_services').delete().eq('id', id);
+    if (!error) {
+      await fetchZiaraths();
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold">Ziarath Management</h3>
+        <h3 className="text-xl font-semibold">Ziarath Services Management</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingZiarath(null); form.reset(defaultValues); }}>
+            <Button onClick={() => { setEditingZiarath(null); form.reset(); }}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Ziarath
+              Add Ziarath Service
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingZiarath ? 'Edit Ziarath' : 'Add New Ziarath'}</DialogTitle>
-              <DialogDescription>
-                Fill in the details for the Ziarath, including location, vehicle types, and prices.
-              </DialogDescription>
+              <DialogTitle>{editingZiarath ? 'Edit Ziarath Service' : 'Add New Ziarath Service'}</DialogTitle>
             </DialogHeader>
+            <DialogDescription>
+              Fill in the details for the ziarath service. All fields marked * are required.
+            </DialogDescription>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="ziarath_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ziarath Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select ziarath type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="makkah_ziarath">Makkah Ziarath</SelectItem>
-                            <SelectItem value="madinah_ziarath">Madinah Ziarath</SelectItem>
-                            <SelectItem value="taif_ziarath">Taif Ziarath</SelectItem>
-                            <SelectItem value="badr_ziarath">Badr Ziarath</SelectItem>
-                            <SelectItem value="jeddah_ziarath">Jeddah Ziarath</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="title"
@@ -218,15 +170,12 @@ const ZiarathManager = () => {
                       <FormItem>
                         <FormLabel>Title</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter ziarath title" {...field} />
+                          <Input placeholder="Enter title" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="location"
@@ -234,7 +183,7 @@ const ZiarathManager = () => {
                       <FormItem>
                         <FormLabel>Location</FormLabel>
                         <FormControl>
-                          <Input placeholder="Location" {...field} />
+                          <Input placeholder="Enter location" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -247,23 +196,20 @@ const ZiarathManager = () => {
                       <FormItem>
                         <FormLabel>Duration</FormLabel>
                         <FormControl>
-                          <Input placeholder="4 hours" {...field} />
+                          <Input placeholder="e.g. Full Day" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Base Price</FormLabel>
+                        <FormLabel>Price</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" step="0.01" placeholder="50.00" {...field} />
+                          <Input type="number" step="0.01" placeholder="Enter price" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -271,22 +217,123 @@ const ZiarathManager = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="best_time"
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Enter description" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="ziarathType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ziarath Type</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter ziarath type" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="maxParticipants"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Participants</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Enter max participants" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="inclusions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Inclusions (comma separated)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Transport, Meals" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="significance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Significance</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Enter significance" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="historicalImportance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Historical Importance</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Enter historical importance" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="bestTime"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Best Time to Visit</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter best time" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="images"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Images (comma separated URLs)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter image URLs" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select best time" />
+                              <SelectValue placeholder="Select status" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Morning">Morning</SelectItem>
-                            <SelectItem value="Afternoon">Afternoon</SelectItem>
-                            <SelectItem value="Evening">Evening</SelectItem>
-                            <SelectItem value="Night">Night</SelectItem>
-                            <SelectItem value="Anytime">Anytime</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -294,149 +341,6 @@ const ZiarathManager = () => {
                     )}
                   />
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Ziarath description" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="significance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Significance</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Religious significance" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="historical_importance"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Historical Importance</FormLabel>
-                      <FormControl>
-                        <Textarea placeholder="Historical importance and background" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="inclusions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Inclusions (comma separated)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Transportation, Guide, Refreshments" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="max_participants"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Participants</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" placeholder="20" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="seasonal">Seasonal</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Controller
-                  key={vehicles.map(v => v.vehicle_type).join(',')}
-                  control={form.control}
-                  name="vehicles"
-                  render={({ field: { value = {}, onChange } }) => {
-                    console.log('Vehicle selection value:', value);
-                    return (
-                      <div>
-                        <FormLabel>Vehicle Types & Prices</FormLabel>
-                        <div className="flex flex-col gap-2">
-                          {vehicles.map(vehicle => {
-                            const checked = !!value[vehicle.vehicle_type];
-                            return (
-                              <div key={vehicle.vehicle_type} className="flex items-center gap-2">
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={e => {
-                                    if (e.target.checked) {
-                                      onChange({ ...value, [vehicle.vehicle_type]: '' });
-                                    } else {
-                                      const { [vehicle.vehicle_type]: omit, ...rest } = value;
-                                      onChange({ ...rest });
-                                    }
-                                  }}
-                                />
-                                <span className="w-40">{vehicle.vehicle_type} ({vehicle.vehicle_name})</span>
-                                {checked && (
-                                  <Input
-                                    className="w-24"
-                                    placeholder="Price"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={value[vehicle.vehicle_type] || ''}
-                                    onChange={e => {
-                                      onChange({ ...value, [vehicle.vehicle_type]: e.target.value });
-                                    }}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
-
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">
                     {editingZiarath ? 'Update Ziarath' : 'Create Ziarath'}
@@ -453,43 +357,28 @@ const ZiarathManager = () => {
 
       <Card>
         <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Ziarath</th>
-                  <th className="text-left p-2">Type</th>
-                  <th className="text-left p-2">Location</th>
-                  <th className="text-left p-2">Duration</th>
-                  <th className="text-left p-2">Base Price</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center p-4">Loading...</td>
+          {loading ? (
+            <div className="text-center py-8">Loading ziarath services...</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Title</th>
+                    <th className="text-left p-2">Location</th>
+                    <th className="text-left p-2">Duration</th>
+                    <th className="text-left p-2">Price</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Actions</th>
                   </tr>
-                ) : ziaraths.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center p-4">No ziaraths found</td>
-                  </tr>
-                ) : (
-                  ziaraths.map(ziarath => (
+                </thead>
+                <tbody>
+                  {ziaraths.map(ziarath => (
                     <tr key={ziarath.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
-                        <div>
-                          <div className="font-medium">{ziarath.title}</div>
-                          <div className="text-sm text-gray-500">{ziarath.location}</div>
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        <Badge variant="outline">{ziarath.ziarath_type}</Badge>
-                      </td>
+                      <td className="p-2">{ziarath.title}</td>
                       <td className="p-2">{ziarath.location}</td>
                       <td className="p-2">{ziarath.duration}</td>
-                      <td className="p-2">${ziarath.price.toFixed(2)}</td>
+                      <td className="p-2">${ziarath.price}</td>
                       <td className="p-2">
                         <Badge variant={ziarath.status === 'active' ? 'default' : 'secondary'}>
                           {ziarath.status}
@@ -497,7 +386,7 @@ const ZiarathManager = () => {
                       </td>
                       <td className="p-2">
                         <div className="flex space-x-1">
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="outline" onClick={() => setViewingZiarath(ziarath)}>
                             <Eye className="w-3 h-3" />
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => handleEdit(ziarath)}>
@@ -509,13 +398,43 @@ const ZiarathManager = () => {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!viewingZiarath} onOpenChange={open => { if (!open) setViewingZiarath(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Ziarath Service Details</DialogTitle>
+          </DialogHeader>
+          <DialogDescription>
+            View all details of the selected ziarath service.
+          </DialogDescription>
+          {viewingZiarath && (
+            <div className="space-y-2">
+              <div><b>Title:</b> {viewingZiarath.title}</div>
+              <div><b>Location:</b> {viewingZiarath.location}</div>
+              <div><b>Duration:</b> {viewingZiarath.duration}</div>
+              <div><b>Price:</b> ${viewingZiarath.price}</div>
+              <div><b>Description:</b> {viewingZiarath.description}</div>
+              <div><b>Ziarath Type:</b> {viewingZiarath.ziarath_type}</div>
+              <div><b>Max Participants:</b> {viewingZiarath.max_participants}</div>
+              <div><b>Inclusions:</b> {viewingZiarath.inclusions?.join(', ')}</div>
+              <div><b>Significance:</b> {viewingZiarath.significance}</div>
+              <div><b>Historical Importance:</b> {viewingZiarath.historical_importance}</div>
+              <div><b>Best Time to Visit:</b> {viewingZiarath.best_time}</div>
+              <div><b>Images:</b> {viewingZiarath.images?.map((img, idx) => (
+                <img key={idx} src={img} alt={`Ziarath image ${idx + 1}`} className="w-24 h-24 object-cover rounded mr-2 inline-block" />
+              ))}</div>
+              <div><b>Status:</b> {viewingZiarath.status}</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

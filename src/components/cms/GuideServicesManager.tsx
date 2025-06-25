@@ -15,7 +15,7 @@ import Cropper from 'react-easy-crop';
 import * as faceapi from '@vladmandic/face-api';
 
 interface GuideService {
-  id: number;
+  id: string;
   guide_name: string;
   guide_photo: string;
   guide_city: string;
@@ -73,7 +73,7 @@ const GuideServicesManager = () => {
   const [viewingGuide, setViewingGuide] = useState<GuideService | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [faceLoading, setFaceLoading] = useState(false);
@@ -115,7 +115,14 @@ const GuideServicesManager = () => {
     const { data, error } = await supabase
       .from('guide_services')
       .select('id,guide_name,guide_photo,guide_city,country_code,phone_number,service_type,service_prices,languages,experience,rating,status,description,availability_schedule,qualifications,specializations');
-    if (!error) setGuides(data || []);
+    if (!error && data) {
+      // Transform the data to match our interface
+      const transformedGuides = data.map(guide => ({
+        ...guide,
+        service_prices: guide.service_prices as { [service: string]: string } || {}
+      }));
+      setGuides(transformedGuides);
+    }
     setLoading(false);
   };
 
@@ -127,7 +134,7 @@ const GuideServicesManager = () => {
     const canvas = document.createElement('canvas');
     canvas.width = cropPixels.width;
     canvas.height = cropPixels.height;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d')!;
     ctx.drawImage(
       image,
       cropPixels.x,
@@ -269,10 +276,10 @@ const GuideServicesManager = () => {
     }
     if (!error) {
       await fetchGuides();
-    setIsDialogOpen(false);
-    setEditingGuide(null);
-    setServicePrices({});
-    form.reset();
+      setIsDialogOpen(false);
+      setEditingGuide(null);
+      setServicePrices({});
+      form.reset();
     } else {
       toast({
         title: 'Supabase Error',
@@ -319,7 +326,7 @@ const GuideServicesManager = () => {
   };
 
   // Delete from DB
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!id) {
       toast({
         title: 'Error',
@@ -672,60 +679,61 @@ const GuideServicesManager = () => {
           {loading ? (
             <div className="text-center py-8">Loading guides...</div>
           ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Guide</th>
-                  <th className="text-left p-2">City</th>
-                  <th className="text-left p-2">Service Type</th>
-                  <th className="text-left p-2">Rating</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {guides.map(guide => (
-                  <tr key={guide.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <div className="flex items-center space-x-3">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Guide</th>
+                    <th className="text-left p-2">City</th>
+                    <th className="text-left p-2">Service Type</th>
+                    <th className="text-left p-2">Rating</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {guides.map(guide => (
+                    <tr key={guide.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        <div className="flex items-center space-x-3">
                           <img src={guide.guide_photo} alt={guide.guide_name} className="w-10 h-10 rounded-full object-cover" />
-                        <div>
+                          <div>
                             <div className="font-medium">{guide.guide_name}</div>
                             <div className="text-sm text-gray-500">{guide.country_code}{guide.phone_number}</div>
                           </div>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
                       <td className="p-2">{guide.guide_city}</td>
                       <td className="p-2">{Array.isArray(guide.service_type) ? guide.service_type.map((type, idx) => <span key={guide.id + '-' + type + '-' + idx}>{type}{idx < guide.service_type.length - 1 ? ', ' : ''}</span>) : guide.service_type}</td>
-                    <td className="p-2">⭐ {guide.rating}</td>
-                    <td className="p-2">
-                      <Badge variant={guide.status === 'Active' ? 'default' : 'secondary'}>
-                        {guide.status}
-                      </Badge>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex space-x-1">
+                      <td className="p-2">⭐ {guide.rating}</td>
+                      <td className="p-2">
+                        <Badge variant={guide.status === 'Active' ? 'default' : 'secondary'}>
+                          {guide.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <div className="flex space-x-1">
                           <Button size="sm" variant="outline" onClick={() => setViewingGuide(guide)}>
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(guide)}>
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(guide.id)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleEdit(guide)}>
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDelete(guide.id)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
 
+      {/* Viewing Guide Dialog */}
       <Dialog open={!!viewingGuide} onOpenChange={open => { if (!open) setViewingGuide(null); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
