@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ interface GuideService {
   rating: number;
   status: string;
   description: string;
-  availability_schedule?: string;
+  availability_schedule?: any; // Changed from string to any to match Json type
   qualifications?: string[];
   specializations?: string[];
 }
@@ -119,7 +120,8 @@ const GuideServicesManager = () => {
       // Transform the data to match our interface
       const transformedGuides = data.map(guide => ({
         ...guide,
-        service_prices: guide.service_prices as { [service: string]: string } || {}
+        service_prices: guide.service_prices as { [service: string]: string } || {},
+        availability_schedule: guide.availability_schedule
       }));
       setGuides(transformedGuides);
     }
