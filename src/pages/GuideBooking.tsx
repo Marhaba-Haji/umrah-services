@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,19 +21,23 @@ interface GuideService {
   guide_name: string;
   guide_photo?: string;
   guide_city: string;
+  guide_contact?: string;
   service_type: string;
-  languages: string[];
-  rating: number;
-  experience: string;
-  specializations: string[];
-  service_prices: any;
-  description: string;
-  availability_schedule: any;
+  languages?: string[];
+  experience?: string;
+  rating?: number;
+  description?: string;
+  service_prices?: any;
+  availability_schedule?: any;
+  qualifications?: string[];
+  specializations?: string[];
+  status?: string;
+  created_at?: string;
 }
 
 const GuideBooking = () => {
   const [guides, setGuides] = useState<GuideService[]>([]);
-  const [selectedGuide, setSelectedGuide] = useState<GuideService | null>(null);
+  const [selectedGuides, setSelectedGuides] = useState<GuideService[]>([]);
   const [bookingDate, setBookingDate] = useState<Date>();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +51,68 @@ const GuideBooking = () => {
     specialRequests: '',
     serviceType: ''
   });
+
+  // 1. Add filter and sort state
+  const [filterLanguage, setFilterLanguage] = useState<string[]>([]);
+  const [filterExperience, setFilterExperience] = useState<string>('any');
+  const [filterServiceType, setFilterServiceType] = useState<string[]>([]);
+  const [sortOption, setSortOption] = useState<string>('rating_desc');
+
+  // 2. Extract unique filter options from guides
+  const allLanguages = Array.from(new Set(guides.flatMap(g => g.languages || [])));
+  const allServiceTypes = Array.from(
+    new Set(
+      guides.flatMap(g => Array.isArray(g.service_type) ? g.service_type : (g.service_type ? [g.service_type] : []))
+    )
+  );
+  const experienceOptions = [
+    { label: 'Any', value: 'any' },
+    { label: '0-1 years', value: '0-1' },
+    { label: '2-5 years', value: '2-5' },
+    { label: '6-10 years', value: '6-10' },
+    { label: '10+ years', value: '10+' },
+  ];
+
+  // Add selectedGuidesDetails state
+  const [selectedGuidesDetails, setSelectedGuidesDetails] = useState<{
+    [guideId: string]: {
+      serviceType: string;
+      date?: string;
+      numberOfPeople?: number;
+      specialRequests?: string;
+    }
+  }>({});
+
+  // Helper to get price for a guide and selected service type
+  const getGuideServicePrice = (guide, serviceType) => {
+    if (!guide.service_prices || !serviceType) return 0;
+    const price = guide.service_prices[serviceType];
+    return price ? (typeof price === 'string' ? parseFloat(price) : Number(price)) : 0;
+  };
+
+  // Helper to get subtotal for a guide
+  const getGuideSubtotal = (guide, details) => {
+    const price = getGuideServicePrice(guide, details?.serviceType);
+    const qty = details?.numberOfPeople || 1;
+    return price * qty;
+  };
+
+  // Helper to get total order value
+  const getOrderTotal = () => {
+    return selectedGuides.reduce((sum, guide) => {
+      const details = selectedGuidesDetails[guide.id];
+      return sum + getGuideSubtotal(guide, details);
+    }, 0);
+  };
+
+  // Helper to get the minimum price for a guide (used in guide card rendering)
+  const getMinPrice = (guide) => {
+    if (!guide.service_prices) return Infinity;
+    const prices = Object.values(guide.service_prices)
+      .map(p => typeof p === 'string' ? parseFloat(p) : Number(p))
+      .filter(p => !isNaN(p));
+    return prices.length > 0 ? Math.min(...prices) : Infinity;
+  };
 
   useEffect(() => {
     fetchGuides();
@@ -76,33 +141,59 @@ const GuideBooking = () => {
     }
   };
 
+  // 3. Filter and sort guides
+  const filteredGuides = guides.filter(guide => {
+    // Language filter
+    if (filterLanguage.length > 0 && !(guide.languages || []).some(l => filterLanguage.includes(l))) return false;
+    // Service type filter
+    if (filterServiceType.length > 0 && !filterServiceType.includes(guide.service_type)) return false;
+    // Experience filter (assume guide.experience is a string like '5 years')
+    if (filterExperience !== 'any') {
+      const years = parseInt((guide.experience || '').split(' ')[0]);
+      if (filterExperience === '0-1' && !(years >= 0 && years <= 1)) return false;
+      if (filterExperience === '2-5' && !(years >= 2 && years <= 5)) return false;
+      if (filterExperience === '6-10' && !(years >= 6 && years <= 10)) return false;
+      if (filterExperience === '10+' && !(years > 10)) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    if (sortOption === 'price_asc') {
+      return getMinPrice(a) - getMinPrice(b);
+    } else if (sortOption === 'price_desc') {
+      return getMinPrice(b) - getMinPrice(a);
+    } else if (sortOption === 'rating_asc') {
+      return (a.rating || 0) - (b.rating || 0);
+    } else {
+      // Default: rating_desc
+      return (b.rating || 0) - (a.rating || 0);
+    }
+  });
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedGuide || !bookingDate) {
+    if (selectedGuides.length === 0 || !bookingDate) {
       toast({
         title: "Error",
-        description: "Please complete all required fields",
+        description: "Please select at least one guide and a date",
         variant: "destructive",
       });
       return;
     }
-
     setIsLoading(true);
     try {
-      const bookingData = {
-        ...bookingForm,
-        guide_id: selectedGuide.id,
-        service_date: bookingDate,
-        status: 'pending'
-      };
-
-      console.log('Booking data:', bookingData);
-      
+      for (const guide of selectedGuides) {
+        const bookingData = {
+          ...bookingForm,
+          guide_id: guide.id,
+          service_date: bookingDate,
+          status: 'pending'
+        };
+        // TODO: submit bookingData to backend (Supabase or API)
+      }
       toast({
         title: "Success",
-        description: "Your guide booking request has been submitted! We'll contact you within 24 hours to confirm details.",
+        description: "Your guide booking request(s) have been submitted! We'll contact you within 24 hours to confirm details.",
       });
-
       // Reset form
       setBookingForm({
         name: '',
@@ -112,14 +203,14 @@ const GuideBooking = () => {
         specialRequests: '',
         serviceType: ''
       });
-      setSelectedGuide(null);
+      setSelectedGuides([]);
       setBookingDate(undefined);
       setCurrentStep(1);
     } catch (error) {
       console.error('Error submitting booking:', error);
       toast({
         title: "Error",
-        description: "Failed to submit booking request",
+        description: "Failed to submit booking request(s)",
         variant: "destructive",
       });
     } finally {
@@ -128,10 +219,10 @@ const GuideBooking = () => {
   };
 
   const nextStep = () => {
-    if (currentStep === 1 && !selectedGuide) {
+    if (currentStep === 1 && selectedGuides.length === 0) {
       toast({
         title: "Selection Required",
-        description: "Please select a guide to continue",
+        description: "Please select at least one guide to continue",
         variant: "destructive",
       });
       return;
@@ -147,130 +238,209 @@ const GuideBooking = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-800 rounded-full px-4 py-2 mb-6">
+      <div className="container mx-auto px-4 py-6">
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-800 rounded-full px-3 py-1 mb-2">
             <Shield className="w-4 h-4" />
             <span className="text-sm font-medium">Licensed Professional Guides</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-1">
             Expert Guide Services
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Experience the holy cities with certified multilingual guides who'll enrich your spiritual journey with deep knowledge and personalized attention.
+          <p className="text-base text-gray-600 max-w-2xl mx-auto">
+            Certified multilingual guides for your spiritual journey.
           </p>
         </div>
-
         {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center mb-4">
           <div className="flex items-center space-x-4">
             {[1, 2, 3].map((step) => (
               <div key={step} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
                   currentStep >= step 
                     ? 'bg-emerald-600 text-white' 
                     : 'bg-gray-200 text-gray-500'
                 }`}>
-                  {currentStep > step ? <CheckCircle className="w-5 h-5" /> : step}
+                  {currentStep > step ? <CheckCircle className="w-4 h-4" /> : step}
                 </div>
                 {step < 3 && (
-                  <div className={`w-16 h-0.5 ${currentStep > step ? 'bg-emerald-600' : 'bg-gray-200'}`} />
+                  <div className={`w-10 h-0.5 ${currentStep > step ? 'bg-emerald-600' : 'bg-gray-200'}`} />
                 )}
               </div>
             ))}
           </div>
         </div>
+        <div className="grid lg:grid-cols-12 gap-6">
+          {/* Filter Bar */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Filters Card */}
+            <Card className="sticky top-4 mb-4">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-gray-900">Filter Guides</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Language Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allLanguages.map(lang => (
+                      <Button
+                        key={lang}
+                        size="sm"
+                        variant={filterLanguage.includes(lang) ? 'default' : 'outline'}
+                        onClick={() => setFilterLanguage(prev => prev.includes(lang) ? prev.filter(l => l !== lang) : [...prev, lang])}
+                        className="text-xs"
+                      >
+                        {lang}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {/* Experience Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                  <Select value={filterExperience} onValueChange={setFilterExperience}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Any" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {experienceOptions.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Service Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+                  <div className="flex flex-wrap gap-2">
+                    {allServiceTypes.map(type => (
+                      <Button
+                        key={type}
+                        size="sm"
+                        variant={filterServiceType.includes(type) ? 'default' : 'outline'}
+                        onClick={() => setFilterServiceType(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])}
+                        className="text-xs capitalize"
+                      >
+                        {type.replace('_', ' ')}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                {/* Clear Filters Button */}
+                <Button variant="outline" onClick={() => { setFilterLanguage([]); setFilterExperience('any'); setFilterServiceType([]); }} className="w-full border-gray-300 text-gray-600 text-xs">Clear All</Button>
+              </CardContent>
+            </Card>
+          </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
+          {/* Guide Cards */}
+          <div className="lg:col-span-6">
             {currentStep === 1 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6 flex items-center">
-                  <Award className="w-6 h-6 mr-3 text-emerald-600" />
-                  Choose Your Guide
-                </h2>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-xl font-semibold flex items-center">
+                    <Award className="w-5 h-5 mr-2 text-emerald-600" />
+                    Choose Your Guide(s)
+                  </h2>
+                  <Select value={sortOption} onValueChange={setSortOption}>
+                    <SelectTrigger className="w-44">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="rating_desc">Rating: High to Low</SelectItem>
+                      <SelectItem value="rating_asc">Rating: Low to High</SelectItem>
+                      <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                      <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
                   </div>
-                ) : guides.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="text-gray-500">No guides available at the moment.</p>
+                ) : filteredGuides.length === 0 ? (
+                  <Card className="p-6 text-center">
+                    <p className="text-gray-500">No guides match your filters.</p>
                   </Card>
                 ) : (
-                  <div className="space-y-6">
-                    {guides.map((guide) => (
-                      <Card 
-                        key={guide.id} 
-                        className={`cursor-pointer transition-all duration-300 hover:shadow-xl ${
-                          selectedGuide?.id === guide.id 
-                            ? 'ring-2 ring-emerald-500 shadow-lg' 
-                            : 'hover:shadow-md'
-                        }`}
-                        onClick={() => setSelectedGuide(guide)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start space-x-6">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-100 to-blue-100 flex items-center justify-center overflow-hidden">
+                  <div className="space-y-4">
+                    {filteredGuides.map((guide) => {
+                      const isSelected = selectedGuides.some(g => g.id === guide.id);
+                      // Calculate the lowest price for this guide
+                      const minPrice = getMinPrice(guide);
+                      return (
+                        <Card 
+                          key={guide.id} 
+                          className={`transition-all duration-300 hover:shadow-xl ${
+                            isSelected ? 'ring-2 ring-emerald-500 shadow-lg' : 'hover:shadow-md'
+                          }`}
+                        >
+                          <CardContent className="p-4 flex items-center">
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-100 to-blue-100 flex items-center justify-center overflow-hidden mr-4">
                               {guide.guide_photo ? (
                                 <img src={guide.guide_photo} alt={guide.guide_name} className="w-full h-full object-cover" />
                               ) : (
-                                <User className="w-10 h-10 text-emerald-600" />
+                                <User className="w-8 h-8 text-emerald-600" />
                               )}
                             </div>
                             <div className="flex-1">
-                              <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-xl font-semibold text-gray-900">{guide.guide_name}</h3>
-                                <div className="flex items-center space-x-1 bg-yellow-50 px-3 py-1 rounded-full">
-                                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                                  <span className="text-sm font-medium">{guide.rating}</span>
+                              <div className="flex items-center justify-between mb-1">
+                                <h3 className="text-lg font-semibold text-gray-900">{guide.guide_name}</h3>
+                                <div className="flex items-center space-x-1 bg-yellow-50 px-2 py-0.5 rounded-full">
+                                  <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                                  <span className="text-xs font-medium">{guide.rating}</span>
                                 </div>
                               </div>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <MapPin className="w-4 h-4" />
-                                  <span className="text-sm">{guide.guide_city}</span>
-                                </div>
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <Languages className="w-4 h-4" />
-                                  <span className="text-sm">{guide.languages?.join(', ')}</span>
-                                </div>
-                                <div className="flex items-center space-x-2 text-gray-600">
-                                  <Clock className="w-4 h-4" />
-                                  <span className="text-sm">{guide.experience}</span>
-                                </div>
+                              <div className="flex flex-wrap gap-2 text-xs text-gray-600 mb-1">
+                                <span className="flex items-center"><MapPin className="w-3 h-3 mr-1" />{guide.guide_city}</span>
+                                <span className="flex items-center"><Languages className="w-3 h-3 mr-1" />{guide.languages?.join(', ')}</span>
+                                <span className="flex items-center"><Clock className="w-3 h-3 mr-1" />{guide.experience}</span>
                               </div>
-
-                              <p className="text-gray-700 mb-4">{guide.description}</p>
-                              
-                              <div className="flex flex-wrap gap-2">
+                              <p className="text-gray-700 text-xs mb-1 line-clamp-2">{guide.description}</p>
+                              <div className="flex flex-wrap gap-1">
                                 {guide.specializations?.map((spec, index) => (
-                                  <Badge key={index} variant="outline" className="text-xs">
-                                    {spec}
-                                  </Badge>
+                                  <Badge key={index} variant="outline" className="text-[10px]">{spec}</Badge>
                                 ))}
                               </div>
+                              {/* Show starting price above Add/Remove button */}
+                              {minPrice !== Infinity && (
+                                <div className="text-xs font-semibold text-emerald-700 mb-2">
+                                  Starting from <span className="font-bold text-base">${minPrice}</span>
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                            <Button
+                              size="sm"
+                              variant={isSelected ? 'secondary' : 'outline'}
+                              className="ml-4"
+                              onClick={e => {
+                                e.stopPropagation();
+                                setSelectedGuides(prev =>
+                                  isSelected
+                                    ? prev.filter(g => g.id !== guide.id)
+                                    : [...prev, guide]
+                                );
+                              }}
+                            >
+                              {isSelected ? 'Remove' : 'Add'}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             )}
 
-            {currentStep === 2 && selectedGuide && (
+            {currentStep === 2 && selectedGuides.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Service Details</h2>
+                <h2 className="text-xl font-semibold mb-4">Service Details</h2>
                 <Card>
                   <CardContent className="p-6">
                     <div className="bg-emerald-50 p-4 rounded-lg mb-6">
-                      <h4 className="font-semibold text-emerald-800 mb-2">{selectedGuide.guide_name}</h4>
-                      <p className="text-emerald-700 text-sm">{selectedGuide.guide_city} • {selectedGuide.experience}</p>
+                      <h4 className="font-semibold text-emerald-800 mb-2">{selectedGuides[0].guide_name}</h4>
+                      <p className="text-emerald-700 text-sm">{selectedGuides[0].guide_city} • {selectedGuides[0].experience}</p>
                     </div>
 
                     <div className="space-y-6">
@@ -347,9 +517,9 @@ const GuideBooking = () => {
               </div>
             )}
 
-            {currentStep === 3 && (
+            {currentStep === 3 && selectedGuides.length > 0 && (
               <div>
-                <h2 className="text-2xl font-semibold mb-6">Contact Information</h2>
+                <h2 className="text-xl font-semibold mb-4">Contact Information</h2>
                 <Card>
                   <CardContent className="p-6">
                     <form onSubmit={handleBooking} className="space-y-6">
@@ -397,63 +567,91 @@ const GuideBooking = () => {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Selected Guides Cart (right) */}
+          <div className="lg:col-span-3">
             <Card className="sticky top-4">
               <CardHeader>
-                <CardTitle>Booking Summary</CardTitle>
+                <CardTitle>Selected Guides ({selectedGuides.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                {selectedGuide ? (
+                {selectedGuides.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="p-4 bg-emerald-50 rounded-lg">
-                      <h4 className="font-semibold text-emerald-800">{selectedGuide.guide_name}</h4>
-                      <p className="text-sm text-emerald-600">{selectedGuide.guide_city}</p>
-                      <div className="flex items-center mt-2">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
-                        <span className="text-sm">{selectedGuide.rating} Rating</span>
-                      </div>
-                    </div>
-
-                    {bookingForm.serviceType && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Service Type</p>
-                        <p className="font-medium capitalize">{bookingForm.serviceType.replace('_', ' ')}</p>
-                      </div>
-                    )}
-
-                    {bookingDate && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Date</p>
-                        <p className="font-medium">{format(bookingDate, "PPP")}</p>
-                      </div>
-                    )}
-
-                    {bookingForm.numberOfPeople > 0 && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Group Size</p>
-                        <p className="font-medium">{bookingForm.numberOfPeople} {bookingForm.numberOfPeople === 1 ? 'Person' : 'People'}</p>
-                      </div>
-                    )}
-
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h5 className="font-medium text-blue-800 mb-2">What's Included:</h5>
-                      <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• Professional licensed guide</li>
-                        <li>• Multilingual assistance</li>
-                        <li>• Historical & religious insights</li>
-                        <li>• Prayer time guidance</li>
-                        <li>• Local recommendations</li>
-                      </ul>
+                    {selectedGuides.map(guide => {
+                      const details = selectedGuidesDetails[guide.id] || {};
+                      const availableTypes = Array.isArray(guide.service_type) ? guide.service_type : (guide.service_type ? [guide.service_type] : []);
+                      const price = getGuideServicePrice(guide, details.serviceType);
+                      const subtotal = getGuideSubtotal(guide, details);
+                      return (
+                        <div key={guide.id} className="bg-emerald-50 rounded p-3 mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-emerald-800 text-sm">{guide.guide_name}</span>
+                            <Button size="icon" variant="ghost" onClick={() => setSelectedGuides(prev => prev.filter(g => g.id !== guide.id))}>
+                              ✕
+                            </Button>
+                          </div>
+                          <div className="text-xs text-emerald-600 mb-2">{guide.guide_city}</div>
+                          {/* Service Type Dropdown */}
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium mb-1">Service Type</label>
+                            <Select
+                              value={details.serviceType || ''}
+                              onValueChange={val => setSelectedGuidesDetails(prev => ({
+                                ...prev,
+                                [guide.id]: { ...prev[guide.id], serviceType: val }
+                              }))}
+                            >
+                              <SelectTrigger className="w-full text-xs">
+                                <SelectValue placeholder="Select service type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTypes.map(type => (
+                                  <SelectItem key={type} value={type} className="capitalize text-xs">
+                                    {type.replace('_', ' ')}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          {/* Number of People */}
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium mb-1">Number of People</label>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={details.numberOfPeople || 1}
+                              onChange={e => setSelectedGuidesDetails(prev => ({
+                                ...prev,
+                                [guide.id]: { ...prev[guide.id], numberOfPeople: parseInt(e.target.value) || 1 }
+                              }))}
+                              className="w-20 text-xs"
+                            />
+                          </div>
+                          {/* Show price for selected type */}
+                          {details.serviceType && (
+                            <div className="text-xs mb-1">
+                              Price: <span className="font-semibold">${price}</span>
+                            </div>
+                          )}
+                          {/* Subtotal */}
+                          {details.serviceType && (
+                            <div className="text-xs font-bold text-emerald-700">
+                              Subtotal: ${subtotal}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {/* Order Total */}
+                    <div className="border-t pt-3 mt-3 text-right">
+                      <span className="font-semibold text-emerald-800">Order Total: ${getOrderTotal()}</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <User className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>Select a guide to see booking details</p>
+                  <div className="text-center py-6 text-gray-500">
+                    <User className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                    <p>No guides selected</p>
                   </div>
                 )}
-
                 <div className="flex gap-3 mt-6">
                   {currentStep > 1 && (
                     <Button variant="outline" onClick={prevStep} className="flex-1">
@@ -461,7 +659,7 @@ const GuideBooking = () => {
                     </Button>
                   )}
                   {currentStep < 3 && (
-                    <Button onClick={nextStep} className="flex-1 bg-emerald-600 hover:bg-emerald-700">
+                    <Button onClick={nextStep} className="flex-1 bg-emerald-600 hover:bg-emerald-700" disabled={selectedGuides.length === 0}>
                       Next Step
                     </Button>
                   )}
