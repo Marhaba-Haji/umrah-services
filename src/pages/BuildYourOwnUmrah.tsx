@@ -1205,7 +1205,6 @@ const BuildYourOwnUmrah = () => {
             <span className="mr-2">🛒</span> Build Your Perfect Umrah Experience
           </Button>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-2 mt-2">Create Your Custom Package</h1>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
             <Card className="sticky top-6">
@@ -1302,24 +1301,9 @@ const BuildYourOwnUmrah = () => {
                       {steps.find(s => s.id === activeStep)?.description}
                     </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <Input
-                        placeholder="Search..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-64"
-                      />
-                    </div>
-                  </div>
                 </div>
                 
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Filter className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Filters</span>
-                  </div>
                   {renderFilters()}
                 </div>
               </CardHeader>
