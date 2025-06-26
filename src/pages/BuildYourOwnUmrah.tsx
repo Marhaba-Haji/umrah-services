@@ -557,8 +557,105 @@ const BuildYourOwnUmrah = () => {
     </div>
   );
 
+  // Helper to check if Umrah visa is in cart
+  const isUmrahVisaInCart = (id: string) => cart.some(item => item.id === id && item.type === 'visa');
+
   const renderVisaServices = () => (
     <div className="space-y-6">
+      {/* Umrah Visa Options */}
+      <div className="grid md:grid-cols-3 gap-6">
+        {/* Card 1 */}
+        <Card className="hover:shadow-lg transition-shadow border-emerald-200">
+          <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
+              <Plane className="w-7 h-7 text-emerald-600" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">Umrah Visa (Hotel with Marhaba Haji)</h3>
+            <div className="text-xl font-bold text-emerald-600 mb-2">Rs. 13,500</div>
+            <p className="text-gray-700 mb-3">Hotel is booked through Marhaba Haji for your convenience and peace of mind.</p>
+            <ul className="text-xs text-gray-600 mb-2 space-y-1">
+              <li>Official Umrah Visa</li>
+              <li>24/7 Support</li>
+              <li>Fast Processing</li>
+            </ul>
+            <Button
+              className="w-full mt-2"
+              onClick={() => addToCart({
+                id: 'umrah-marhaba',
+                type: 'visa',
+                name: 'Umrah Visa (Hotel with Marhaba Haji)',
+                price: 13500,
+                details: { hotel: 'Marhaba Haji', express: false }
+              })}
+              disabled={isUmrahVisaInCart('umrah-marhaba')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {isUmrahVisaInCart('umrah-marhaba') ? 'Added' : 'Add to Package'}
+            </Button>
+          </CardContent>
+        </Card>
+        {/* Card 2 */}
+        <Card className="hover:shadow-lg transition-shadow border-blue-200">
+          <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+              <Plane className="w-7 h-7 text-blue-600" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">Umrah Visa (Hotel booked externally)</h3>
+            <div className="text-xl font-bold text-blue-600 mb-2">Rs. 15,000</div>
+            <p className="text-gray-700 mb-3">Hotel is booked by the customer externally, not through Marhaba Haji.</p>
+            <ul className="text-xs text-gray-600 mb-2 space-y-1">
+              <li>Official Umrah Visa</li>
+              <li>24/7 Support</li>
+              <li>Fast Processing</li>
+            </ul>
+            <Button
+              className="w-full mt-2"
+              onClick={() => addToCart({
+                id: 'umrah-external',
+                type: 'visa',
+                name: 'Umrah Visa (Hotel booked externally)',
+                price: 15000,
+                details: { hotel: 'External', express: false }
+              })}
+              disabled={isUmrahVisaInCart('umrah-external')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {isUmrahVisaInCart('umrah-external') ? 'Added' : 'Add to Package'}
+            </Button>
+          </CardContent>
+        </Card>
+        {/* Card 3 */}
+        <Card className="hover:shadow-lg transition-shadow border-orange-200">
+          <CardContent className="p-6 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-3">
+              <Plane className="w-7 h-7 text-orange-600" />
+            </div>
+            <h3 className="text-lg font-bold mb-1">Express Umrah Visa</h3>
+            <div className="text-xl font-bold text-orange-600 mb-2">Rs. 17,000</div>
+            <p className="text-gray-700 mb-3">Urgent processing. Hotel can be booked externally or through Marhaba Haji.</p>
+            <ul className="text-xs text-gray-600 mb-2 space-y-1">
+              <li>Official Umrah Visa</li>
+              <li>24/7 Support</li>
+              <li>Express Processing</li>
+            </ul>
+            <Button
+              className="w-full mt-2"
+              onClick={() => addToCart({
+                id: 'umrah-express',
+                type: 'visa',
+                name: 'Express Umrah Visa',
+                price: 17000,
+                details: { hotel: 'Any', express: true }
+              })}
+              disabled={isUmrahVisaInCart('umrah-express')}
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {isUmrahVisaInCart('umrah-express') ? 'Added' : 'Add to Package'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+      {/* Existing Visa Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
@@ -1103,20 +1200,12 @@ const BuildYourOwnUmrah = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 bg-emerald-100 text-emerald-800 rounded-full px-4 py-2 mb-4">
-            <ShoppingCart className="w-5 h-5" />
-            <span className="font-medium">Build Your Perfect Umrah Experience</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Create Your Custom Package
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Design your ideal Umrah journey by selecting from our comprehensive range of services. 
-            Choose accommodations, flights, transport, guides, and spiritual tours tailored to your needs.
-          </p>
+        <div className="flex justify-center mb-2">
+          <Button className="bg-emerald-100 text-emerald-900 font-semibold px-6 py-2 rounded-full shadow-sm">
+            <span className="mr-2">🛒</span> Build Your Perfect Umrah Experience
+          </Button>
         </div>
-
+        <h1 className="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-2 mt-2">Create Your Custom Package</h1>
         <div className="grid lg:grid-cols-4 gap-8">
           <div className="lg:col-span-1">
             <Card className="sticky top-6">
