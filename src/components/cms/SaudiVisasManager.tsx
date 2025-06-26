@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SaudiVisa {
   id: number;
@@ -25,21 +26,7 @@ interface SaudiVisa {
 }
 
 const SaudiVisasManager = () => {
-  const [visas, setVisas] = useState<SaudiVisa[]>([
-    { 
-      id: 1, 
-      visaType: 'Umrah Visa', 
-      visaCategory: 'Basic',
-      price: '$120', 
-      processingTime: '3-5 days',
-      visaValidity: '30 days',
-      stayValidity: '15 days',
-      numberOfEntries: 'Single',
-      requirements: ['Passport', 'Photo', 'Vaccination Certificate'],
-      description: 'Basic Umrah visa for pilgrimage',
-      status: 'Active'
-    }
-  ]);
+  const [visas, setVisas] = useState<SaudiVisa[]>([]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingVisa, setEditingVisa] = useState<SaudiVisa | null>(null);
@@ -55,31 +42,71 @@ const SaudiVisasManager = () => {
       numberOfEntries: '',
       requirements: '',
       description: '',
-      status: 'Active'
+      status: 'active'
     }
   });
 
-  const onSubmit = (data: any) => {
-    const newVisa: SaudiVisa = {
-      id: editingVisa ? editingVisa.id : Date.now(),
-      visaType: data.visaType,
-      visaCategory: data.visaCategory,
-      price: data.price,
-      processingTime: data.processingTime,
-      visaValidity: data.visaValidity,
-      stayValidity: data.stayValidity,
-      numberOfEntries: data.numberOfEntries,
+  // Fetch visas from Supabase
+  const fetchVisas = async () => {
+    const { data, error } = await supabase.from('saudi_visas').select('*');
+    if (error) {
+      alert('Failed to fetch visas: ' + error.message);
+      return;
+    }
+    setVisas(
+      (data || []).map((row) => ({
+        id: row.id,
+        visaType: row.visa_type,
+        visaCategory: row.visa_category,
+        price: `₹${row.price}`,
+        processingTime: row.processing_time,
+        visaValidity: row.visa_validity,
+        stayValidity: row.stay_validity,
+        numberOfEntries: row.number_of_entries,
+        requirements: row.requirements || [],
+        description: row.description,
+        status: row.status?.charAt(0).toUpperCase() + row.status.slice(1),
+      }))
+    );
+  };
+
+  useEffect(() => {
+    fetchVisas();
+  }, []);
+
+  const onSubmit = async (data: any) => {
+    const visaPayload = {
+      visa_type: data.visaType,
+      visa_category: data.visaCategory,
+      price: parseFloat(data.price.replace(/[^0-9.]/g, '')),
+      processing_time: data.processingTime,
+      visa_validity: data.visaValidity,
+      stay_validity: data.stayValidity,
+      number_of_entries: data.numberOfEntries,
       requirements: data.requirements.split(',').map((req: string) => req.trim()),
       description: data.description,
       status: data.status
     };
 
+    let error;
     if (editingVisa) {
-      setVisas(visas.map(visa => visa.id === editingVisa.id ? newVisa : visa));
+      // Update existing visa
+      ({ error } = await supabase
+        .from('saudi_visas')
+        .update(visaPayload)
+        .eq('id', editingVisa.id));
     } else {
-      setVisas([...visas, newVisa]);
+      // Insert new visa
+      ({ error } = await supabase
+        .from('saudi_visas')
+        .insert(visaPayload));
     }
 
+    if (error) {
+      alert('Failed to save visa: ' + error.message);
+      return;
+    }
+    await fetchVisas();
     setIsDialogOpen(false);
     setEditingVisa(null);
     form.reset();
@@ -97,13 +124,18 @@ const SaudiVisasManager = () => {
       numberOfEntries: visa.numberOfEntries,
       requirements: visa.requirements.join(', '),
       description: visa.description,
-      status: visa.status
+      status: visa.status.toLowerCase()
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    setVisas(visas.filter(visa => visa.id !== id));
+  const handleDelete = async (id: number) => {
+    const { error } = await supabase.from('saudi_visas').delete().eq('id', id);
+    if (error) {
+      alert('Failed to delete visa: ' + error.message);
+      return;
+    }
+    await fetchVisas();
   };
 
   return (
@@ -182,7 +214,7 @@ const SaudiVisasManager = () => {
                       <FormItem>
                         <FormLabel>Price</FormLabel>
                         <FormControl>
-                          <Input placeholder="$120" {...field} />
+                          <Input placeholder="₹12000" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -286,9 +318,9 @@ const SaudiVisasManager = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Discontinued">Discontinued</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                          <SelectItem value="discontinued">Discontinued</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -167,7 +166,7 @@ const GroupFlightsManager = () => {
                       <FormItem>
                         <FormLabel>Price</FormLabel>
                         <FormControl>
-                          <Input placeholder="$450" {...field} />
+                          <Input placeholder="₹450" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

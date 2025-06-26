@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useCurrency } from '../components/Header';
+import { supabase } from '../lib/supabaseClient';
+import type { Database } from '../integrations/supabase/types';
 
 interface VisaType {
   id: string;
@@ -37,6 +39,10 @@ const OtherSaudiVisas = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [umrahVisas, setUmrahVisas] = useState<Database['public']['Tables']['saudi_visas']['Row'][]>([]);
+  const [umrahLoading, setUmrahLoading] = useState(true);
+  const [otherVisas, setOtherVisas] = useState<Database['public']['Tables']['saudi_visas']['Row'][]>([]);
+  const [otherVisasLoading, setOtherVisasLoading] = useState(true);
 
   // Currency conversion rates (base USD)
   const exchangeRates = {
@@ -200,6 +206,54 @@ const OtherSaudiVisas = () => {
     }
   ];
 
+  useEffect(() => {
+    async function fetchUmrahVisas() {
+      setUmrahLoading(true);
+      const { data, error } = await supabase
+        .from('saudi_visas')
+        .select('*')
+        .eq('visa_type', 'Umrah Visa')
+        .in('visa_category', ['Standard', 'Premium', 'Express'])
+        .eq('status', 'active');
+      if (error) {
+        console.error('Supabase error:', error);
+      }
+      if (!error && data) {
+        setUmrahVisas(data);
+        console.log('Umrah Visas:', data);
+      } else {
+        setUmrahVisas([]);
+        console.log('No Umrah visas found or error occurred.');
+      }
+      setUmrahLoading(false);
+    }
+    console.log('Fetching Umrah visas...');
+    fetchUmrahVisas();
+  }, []);
+
+  useEffect(() => {
+    async function fetchOtherVisas() {
+      setOtherVisasLoading(true);
+      const { data, error } = await supabase
+        .from('saudi_visas')
+        .select('*')
+        .neq('visa_type', 'Umrah Visa')
+        .eq('status', 'active');
+      if (error) {
+        console.error('Supabase error (other visas):', error);
+      }
+      if (!error && data) {
+        setOtherVisas(data);
+        console.log('Other Visas:', data);
+      } else {
+        setOtherVisas([]);
+        console.log('No other visas found or error occurred.');
+      }
+      setOtherVisasLoading(false);
+    }
+    fetchOtherVisas();
+  }, []);
+
   const handleApplication = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedVisa || !applicationDate) {
@@ -328,56 +382,49 @@ const OtherSaudiVisas = () => {
                     <Plane className="w-6 h-6 mr-3 text-emerald-600" />
                     Umrah Visa Options
                   </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Card 1 */}
-                    <Card className="border-emerald-200 hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6 flex flex-col items-center text-center">
-                        <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mb-3">
-                          <Plane className="w-8 h-8 text-emerald-600" />
-                        </div>
-                        <h3 className="text-lg font-bold mb-1">Umrah Visa (Hotel with Marhaba Haji)</h3>
-                        <div className="text-2xl font-bold text-emerald-600 mb-2">Rs. 13,500</div>
-                        <p className="text-gray-700 mb-3">Hotel is booked through Marhaba Haji for your convenience and peace of mind.</p>
-                        <ul className="text-xs text-gray-600 mb-2 space-y-1">
-                          <li>Official Umrah Visa</li>
-                          <li>24/7 Support</li>
-                          <li>Fast Processing</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                    {/* Card 2 */}
-                    <Card className="border-blue-200 hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6 flex flex-col items-center text-center">
-                        <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                          <Plane className="w-8 h-8 text-blue-600" />
-                        </div>
-                        <h3 className="text-lg font-bold mb-1">Umrah Visa (Hotel booked externally)</h3>
-                        <div className="text-2xl font-bold text-blue-600 mb-2">Rs. 15,000</div>
-                        <p className="text-gray-700 mb-3">Hotel is booked by the customer externally, not through Marhaba Haji.</p>
-                        <ul className="text-xs text-gray-600 mb-2 space-y-1">
-                          <li>Official Umrah Visa</li>
-                          <li>24/7 Support</li>
-                          <li>Fast Processing</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                    {/* Card 3 */}
-                    <Card className="border-orange-200 hover:shadow-lg transition-shadow">
-                      <CardContent className="p-6 flex flex-col items-center text-center">
-                        <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mb-3">
-                          <Plane className="w-8 h-8 text-orange-600" />
-                        </div>
-                        <h3 className="text-lg font-bold mb-1">Express Umrah Visa</h3>
-                        <div className="text-2xl font-bold text-orange-600 mb-2">Rs. 17,000</div>
-                        <p className="text-gray-700 mb-3">Urgent processing. Hotel can be booked externally or through Marhaba Haji.</p>
-                        <ul className="text-xs text-gray-600 mb-2 space-y-1">
-                          <li>Official Umrah Visa</li>
-                          <li>24/7 Support</li>
-                          <li>Express Processing</li>
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
+                  {umrahLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+                    </div>
+                  ) : umrahVisas.length === 0 ? (
+                    <div className="text-center text-red-500 py-8">No Umrah visa options found. Please check your Supabase data for visa_type = 'Umrah Visa', visa_category = 'Standard'|'Premium'|'Express', and status = 'active'.</div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {umrahVisas.map((visa) => {
+                        // Color and icon logic based on category
+                        let color = 'emerald', iconColor = 'emerald', bg = 'emerald-100', text = 'emerald-600', title = '';
+                        if (visa.visa_category === 'Standard') {
+                          color = 'emerald'; iconColor = 'emerald'; bg = 'emerald-100'; text = 'emerald-600';
+                          title = 'Umrah Visa (Hotel with Marhaba Haji)';
+                        }
+                        if (visa.visa_category === 'Premium') {
+                          color = 'blue'; iconColor = 'blue'; bg = 'blue-100'; text = 'blue-600';
+                          title = 'Umrah Visa (Hotel booked externally)';
+                        }
+                        if (visa.visa_category === 'Express') {
+                          color = 'orange'; iconColor = 'orange'; bg = 'orange-100'; text = 'orange-600';
+                          title = 'Express Umrah Visa';
+                        }
+                        return (
+                          <Card key={visa.id} className={`border-${color}-200 hover:shadow-lg transition-shadow`}>
+                            <CardContent className="p-6 flex flex-col items-center text-center">
+                              <div className={`w-14 h-14 rounded-full bg-${bg} flex items-center justify-center mb-3`}>
+                                <Plane className={`w-8 h-8 text-${text}`} />
+                              </div>
+                              <h3 className="text-lg font-bold mb-1">{title}</h3>
+                              <div className={`text-2xl font-bold text-${text} mb-2`}>Rs. {visa.price.toLocaleString()}</div>
+                              <p className="text-gray-700 mb-3">{visa.description || (visa.visa_category === 'Standard' ? 'Hotel is booked through Marhaba Haji for your convenience and peace of mind.' : visa.visa_category === 'Premium' ? 'Hotel is booked by the customer externally, not through Marhaba Haji.' : 'Urgent processing. Hotel can be booked externally or through Marhaba Haji.')}</p>
+                              <ul className="text-xs text-gray-600 mb-2 space-y-1">
+                                <li>Official Umrah Visa</li>
+                                <li>24/7 Support</li>
+                                <li>{visa.visa_category === 'Express' ? 'Express Processing' : 'Fast Processing'}</li>
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
                 {/* Existing Visa Cards */}
                 <div>
@@ -385,91 +432,79 @@ const OtherSaudiVisas = () => {
                     <Award className="w-6 h-6 mr-3 text-blue-600" />
                     Choose Your Visa Type
                   </h2>
-                  
-                  {Object.entries(groupedVisas).map(([category, visas]) => (
-                    <div key={category} className="mb-8">
-                      <h3 className="text-lg font-medium text-gray-800 mb-4 border-b pb-2">{category} Visas</h3>
-                      <div className="space-y-4">
-                        {visas.map((visa) => {
-                          const convertedPrice = Math.round(visa.price * rate);
-                          const IconComponent = visa.icon;
-                          return (
-                            <Card 
-                              key={visa.id} 
-                              className={`cursor-pointer transition-all duration-300 hover:shadow-xl ${
-                                selectedVisa?.id === visa.id 
-                                  ? `ring-2 ring-${visa.color}-500 shadow-lg` 
-                                  : 'hover:shadow-md'
-                              }`}
-                              onClick={() => setSelectedVisa(visa)}
-                            >
-                              <CardContent className="p-6">
-                                <div className="flex items-start space-x-4">
-                                  <div className={`w-16 h-16 rounded-full bg-${visa.color}-100 flex items-center justify-center flex-shrink-0`}>
-                                    <IconComponent className={`w-8 h-8 text-${visa.color}-600`} />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h3 className="text-xl font-semibold text-gray-900">{visa.name}</h3>
-                                      <div className="text-right">
-                                        <div className={`text-2xl font-bold text-${visa.color}-600`}>
-                                          {currencySymbol}{convertedPrice.toLocaleString()}
-                                        </div>
-                                        <div className="text-sm text-gray-500">processing fee</div>
-                                      </div>
-                                    </div>
-                                    
-                                    <p className="text-gray-700 mb-4">{visa.description}</p>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                      <div className="flex items-center space-x-2 text-sm">
-                                        <Clock className="w-4 h-4 text-gray-500" />
-                                        <span><strong>Processing:</strong> {visa.processingTime}</span>
-                                      </div>
-                                      <div className="flex items-center space-x-2 text-sm">
-                                        <FileText className="w-4 h-4 text-gray-500" />
-                                        <span><strong>Validity:</strong> {visa.validity}</span>
-                                      </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                      <div>
-                                        <h4 className="font-semibold text-sm mb-2">Key Features:</h4>
-                                        <div className="flex flex-wrap gap-2">
-                                          {visa.features.map((feature, index) => (
-                                            <Badge key={index} variant="outline" className="text-xs">
-                                              {feature}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
-                                      
-                                      <div>
-                                        <h4 className="font-semibold text-sm mb-2">Required Documents:</h4>
-                                        <ul className="text-xs text-gray-600 space-y-1">
-                                          {visa.requirements.slice(0, 4).map((req, index) => (
-                                            <li key={index} className="flex items-center space-x-2">
-                                              <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
-                                              <span>{req}</span>
-                                            </li>
-                                          ))}
-                                          {visa.requirements.length > 4 && (
-                                            <li className="text-gray-500 ml-5">
-                                              +{visa.requirements.length - 4} more requirements
-                                            </li>
-                                          )}
-                                        </ul>
-                                      </div>
-                                    </div>
+                  {otherVisasLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : otherVisas.length === 0 ? (
+                    <div className="text-center text-red-500 py-8">No other visa options found. Please check your Supabase data for non-Umrah Visa records with status = 'active'.</div>
+                  ) : (
+                    <div>
+                      {/* Group by visa_category for section headers if desired, or just list all */}
+                      {otherVisas.map((visa) => {
+                        // Pick an icon based on category or fallback
+                        let IconComponent = Heart;
+                        if (visa.visa_category?.toLowerCase().includes('business')) IconComponent = Briefcase;
+                        if (visa.visa_category?.toLowerCase().includes('tourist')) IconComponent = Plane;
+                        if (visa.visa_category?.toLowerCase().includes('student')) IconComponent = GraduationCap;
+                        if (visa.visa_category?.toLowerCase().includes('job')) IconComponent = Users;
+                        // Color logic (optional)
+                        let color = 'emerald';
+                        if (visa.visa_category === 'Business') color = 'emerald';
+                        if (visa.visa_category === 'Tourist') color = 'blue';
+                        if (visa.visa_category === 'Student') color = 'purple';
+                        if (visa.visa_category === 'Job') color = 'orange';
+                        return (
+                          <Card key={visa.id} className="mb-8">
+                            <CardContent className="p-8">
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center space-x-4">
+                                  <IconComponent className="w-10 h-10 text-gray-700" />
+                                  <div>
+                                    <h3 className="text-2xl font-bold mb-1">{visa.visa_category ? visa.visa_category + ' Visa' : visa.visa_type}</h3>
+                                    <p className="text-gray-600 text-lg">{visa.description}</p>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
+                                <div className="text-right">
+                                  <div className="text-3xl font-bold text-emerald-700">₹{Math.round(visa.price * rate).toLocaleString()}</div>
+                                  <div className="text-sm text-gray-500">processing fee</div>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="flex items-center space-x-2 text-base">
+                                  <Clock className="w-5 h-5 text-gray-500" />
+                                  <span><strong>Processing:</strong> {visa.processing_time}</span>
+                                </div>
+                                <div className="flex items-center space-x-2 text-base">
+                                  <FileText className="w-5 h-5 text-gray-500" />
+                                  <span><strong>Validity:</strong> {visa.visa_validity || visa.stay_validity}</span>
+                                </div>
+                              </div>
+                              <div className="mb-4">
+                                <h4 className="font-semibold text-base mb-2">Key Features:</h4>
+                                <div className="flex flex-wrap gap-2">
+                                  {(visa.features || []).map((feature, idx) => (
+                                    <Badge key={idx} variant="outline" className="text-xs">{feature}</Badge>
+                                  ))}
+                                </div>
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-base mb-2">Required Documents:</h4>
+                                <ul className="text-sm text-gray-600 space-y-1">
+                                  {(visa.requirements || []).map((req, idx) => (
+                                    <li key={idx} className="flex items-center space-x-2">
+                                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                      <span>{req}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
                 </div>
               </>
             )}

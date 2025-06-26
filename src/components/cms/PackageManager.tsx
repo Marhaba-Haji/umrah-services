@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -272,6 +271,7 @@ const PackageManager = () => {
                       value={formData.price}
                       onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
                       required
+                      placeholder="₹10000"
                     />
                   </div>
                   <div>

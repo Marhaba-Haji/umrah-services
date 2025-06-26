@@ -460,7 +460,7 @@ const TransportManager = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Price</label>
-                  <input className="w-full border rounded p-2" type="number" min="0" step="0.01" value={transportPrice} onChange={e => setTransportPrice(e.target.value)} required />
+                  <input className="w-full border rounded p-2" type="number" min="0" step="0.01" value={transportPrice} onChange={e => setTransportPrice(e.target.value)} required placeholder="₹1000" />
                 </div>
                 <Button type="submit">Save Transport</Button>
               </form>
@@ -486,7 +486,7 @@ const TransportManager = () => {
                   <th className="p-2 border">Image</th>
                   <th className="p-2 border">Route</th>
                   <th className="p-2 border">Capacity</th>
-                  <th className="p-2 border">Price</th>
+                  <th className="p-2 border">Price (₹)</th>
                   <th className="p-2 border">Active</th>
                   <th className="p-2 border">Actions</th>
                 </tr>

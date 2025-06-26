@@ -273,7 +273,7 @@ const HotelManager = ({ session }) => {
                       <FormItem>
                         <FormLabel>Price per Night</FormLabel>
                         <FormControl>
-                          <Input placeholder="$299" {...field} />
+                          <Input placeholder="₹299" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -546,7 +546,7 @@ const HotelManager = ({ session }) => {
                 <div><span className="font-semibold">Location:</span> {viewingHotel.location}</div>
                 <div><span className="font-semibold">City:</span> {viewingHotel.city}</div>
                 <div><span className="font-semibold">Rating:</span> {viewingHotel.rating} stars</div>
-                <div><span className="font-semibold">Price/Night:</span> ${viewingHotel.pricePerNight}</div>
+                <div><span className="font-semibold">Price/Night:</span> ₹{viewingHotel.pricePerNight}</div>
                 <div><span className="font-semibold">Status:</span> <Badge variant={viewingHotel.status === 'Active' ? 'default' : 'secondary'}>{viewingHotel.status}</Badge></div>
                 {viewingHotel.city === 'makkah' && <div><span className="font-semibold">Distance from Haram:</span> {viewingHotel.distanceFromHaram}m</div>}
                 {viewingHotel.city === 'madinah' && <div><span className="font-semibold">Distance from Masjid-e-Nabawi:</span> {viewingHotel.distanceFromMasjidENabawi}m</div>}
