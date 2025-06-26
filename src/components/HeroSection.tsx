@@ -1,15 +1,18 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import AnimatedCounter from './AnimatedCounter';
 import { useCurrency } from './Header';
+import { supabase } from '@/lib/supabaseClient';
+import type { Database } from '@/integrations/supabase/types';
 
 const HeroSection = () => {
   const [nationality, setNationality] = useState('');
   const { currency } = useCurrency();
+  const [basePriceUSD, setBasePriceUSD] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
   
   // Currency conversion rates (base USD)
@@ -26,9 +29,39 @@ const HeroSection = () => {
     SAR: 'ر.س'
   };
 
-  const basePriceUSD = 299;
-  const convertedPrice = Math.round(basePriceUSD * (exchangeRates[currency] || 1));
+  useEffect(() => {
+    async function fetchVisaPrice() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('saudi_visas')
+        .select('price')
+        .eq('visa_type', 'Umrah Visa')
+        .eq('visa_category', 'Standard')
+        .eq('status', 'active')
+        .limit(1)
+        .single();
+      if (!error && data && typeof data.price === 'number') {
+        setBasePriceUSD(data.price); // This is actually INR
+      } else {
+        setBasePriceUSD(null);
+      }
+      setLoading(false);
+    }
+    fetchVisaPrice();
+  }, []);
+
   const currencySymbol = currencySymbols[currency] || '$';
+  // If INR, show as is. If USD or SAR, convert from INR.
+  let convertedPrice: number | null = null;
+  if (basePriceUSD !== null) {
+    if (currency === 'INR') {
+      convertedPrice = basePriceUSD;
+    } else {
+      // Convert from INR to selected currency
+      const inrToTarget = exchangeRates[currency] ? 1 / exchangeRates['INR'] * exchangeRates[currency] : 1;
+      convertedPrice = Math.round(basePriceUSD * inrToTarget);
+    }
+  }
 
   const handleWhatsAppClick = () => {
     const prefilledMessage = `السلام عليكم! I'm interested in Marhaba Haji's Umrah services. 
@@ -140,7 +173,13 @@ Please provide me with detailed information. JazakAllah Khair!`;
                     <div className="text-center">
                       <p className="text-sm text-emerald-700 mb-1">Starting from</p>
                       <p className="text-3xl font-bold text-emerald-800">
-                        {currencySymbol}{convertedPrice.toLocaleString()}
+                        {loading ? (
+                          <span className="animate-pulse text-gray-400">Loading...</span>
+                        ) : convertedPrice !== null ? (
+                          `${currencySymbol}${convertedPrice.toLocaleString()}`
+                        ) : (
+                          <span className="text-red-500">N/A</span>
+                        )}
                       </p>
                       <p className="text-xs text-emerald-600">Per person • All inclusive</p>
                     </div>
@@ -148,7 +187,13 @@ Please provide me with detailed information. JazakAllah Khair!`;
 
                   <Link to="/apply-umrah-visa-online">
                     <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
-                      🚀 Apply Now - {currencySymbol}{convertedPrice.toLocaleString()}
+                      🚀 Apply Now - {loading ? (
+                        <span className="animate-pulse text-gray-200">Loading...</span>
+                      ) : convertedPrice !== null ? (
+                        `${currencySymbol}${convertedPrice.toLocaleString()}`
+                      ) : (
+                        <span className="text-red-200">N/A</span>
+                      )}
                     </Button>
                   </Link>
 

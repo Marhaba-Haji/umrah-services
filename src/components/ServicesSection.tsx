@@ -1,9 +1,11 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { useCurrency } from './Header';
+import { supabase } from '@/lib/supabaseClient';
+import type { Database } from '@/integrations/supabase/types';
 
 const ServicesSection = () => {
   const { currency } = useCurrency();
@@ -25,24 +27,65 @@ const ServicesSection = () => {
   const currencySymbol = currencySymbols[currency] || '₹';
   const rate = exchangeRates[currency] || 1;
 
+  // State for dynamic prices
+  const [basicVisaPrice, setBasicVisaPrice] = useState<number | null>(null);
+  const [premiumVisaPrice, setPremiumVisaPrice] = useState<number | null>(null);
+  const [expressVisaPrice, setExpressVisaPrice] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchVisaPrices() {
+      setLoading(true);
+      const [basic, premium, express] = await Promise.all([
+        supabase
+          .from('saudi_visas')
+          .select('price')
+          .eq('visa_type', 'Umrah Visa')
+          .eq('visa_category', 'Standard')
+          .eq('status', 'active')
+          .limit(1)
+          .single(),
+        supabase
+          .from('saudi_visas')
+          .select('price')
+          .eq('visa_type', 'Umrah Visa')
+          .eq('visa_category', 'Premium')
+          .eq('status', 'active')
+          .limit(1)
+          .single(),
+        supabase
+          .from('saudi_visas')
+          .select('price')
+          .eq('visa_type', 'Umrah Visa')
+          .eq('visa_category', 'Express')
+          .eq('status', 'active')
+          .limit(1)
+          .single(),
+      ]);
+      setBasicVisaPrice(!basic.error && basic.data && typeof basic.data.price === 'number' ? basic.data.price : null);
+      setPremiumVisaPrice(!premium.error && premium.data && typeof premium.data.price === 'number' ? premium.data.price : null);
+      setExpressVisaPrice(!express.error && express.data && typeof express.data.price === 'number' ? express.data.price : null);
+      setLoading(false);
+    }
+    fetchVisaPrices();
+  }, []);
+
   const services = [
     {
       title: "Basic Umrah Visa",
       description: "Essential visa processing with standard approval timeline",
-      basePrice: 13000,
       duration: "5-7 days",
-      validity: "30 days",
+      validity: "90 days",
       approvalRate: "85%",
       features: [
         "Single entry to Saudi Arabia",
-        "30 days validity",
+        "90 days validity",
         "Standard processing",
         "Document verification",
         "Email support"
       ],
       limitations: [
         "No hotel booking assistance",
-        "No transport arrangement",
         "Standard approval rate"
       ],
       popular: false
@@ -50,12 +93,12 @@ const ServicesSection = () => {
     {
       title: "Premium Umrah Visa",
       description: "Enhanced service with hotel booking and higher approval rate",
-      basePrice: 15000,
       duration: "3-5 days",
-      validity: "30 days",
-      approvalRate: "95%",
+      validity: "90 days",
+      approvalRate: "99%",
       features: [
         "Single entry visa",
+        "90 days validity",
         "1 day hotel booking included",
         "Priority processing",
         "Higher approval rate",
@@ -68,17 +111,18 @@ const ServicesSection = () => {
     {
       title: "Express Umrah Visa",
       description: "Guaranteed fast-track processing in less than 24 hours",
-      basePrice: 17000,
       duration: "Under 24 hours",
-      validity: "30 days",
-      approvalRate: "98%",
+      validity: "90 days",
+      approvalRate: "99%",
       features: [
         "Guaranteed 24-hour processing",
         "Express approval",
         "Emergency support hotline",
         "Instant status updates",
         "Same-day document review",
-        "Priority consultation"
+        "Priority consultation",
+        "90 days validity",
+        "1 day hotel booking included"
       ],
       limitations: [],
       popular: false
@@ -100,7 +144,38 @@ const ServicesSection = () => {
 
         <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {services.map((service, index) => {
-            const convertedPrice = Math.round(service.basePrice * rate);
+            let priceDisplay;
+            if (index === 0) {
+              // Basic Umrah Visa: use dynamic price
+              if (loading) {
+                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+              } else if (basicVisaPrice !== null) {
+                const converted = Math.round(basicVisaPrice * rate);
+                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+              } else {
+                priceDisplay = <span className="text-red-500">N/A</span>;
+              }
+            } else if (index === 1) {
+              // Premium Umrah Visa: use dynamic price
+              if (loading) {
+                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+              } else if (premiumVisaPrice !== null) {
+                const converted = Math.round(premiumVisaPrice * rate);
+                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+              } else {
+                priceDisplay = <span className="text-red-500">N/A</span>;
+              }
+            } else if (index === 2) {
+              // Express Umrah Visa: use dynamic price
+              if (loading) {
+                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+              } else if (expressVisaPrice !== null) {
+                const converted = Math.round(expressVisaPrice * rate);
+                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+              } else {
+                priceDisplay = <span className="text-red-500">N/A</span>;
+              }
+            }
             return (
               <Card key={index} className={`relative h-full flex flex-col ${service.popular ? 'ring-2 ring-emerald-500 shadow-xl transform scale-105' : 'shadow-lg'}`}>
                 {service.popular && (
@@ -118,7 +193,7 @@ const ServicesSection = () => {
                   <p className="text-gray-600 text-sm mb-3">{service.description}</p>
                   <div className="space-y-2">
                     <div className="text-2xl font-bold text-emerald-600">
-                      {currencySymbol}{convertedPrice.toLocaleString()}
+                      {priceDisplay}
                     </div>
                     <div className="flex justify-center space-x-3 text-xs text-gray-500">
                       <span>⏱️ {service.duration}</span>
@@ -162,7 +237,9 @@ const ServicesSection = () => {
                     }`}
                     size="lg"
                   >
-                    Choose This Service
+                    <Link to={['Family Visit Visa', 'Tourist Visa', 'Business Visa'].includes(service.title) ? "/other-visas" : "/apply-umrah-visa-online"} className="block w-full h-full">
+                      Apply Now
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>

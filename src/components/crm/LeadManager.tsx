@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Phone, Mail, MessageSquare, Search, Filter } from 'lucide-react';
 import HotelEnquiriesManager from '../../pages/cms/HotelEnquiriesManager';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Lead {
   id: number;
@@ -25,31 +26,7 @@ interface Lead {
 }
 
 const LeadManager = () => {
-  const [leads, setLeads] = useState<Lead[]>([
-    { 
-      id: 1, 
-      name: 'Ahmed Hassan', 
-      email: 'ahmed@email.com', 
-      phone: '+966501234567', 
-      service: 'Umrah Visa', 
-      status: 'New', 
-      source: 'Website',
-      notes: 'Interested in family package',
-      date: '2024-01-15'
-    },
-    { 
-      id: 2, 
-      name: 'Fatima Ali', 
-      email: 'fatima@email.com', 
-      phone: '+971501234567', 
-      service: 'Umrah Package', 
-      status: 'Contacted', 
-      source: 'WhatsApp',
-      notes: 'Looking for premium accommodation',
-      date: '2024-01-14',
-      followUpDate: '2024-01-20'
-    }
-  ]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -71,6 +48,47 @@ const LeadManager = () => {
       followUpDate: ''
     }
   });
+
+  useEffect(() => {
+    async function fetchLeads() {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (data) {
+        setLeads(
+          data.map((lead) => ({
+            id: lead.id,
+            name: lead.first_name + (lead.last_name ? ' ' + lead.last_name : ''),
+            email: lead.email,
+            phone: (lead.country_code ? lead.country_code + ' ' : '') + lead.phone,
+            service: lead.service_interest,
+            status: lead.status || 'New',
+            source: lead.lead_source || 'Website',
+            notes: lead.notes || '',
+            date: lead.created_at ? lead.created_at.split('T')[0] : '',
+            followUpDate: lead.follow_up_date ? lead.follow_up_date.split('T')[0] : undefined,
+          }))
+        );
+      }
+      if (error) {
+        console.error('Error fetching leads:', error.message);
+      }
+    }
+    fetchLeads();
+
+    // Real-time subscription
+    const channel = supabase.channel('leads-realtime');
+    channel
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
+        fetchLeads();
+      })
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
 
   const onSubmit = (data: any) => {
     const newLead: Lead = {

@@ -376,56 +376,6 @@ const OtherSaudiVisas = () => {
           <div className="lg:col-span-2">
             {currentStep === 1 && (
               <>
-                {/* Umrah Visa Options */}
-                <div className="mb-10">
-                  <h2 className="text-2xl font-semibold mb-6 flex items-center">
-                    <Plane className="w-6 h-6 mr-3 text-emerald-600" />
-                    Umrah Visa Options
-                  </h2>
-                  {umrahLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-                    </div>
-                  ) : umrahVisas.length === 0 ? (
-                    <div className="text-center text-red-500 py-8">No Umrah visa options found. Please check your Supabase data for visa_type = 'Umrah Visa', visa_category = 'Standard'|'Premium'|'Express', and status = 'active'.</div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {umrahVisas.map((visa) => {
-                        // Color and icon logic based on category
-                        let color = 'emerald', iconColor = 'emerald', bg = 'emerald-100', text = 'emerald-600', title = '';
-                        if (visa.visa_category === 'Standard') {
-                          color = 'emerald'; iconColor = 'emerald'; bg = 'emerald-100'; text = 'emerald-600';
-                          title = 'Umrah Visa (Hotel with Marhaba Haji)';
-                        }
-                        if (visa.visa_category === 'Premium') {
-                          color = 'blue'; iconColor = 'blue'; bg = 'blue-100'; text = 'blue-600';
-                          title = 'Umrah Visa (Hotel booked externally)';
-                        }
-                        if (visa.visa_category === 'Express') {
-                          color = 'orange'; iconColor = 'orange'; bg = 'orange-100'; text = 'orange-600';
-                          title = 'Express Umrah Visa';
-                        }
-                        return (
-                          <Card key={visa.id} className={`border-${color}-200 hover:shadow-lg transition-shadow`}>
-                            <CardContent className="p-6 flex flex-col items-center text-center">
-                              <div className={`w-14 h-14 rounded-full bg-${bg} flex items-center justify-center mb-3`}>
-                                <Plane className={`w-8 h-8 text-${text}`} />
-                              </div>
-                              <h3 className="text-lg font-bold mb-1">{title}</h3>
-                              <div className={`text-2xl font-bold text-${text} mb-2`}>Rs. {visa.price.toLocaleString()}</div>
-                              <p className="text-gray-700 mb-3">{visa.description || (visa.visa_category === 'Standard' ? 'Hotel is booked through Marhaba Haji for your convenience and peace of mind.' : visa.visa_category === 'Premium' ? 'Hotel is booked by the customer externally, not through Marhaba Haji.' : 'Urgent processing. Hotel can be booked externally or through Marhaba Haji.')}</p>
-                              <ul className="text-xs text-gray-600 mb-2 space-y-1">
-                                <li>Official Umrah Visa</li>
-                                <li>24/7 Support</li>
-                                <li>{visa.visa_category === 'Express' ? 'Express Processing' : 'Fast Processing'}</li>
-                              </ul>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
                 {/* Existing Visa Cards */}
                 <div>
                   <h2 className="text-2xl font-semibold mb-6 flex items-center">

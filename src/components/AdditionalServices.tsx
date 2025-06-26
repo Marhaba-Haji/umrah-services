@@ -110,9 +110,15 @@ const AdditionalServices = () => {
       case 'Group Umrah Packages':
         return '/group-packages';
       case 'Short Umrah Packages':
-        return '/umrah-packages';
+        return '/custom-packages';
       case 'Cab Transport Booking':
         return '/transport';
+      case 'Guide Services':
+        return '/guide';
+      case 'Makkah Ziyarath Tours':
+        return '/ziarath';
+      case 'Madinah Ziyarath Tours':
+        return '/ziarath';
       default:
         return '/services';
     }
@@ -203,7 +209,7 @@ const AdditionalServices = () => {
                     View Complete Packages
                   </Button>
                 </Link>
-                <Link to="/custom-packages">
+                <Link to="/build-your-own-umrah">
                   <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
                     Get Custom Quote
                   </Button>

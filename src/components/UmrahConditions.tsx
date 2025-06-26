@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const UmrahConditions = () => {
   const conditions = [
@@ -11,21 +11,24 @@ const UmrahConditions = () => {
       title: 'Confirmed Hotel Booking',
       description: 'Valid hotel reservation from approved accommodations in Mecca and Medina',
       details: ['Must be from approved hotel list', 'Confirmation voucher required', 'Full payment or booking guarantee needed'],
-      cta: 'Find Hotels'
+      cta: 'Find Hotels',
+      route: '/hotel',
     },
     {
       icon: '✈️',
       title: 'Return Flight Booking',
       description: 'Confirmed round-trip flight tickets with valid dates',
       details: ['Return ticket mandatory', 'Valid for visa duration', 'Travel dates must match visa period'],
-      cta: 'Book Flights'
+      cta: 'Book Flights',
+      route: '/group-flights',
     },
     {
       icon: '🚗',
       title: 'Airport Transfer',
       description: 'Pre-arranged transportation from approved transport companies',
       details: ['Licensed transport providers only', 'Airport pickup/drop-off included', 'Advance booking required'],
-      cta: 'Book Transport'
+      cta: 'Book Transport',
+      route: '/transport',
     }
   ];
 
@@ -66,9 +69,11 @@ const UmrahConditions = () => {
                     </li>
                   ))}
                 </ul>
-                <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white text-sm">
-                  {condition.cta}
-                </Button>
+                <Link to={condition.route} className="block w-full">
+                  <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white text-sm">
+                    {condition.cta}
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ))}

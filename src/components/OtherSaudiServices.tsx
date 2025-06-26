@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCurrency } from './Header';
+import { Link } from 'react-router-dom';
 
 const OtherSaudiServices = () => {
   const { currency } = useCurrency();
@@ -52,24 +52,6 @@ const OtherSaudiServices = () => {
       processing: '3-5 days',
       basePrice: 299,
       features: ['Business activities', 'Company sponsorship', 'Meeting attendance']
-    },
-    {
-      icon: '🎓',
-      title: 'Student Visa',
-      description: 'Study at recognized educational institutions',
-      duration: '1 year',
-      processing: '7-10 days',
-      basePrice: 179,
-      features: ['University admission required', 'Renewable', 'Part-time work allowed']
-    },
-    {
-      icon: '🤝',
-      title: 'Waqala Visa',
-      description: 'Legal representation and business delegation',
-      duration: '30 days',
-      processing: '5-7 days',
-      basePrice: 399,
-      features: ['Legal representation', 'Business delegation', 'Special authorization']
     }
   ];
 
@@ -130,9 +112,11 @@ const OtherSaudiServices = () => {
                     ))}
                   </ul>
 
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                    Apply Now
-                  </Button>
+                  <Link to="/other-visas" className="block w-full">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                      Apply Now
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             );
@@ -141,7 +125,16 @@ const OtherSaudiServices = () => {
 
         <div className="text-center mt-12">
           <p className="text-gray-600 mb-4">Need a different type of visa or have special requirements?</p>
-          <Button variant="outline" size="lg" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+          <Button 
+            variant="outline" 
+            size="lg" 
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+            onClick={() => {
+              const message = `Hello, I need assistance with a Saudi visa. Please connect me with a visa expert.`;
+              const whatsappUrl = `https://wa.me/919008447887?text=${encodeURIComponent(message)}`;
+              window.open(whatsappUrl, '_blank');
+            }}
+          >
             📞 Contact Our Visa Experts
           </Button>
         </div>

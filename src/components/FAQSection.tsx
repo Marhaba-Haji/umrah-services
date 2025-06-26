@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -97,11 +96,21 @@ const FAQSection = () => {
               Get personalized assistance in multiple languages.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+              <button 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                onClick={() => {
+                  const message = `Hello, I need assistance with my Umrah visa application. Please connect me with an expert.`;
+                  const whatsappUrl = `https://wa.me/919008447887?text=${encodeURIComponent(message)}`;
+                  window.open(whatsappUrl, '_blank');
+                }}
+              >
                 💬 Chat with Expert
               </button>
-              <button className="border border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-6 py-3 rounded-lg font-medium transition-colors">
-                📞 Call Now: +1-234-567-8900
+              <button 
+                className="border border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-6 py-3 rounded-lg font-medium transition-colors"
+                onClick={() => { window.open('tel:+917892009800'); }}
+              >
+                📞 Call Now: +91-78920-09800
               </button>
             </div>
           </div>

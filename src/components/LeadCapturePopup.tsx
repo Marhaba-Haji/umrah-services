@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Gift } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface LeadCapturePopupProps {
   isOpen: boolean;
@@ -64,11 +64,15 @@ const LeadCapturePopup = ({ isOpen, onClose }: LeadCapturePopupProps) => {
     e.preventDefault();
     
     // WhatsApp message
-    const whatsappMessage = `New Lead Capture from Marhaba Haji Website:
+    const whatsappMessage = `Hello Marhaba Haji Team,
+
+I would like to request a free Umrah consultation. Here are my details:
 Name: ${formData.name}
 Mobile: ${formData.countryCode} ${formData.mobile}
 Service Interested: ${formData.service}
-Time: ${new Date().toLocaleString()}`;
+Time: ${new Date().toLocaleString()}
+
+Please contact me to discuss my requirements. Thank you!`;
     
     const whatsappUrl1 = `https://wa.me/919008447887?text=${encodeURIComponent(whatsappMessage)}`;
     const whatsappUrl2 = `https://wa.me/917892009800?text=${encodeURIComponent(whatsappMessage)}`;
@@ -79,6 +83,15 @@ Time: ${new Date().toLocaleString()}`;
       window.open(whatsappUrl2, '_blank');
     }, 1000);
     
+    // Insert lead into Supabase leads table
+    await supabase.from('leads').insert({
+      first_name: formData.name,
+      phone: formData.mobile,
+      country_code: formData.countryCode,
+      service_interest: formData.service,
+      lead_source: 'Website',
+      created_at: new Date().toISOString(),
+    });
     // Here you would typically send email via your backend
     console.log('Lead captured:', formData);
     
