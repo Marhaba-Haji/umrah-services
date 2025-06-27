@@ -1,0 +1,1 @@
+ALTER TABLE public.saudi_visas ADD COLUMN approval_rate numeric(5,2) null; 

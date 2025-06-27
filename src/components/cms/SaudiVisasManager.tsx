@@ -23,6 +23,7 @@ interface SaudiVisa {
   requirements: string[];
   description: string;
   status: string;
+  approvalRate?: number;
 }
 
 const SaudiVisasManager = () => {
@@ -42,7 +43,8 @@ const SaudiVisasManager = () => {
       numberOfEntries: '',
       requirements: '',
       description: '',
-      status: 'active'
+      status: 'active',
+      approvalRate: ''
     }
   });
 
@@ -66,6 +68,7 @@ const SaudiVisasManager = () => {
         requirements: row.requirements || [],
         description: row.description,
         status: row.status?.charAt(0).toUpperCase() + row.status.slice(1),
+        approvalRate: row.approval_rate,
       }))
     );
   };
@@ -85,7 +88,8 @@ const SaudiVisasManager = () => {
       number_of_entries: data.numberOfEntries,
       requirements: data.requirements.split(',').map((req: string) => req.trim()),
       description: data.description,
-      status: data.status
+      status: data.status,
+      approval_rate: data.approvalRate ? parseFloat(data.approvalRate) : null,
     };
 
     let error;
@@ -124,7 +128,8 @@ const SaudiVisasManager = () => {
       numberOfEntries: visa.numberOfEntries,
       requirements: visa.requirements.join(', '),
       description: visa.description,
-      status: visa.status.toLowerCase()
+      status: visa.status.toLowerCase(),
+      approvalRate: visa.approvalRate !== undefined && visa.approvalRate !== null ? visa.approvalRate.toString() : '',
     });
     setIsDialogOpen(true);
   };
@@ -323,6 +328,20 @@ const SaudiVisasManager = () => {
                           <SelectItem value="discontinued">Discontinued</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="approvalRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Approval Rate (%)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min={0} max={100} step={0.01} placeholder="e.g. 98.5" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

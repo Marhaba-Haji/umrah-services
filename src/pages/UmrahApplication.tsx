@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import UmrahApplicationSidebar from '../components/UmrahApplicationSidebar';
 import FAQSection from '../components/FAQSection';
+import { supabase } from '@/lib/supabaseClient';
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -79,11 +80,8 @@ const UmrahApplication = () => {
   });
   const [sameAsFirst, setSameAsFirst] = useState(false);
   const [visaType, setVisaType] = useState('express');
-  const visaPrices = {
-    standard: 299,
-    express: 449,
-    rush: 699
-  };
+  const [visaOptions, setVisaOptions] = useState<any[]>([]);
+  const [loadingVisas, setLoadingVisas] = useState(true);
 
   const steps = [
     { number: 1, title: 'Personal Information', icon: User },
@@ -91,6 +89,27 @@ const UmrahApplication = () => {
     { number: 3, title: 'Document Upload', icon: FileText },
     { number: 4, title: 'Payment', icon: CreditCard }
   ];
+
+  useEffect(() => {
+    async function fetchVisaOptions() {
+      setLoadingVisas(true);
+      const { data, error } = await supabase
+        .from('saudi_visas')
+        .select('visa_category, price, processing_time, approval_rate')
+        .eq('visa_type', 'Umrah Visa')
+        .in('visa_category', ['Standard', 'Premium', 'Express'])
+        .eq('status', 'active');
+      if (data) {
+        // Ensure order: Standard, Premium, Express
+        const order = ['Standard', 'Premium', 'Express'];
+        setVisaOptions(order.map(cat => data.find(v => v.visa_category === cat)));
+      } else {
+        setVisaOptions([]);
+      }
+      setLoadingVisas(false);
+    }
+    fetchVisaOptions();
+  }, []);
 
   const handleTravelerInputChange = (field: string, value: string) => {
     setTravelers(prev => {
@@ -205,7 +224,12 @@ const UmrahApplication = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
   };
 
-  const totalVisaPrice = visaPrices[visaType] * travelerCount;
+  // Get selected visa price from visaOptions
+  const selectedVisa = visaOptions.find(
+    v => v && v.visa_category && v.visa_category.toLowerCase() === visaType
+  );
+  const selectedVisaPrice = selectedVisa ? selectedVisa.price : 0;
+  const totalVisaPrice = selectedVisaPrice * travelerCount;
 
   const renderStep1 = () => (
     <div className="space-y-6">
@@ -523,7 +547,7 @@ const UmrahApplication = () => {
             </div>
             <div className="flex justify-between">
               <span>Visa Fee per Traveler:</span>
-              <span className="font-semibold">${visaPrices[visaType]}</span>
+              <span className="font-semibold">₹{selectedVisaPrice?.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
               <span>Number of Travelers:</span>
@@ -532,7 +556,7 @@ const UmrahApplication = () => {
             <hr className="my-2 border-emerald-300" />
             <div className="flex justify-between text-lg font-bold text-emerald-800">
               <span>Total Visa Amount:</span>
-              <span>${totalVisaPrice}</span>
+              <span>₹{totalVisaPrice?.toLocaleString()}</span>
             </div>
           </div>
         </CardContent>
@@ -546,7 +570,7 @@ const UmrahApplication = () => {
             window.open('https://checkout.stripe.com', '_blank');
           }}
         >
-          💳 Pay Now - ${totalVisaPrice}
+          💳 Pay Now - ₹{totalVisaPrice?.toLocaleString()}
         </Button>
         <p className="text-sm text-gray-600 mt-4">
           🔒 Secure payment powered by Stripe. Your card details are safe and encrypted.
@@ -574,30 +598,20 @@ const UmrahApplication = () => {
             <Card className="p-4 mb-6">
               <h2 className="text-xl font-bold text-gray-900 mb-2">Select Umrah Visa Type</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div
-                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'standard' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
-                  onClick={() => setVisaType('standard')}
-                >
-                  <Badge className="bg-blue-100 text-blue-800 mb-1 text-xs px-2 py-1 rounded">Standard</Badge>
-                  <h3 className="font-semibold text-xs mb-1">5-7 Business Days</h3>
-                  <p className="text-xl font-bold text-emerald-600">${visaPrices.standard}</p>
-                </div>
-                <div
-                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'express' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
-                  onClick={() => setVisaType('express')}
-                >
-                  <Badge className="bg-emerald-100 text-emerald-800 mb-1 text-xs px-2 py-1 rounded">Express</Badge>
-                  <h3 className="font-semibold text-xs mb-1">2-4 Business Days</h3>
-                  <p className="text-xl font-bold text-emerald-600">${visaPrices.express}</p>
-                </div>
-                <div
-                  className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === 'rush' ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
-                  onClick={() => setVisaType('rush')}
-                >
-                  <Badge className="bg-red-100 text-red-800 mb-1 text-xs px-2 py-1 rounded">Rush</Badge>
-                  <h3 className="font-semibold text-xs mb-1">1-2 Business Days</h3>
-                  <p className="text-xl font-bold text-emerald-600">${visaPrices.rush}</p>
-                </div>
+                {loadingVisas ? (
+                  <div className="col-span-3 text-center py-8">Loading visa options...</div>
+                ) : visaOptions.map((visa, idx) => visa ? (
+                  <div
+                    key={visa.visa_category}
+                    className={`text-center p-2 border rounded cursor-pointer transition-all ${visaType === visa.visa_category.toLowerCase() ? 'border-emerald-500 bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
+                    onClick={() => setVisaType(visa.visa_category.toLowerCase())}
+                  >
+                    <Badge className={`mb-1 text-xs px-2 py-1 rounded ${visa.visa_category === 'Standard' ? 'bg-blue-100 text-blue-800' : visa.visa_category === 'Premium' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{visa.visa_category}</Badge>
+                    <h3 className="font-semibold text-xs mb-1">{visa.processing_time}</h3>
+                    <p className="text-xl font-bold text-emerald-600">₹{visa.price?.toLocaleString()}</p>
+                    <div className="text-sm mt-1">Approval Rate: <span className="font-semibold">{visa.approval_rate !== undefined && visa.approval_rate !== null ? `${visa.approval_rate}%` : 'Coming Soon'}</span></div>
+                  </div>
+                ) : null)}
               </div>
             </Card>
 
