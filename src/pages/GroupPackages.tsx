@@ -100,9 +100,6 @@ const GroupPackages = () => {
                 <Users className="w-4 h-4 mr-1" />
                 Group Packages
               </Badge>
-              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
-                Group Umrah Packages
-              </h1>
               <p className="text-base md:text-lg text-emerald-100 max-w-xl">
                 Join fellow pilgrims in our carefully crafted group packages
               </p>

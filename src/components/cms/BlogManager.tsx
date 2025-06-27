@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
@@ -468,9 +467,12 @@ const BlogManager = () => {
               Add Blog Post
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" aria-describedby="blog-dialog-desc">
             <DialogHeader>
               <DialogTitle>{editingPost ? 'Edit Blog Post' : 'Add New Blog Post'}</DialogTitle>
+              <DialogDescription id="blog-dialog-desc">
+                Fill out the form to add or edit a blog post. All fields marked with * are required.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -524,7 +526,7 @@ const BlogManager = () => {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <div className="min-h-[500px]">
+                        <div className="min-h-[200px]">
                           <ReactQuill
                             theme="snow"
                             value={field.value}
@@ -543,7 +545,7 @@ const BlogManager = () => {
                               'list', 'bullet', 'link', 'image', 'video'
                             ]}
                             placeholder="Write your blog content here..."
-                            style={{ minHeight: '450px' }}
+                            style={{ minHeight: '200px' }}
                           />
                         </div>
                       </FormControl>

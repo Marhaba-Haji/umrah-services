@@ -33,7 +33,7 @@ import {
   Search,
   Database
 } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useToast } from '@/components/ui/use-toast';

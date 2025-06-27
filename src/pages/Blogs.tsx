@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, ArrowRight, Plane, Hotel, Car, FileText } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 const Blogs = () => {
   const [blogs, setBlogs] = useState([]);

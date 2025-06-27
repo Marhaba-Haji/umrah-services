@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useCurrency } from '../components/Header';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '../integrations/supabase/types';
 
 interface VisaType {

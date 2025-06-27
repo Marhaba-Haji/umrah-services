@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, User, ArrowLeft, FileText, Hotel, Car, Plane, Package } from 'lucide-react';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 const BlogDetail = () => {
   const { slug } = useParams();

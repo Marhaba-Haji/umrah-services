@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Car } from 'lucide-react';
-import { supabase, supabaseUrl } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 const VEHICLE_TYPES = [
   'Sedan', 'Mini Van', 'GMC', 'Large Van', 'Mini Bus', 'Bus', 'Van', 'Coach'

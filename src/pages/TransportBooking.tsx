@@ -9,7 +9,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
 import { useTransportCart } from '../hooks/useTransportCart';
-import { supabase } from '../lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 import { TransportService, VehicleType } from '../types/transport';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIsMobile } from '@/hooks/use-mobile';

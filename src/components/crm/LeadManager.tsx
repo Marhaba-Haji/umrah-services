@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useForm } from 'react-hook-form';
 import { Eye, Edit, Trash2, Plus, Phone, Mail, MessageSquare, Search, Filter } from 'lucide-react';
 import HotelEnquiriesManager from '../../pages/cms/HotelEnquiriesManager';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Lead {
   id: number;

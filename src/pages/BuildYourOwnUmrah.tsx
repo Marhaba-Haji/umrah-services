@@ -360,7 +360,10 @@ const BuildYourOwnUmrah = () => {
   const getFilteredHotels = () => {
     return hotels.filter(hotel => {
       if (searchTerm && !hotel.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-      if (filters.city && filters.city !== 'all' && hotel.city !== filters.city) return false;
+      let cityFilter = filters.city;
+      if (cityFilter === 'MAK') cityFilter = 'makkah';
+      if (cityFilter === 'MED') cityFilter = 'madinah';
+      if (cityFilter && cityFilter !== 'all' && hotel.city.toLowerCase() !== cityFilter) return false;
       return true;
     });
   };
@@ -1061,7 +1064,7 @@ const BuildYourOwnUmrah = () => {
                 <SelectContent>
                   <SelectItem value="JED">Jeddah (JED)</SelectItem>
                   <SelectItem value="MED">Madinah (MED)</SelectItem>
-                  <SelectItem value="MAK">Makkah (Mecca) (MAK)</SelectItem>
+                  <SelectItem value="MAK">Makkah (MAK)</SelectItem>
                 </SelectContent>
               </Select>
               <Popover>
@@ -1459,21 +1462,19 @@ const BuildYourOwnUmrah = () => {
 
       <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
         <SheetTrigger asChild>
-          <Button
-            className="fixed bottom-6 right-6 w-16 h-16 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 z-40"
-            size="lg"
+          <button
+            className="fixed bottom-6 right-6 flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-700 shadow-xl hover:scale-105 transition-all duration-200 z-50 text-white font-semibold text-lg"
+            style={{ minWidth: 180 }}
           >
             <div className="relative">
-              <ShoppingCart className="w-6 h-6" />
+              <ShoppingCart className="w-7 h-7" />
               {cart.length > 0 && (
-                <Badge 
-                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full p-0 flex items-center justify-center bg-red-500 text-white text-xs"
-                >
-                  {cart.length}
-                </Badge>
+                <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center border-2 border-white">{cart.length}</span>
               )}
             </div>
-          </Button>
+            <span className="ml-1">View Cart</span>
+            <span className="ml-2 px-3 py-1 rounded-full bg-white/20 font-bold text-base">₹{getTotalPrice().toFixed(0)}</span>
+          </button>
         </SheetTrigger>
         
         <SheetContent className="w-[400px] sm:w-[540px] bg-white/95 backdrop-blur-md border-l border-gray-200">
@@ -1584,6 +1585,64 @@ const BuildYourOwnUmrah = () => {
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+                      {/* Flight Passenger Editor */}
+                      {item.type === 'flight' && item.details && (
+                        <div className="mt-3 p-2 bg-gray-50 rounded">
+                          <span className="font-medium text-xs text-gray-700 mb-2 block">Passengers</span>
+                          <div className="flex items-center space-x-4 mb-1">
+                            <span className="text-xs text-gray-600 w-12">Adult</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'adults', Math.max(1, (item.details.adults ?? 1) - 1))}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                              disabled={(item.details.adults ?? 1) <= 1}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-xs font-medium w-4 text-center">{item.details.adults ?? 1}</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'adults', (item.details.adults ?? 1) + 1)}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center space-x-4 mb-1">
+                            <span className="text-xs text-gray-600 w-12">Child</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'children', Math.max(0, (item.details.children ?? 0) - 1))}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                              disabled={(item.details.children ?? 0) <= 0}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-xs font-medium w-4 text-center">{item.details.children ?? 0}</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'children', (item.details.children ?? 0) + 1)}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center space-x-4">
+                            <span className="text-xs text-gray-600 w-12">Infant</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'infants', Math.max(0, (item.details.infants ?? 0) - 1))}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                              disabled={(item.details.infants ?? 0) <= 0}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="text-xs font-medium w-4 text-center">{item.details.infants ?? 0}</span>
+                            <button
+                              onClick={() => updateFlightPassengerCount(item, 'infants', Math.min((item.details.adults ?? 1), (item.details.infants ?? 0) + 1))}
+                              className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                              disabled={(item.details.infants ?? 0) >= (item.details.adults ?? 1)}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

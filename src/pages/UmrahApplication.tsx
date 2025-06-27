@@ -9,7 +9,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import UmrahApplicationSidebar from '../components/UmrahApplicationSidebar';
 import FAQSection from '../components/FAQSection';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
