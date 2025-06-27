@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Package, Star, CheckCircle } from 'lucide-react';
+import { Users, Hammer, UserPlus, Star, CheckCircle } from 'lucide-react';
 
 const UmrahPackages = () => {
   const packageTypes = [
@@ -15,8 +15,8 @@ const UmrahPackages = () => {
       icon: Users,
       route: "/group-packages",
       gradient: "from-emerald-500 to-teal-600",
-      price: "Starting from $1,299",
-      duration: "7-15 Days",
+      price: "Starting from Rs. 70,000",
+      duration: "15-20 Days",
       features: [
         "Shared accommodations",
         "Group transportation",
@@ -35,13 +35,13 @@ const UmrahPackages = () => {
       image: "photo-1466442929976-97f336a657be"
     },
     {
-      title: "Independent Short Umrah Packages",
+      title: "Short Independent Package",
       description: "Pre-curated short Umrah packages based on popular customer plans. Enjoy flexibility and independence with handpicked options.",
-      icon: Package,
+      icon: UserPlus,
       route: "/custom-packages",
       gradient: "from-blue-500 to-indigo-600",
-      price: "Starting from $1,899",
-      duration: "5-21 Days",
+      price: "Starting from Rs. 62,000",
+      duration: "3-10 Days",
       features: [
         "Private accommodations",
         "Flexible itinerary",
@@ -61,7 +61,7 @@ const UmrahPackages = () => {
     {
       title: "Build Your Own Umrah Package",
       description: "Create a fully personalized Umrah journey. Select your preferred flights, hotels in Makkah & Madinah, visa, transport, ziarath tours, guides, and more—all in one place.",
-      icon: Star,
+      icon: Hammer,
       route: "/build-your-own-umrah",
       gradient: "from-purple-500 to-pink-600",
       price: "Fully Customizable",
@@ -91,23 +91,23 @@ const UmrahPackages = () => {
       <Header />
       
       {/* Hero Section - compact */}
-      <section className="py-6 md:py-10 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 relative overflow-hidden">
+      <section className="py-4 md:py-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20" />
         <div className="container mx-auto px-4 text-center relative z-10 flex flex-col items-center justify-center">
-          <Badge className="bg-white/20 text-white border-white/30 mb-2 px-3 py-1 text-xs md:text-sm">
+          <Badge className="bg-white/20 text-white border-white/30 mb-1 px-3 py-1 text-xs md:text-sm">
             ✨ Premium Umrah Experience
           </Badge>
-          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 leading-tight">
+          <h1 className="text-xl md:text-3xl font-bold text-white mb-1 leading-snug md:leading-tight">
             Choose Your Umrah Package
           </h1>
-          <p className="text-base md:text-lg text-white/90 max-w-2xl mx-auto leading-snug">
+          <p className="text-sm md:text-base text-white/90 max-w-xl mx-auto leading-snug md:leading-snug">
             Select between our comprehensive group packages or create your own personalized pilgrimage experience
           </p>
         </div>
       </section>
 
-      {/* Package Options - grid moved up */}
-      <section className="py-6 md:py-10 -mt-6 md:-mt-10 relative z-20">
+      {/* Package Options - grid with margin from hero */}
+      <section className="py-6 md:py-10 mt-2 md:mt-4 relative z-20">
         <div className="container mx-auto px-2 md:px-4">
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
             {packageTypes.map((packageType, index) => (
@@ -115,30 +115,37 @@ const UmrahPackages = () => {
                 key={index}
                 className="group relative flex flex-col h-full min-h-[540px] md:min-h-[560px] overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-3 bg-white"
               >
-                {packageType.popular && (
-                  <div className="absolute top-6 right-6 z-20">
-                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold px-3 py-1 shadow-lg">
-                      <Star className="w-3 h-3 mr-1" />
-                      Most Popular
-                    </Badge>
-                  </div>
-                )}
-                {/* Prominent Image */}
-                <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-t-2xl mb-0">
+                {/* Prominent Image with Title Overlay and Most Popular Badge */}
+                <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-t-2xl mb-0 flex items-start justify-between">
+                  <div className="absolute left-0 top-0 w-full h-full bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10" />
                   <img 
                     src={`https://images.unsplash.com/${packageType.image}?w=800&h=400&fit=crop`} 
                     alt={packageType.title}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 z-0"
                   />
-                  <div className={`absolute inset-0 bg-gradient-to-br ${packageType.gradient} opacity-10 group-hover:opacity-20 transition-opacity duration-500`} />
+                  {/* Title Overlay - centered and single line */}
+                  <div className="absolute left-0 top-0 w-full pt-4 z-20 flex justify-center">
+                    <div className="text-lg md:text-xl font-bold text-white drop-shadow-lg bg-gradient-to-r from-emerald-700/80 via-emerald-600/70 to-teal-600/80 rounded-lg px-3 py-1.5 tracking-wide shadow border border-white/10 max-w-[90%] truncate text-center">
+                      {packageType.title}
+                    </div>
+                  </div>
+                  {/* Card Icon - bottom left of image */}
+                  <div className="absolute bottom-3 left-3 z-30">
+                    <div className={`w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-md`}>
+                      <packageType.icon className="w-5 h-5 text-emerald-700" />
+                    </div>
+                  </div>
+                  {/* Most Popular Badge only for Independent Short Umrah Packages - repositioned to bottom right */}
+                  {packageType.title === 'Short Independent Package' && (
+                    <div className="absolute bottom-4 right-4 z-30">
+                      <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold px-3 py-1 shadow-lg">
+                        <Star className="w-3 h-3 mr-1" />
+                        Most Popular
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <CardHeader className="relative z-10 p-5 pb-2 flex-1 flex flex-col">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${packageType.gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                    <packageType.icon className="w-7 h-7 text-white" />
-                  </div>
-                  <CardTitle className="text-lg md:text-xl font-bold text-gray-900 mb-1 group-hover:text-emerald-700 transition-colors">
-                    {packageType.title}
-                  </CardTitle>
                   <p className="text-gray-600 text-sm md:text-base leading-relaxed mb-2">
                     {packageType.description}
                   </p>
@@ -153,7 +160,7 @@ const UmrahPackages = () => {
                       <div className="text-sm font-semibold text-gray-900">
                         {packageType.duration}
                       </div>
-                      <div className="text-xs text-gray-500">flexible</div>
+                      <div className="text-xs text-gray-500">{['Group Umrah Packages', 'Short Independent Package'].includes(packageType.title) ? 'fixed' : 'flexible'}</div>
                     </div>
                   </div>
                 </CardHeader>

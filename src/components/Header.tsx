@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useRef, useEffect } from 'react';
 import { Menu, X, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,6 +13,9 @@ export const useCurrency = () => useContext(CurrencyContext);
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currency, setCurrency] = useState('INR');
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(window.scrollY);
+  const ticking = useRef(false);
   const navigate = useNavigate();
   const currencies = [{
     code: 'USD',
@@ -38,11 +41,37 @@ const Header = () => {
     }, 100);
     setIsMenuOpen(false);
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      window.requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        if (isMenuOpen) {
+          setShowHeader(true);
+        } else if (currentScrollY < 40) {
+          setShowHeader(true);
+        } else if (currentScrollY > lastScrollY.current) {
+          // Scrolling down
+          setShowHeader(false);
+        } else if (currentScrollY < lastScrollY.current) {
+          // Scrolling up
+          setShowHeader(true);
+        }
+        lastScrollY.current = currentScrollY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isMenuOpen]);
+
   return <CurrencyContext.Provider value={{
     currency,
     setCurrency
   }}>
-      <header className="sticky top-0 z-50 bg-white shadow-lg border-b border-[#023f3a]/10">
+      <header className={`sticky top-0 z-50 bg-white shadow-lg border-b border-[#023f3a]/10 transition-transform duration-300 will-change-transform ${showHeader ? 'translate-y-0' : '-translate-y-full'}`}>
         {/* Top bar with currency selection */}
         <div className="bg-[#023f3a] text-white py-2">
           <div className="container mx-auto px-4">
