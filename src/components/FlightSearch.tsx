@@ -738,10 +738,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
                       )}
                       style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
                     >
-                      {isExpanded && (
+                    {isExpanded && (
                         <FlightDetails offer={flight.rawOffer} />
                       )}
-                    </div>
+                      </div>
                   </div>
                 );
               })}

@@ -63,7 +63,7 @@ const Blogs = () => {
   ];
 
   const featuredBlogs = blogs.slice(0, 3);
-  const recentBlogs = blogs.slice(3, 6);
+  const recentBlogs = blogs.slice(0, 3);
 
   if (loading) return <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
   if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
@@ -90,11 +90,13 @@ const Blogs = () => {
                 <React.Fragment key={blog.id}>
                   <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden">
                     <div className="relative overflow-hidden">
-                      <img 
-                        src={blog.image} 
-                        alt={blog.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      {blog.featured_image && (
+                        <img
+                          src={blog.featured_image}
+                          alt={blog.title}
+                          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
                       <div className="absolute top-4 left-4">
                         <span className="bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-medium">
                           {blog.category}
@@ -118,7 +120,7 @@ const Blogs = () => {
                           </span>
                           <span className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
-                            <span>{new Date(blog.date).toLocaleDateString()}</span>
+                            <span>{blog.publish_date ? new Date(blog.publish_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}</span>
                           </span>
                           <span className="flex items-center space-x-1">
                             <Clock className="w-4 h-4" />
@@ -210,7 +212,7 @@ const Blogs = () => {
                     <div key={blog.id} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
                       <Link to={`/blog-post/${blog.slug}`} className="block hover:text-emerald-600 transition-colors">
                         <h4 className="font-medium text-sm mb-1 line-clamp-2">{blog.title}</h4>
-                        <p className="text-xs text-gray-500">{new Date(blog.date).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-500">{blog.publish_date ? new Date(blog.publish_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}</p>
                       </Link>
                     </div>
                   ))}
@@ -223,14 +225,18 @@ const Blogs = () => {
                   <CardTitle className="text-lg">Recent Blogs</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {recentBlogs.map((blog) => (
-                    <div key={blog.id} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
-                      <Link to={`/blog-post/${blog.slug}`} className="block hover:text-emerald-600 transition-colors">
-                        <h4 className="font-medium text-sm mb-1 line-clamp-2">{blog.title}</h4>
-                        <p className="text-xs text-gray-500">{new Date(blog.date).toLocaleDateString()}</p>
-                      </Link>
-                    </div>
-                  ))}
+                  {recentBlogs.length === 0 ? (
+                    <p className="text-xs text-gray-500">No recent blogs found.</p>
+                  ) : (
+                    recentBlogs.map((blog) => (
+                      <div key={blog.id} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
+                        <Link to={`/blog-post/${blog.slug}`} className="block hover:text-emerald-600 transition-colors">
+                          <h4 className="font-medium text-sm mb-1 line-clamp-2">{blog.title}</h4>
+                          <p className="text-xs text-gray-500">{blog.publish_date ? new Date(blog.publish_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}</p>
+                        </Link>
+                      </div>
+                    ))
+                  )}
                 </CardContent>
               </Card>
             </div>

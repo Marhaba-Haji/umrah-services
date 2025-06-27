@@ -57,6 +57,7 @@ interface BlogPost {
   related_searches?: string[] | null;
   news_keywords?: string | null;
   date_modified?: string | null;
+  author_name?: string | null;
 }
 
 interface Category {
@@ -170,17 +171,16 @@ const BlogManager = () => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `blog-images/${fileName}`;
-
+      // Upload to the bucket with just the file name (no 'blog-images/' prefix)
       const { error: uploadError } = await supabase.storage
         .from('blog-images')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from('blog-images')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       form.setValue('featured_image', publicUrl);
       toast({
@@ -334,13 +334,13 @@ const BlogManager = () => {
         faq_schema: data.faq_schema ? JSON.parse(data.faq_schema) : null,
         howto_schema: data.howto_schema ? JSON.parse(data.howto_schema) : null,
         local_business_schema: data.local_business_schema ? JSON.parse(data.local_business_schema) : null,
-        author_url: null, // Removed author_url field
+        author_name: data.author_name || null,
         review_rating: data.review_rating ? parseFloat(data.review_rating) : null,
         video_url: data.video_url || null,
         image_gallery: data.image_gallery ? data.image_gallery.split(',').map(url => url.trim()) : null,
         related_searches: data.related_searches ? data.related_searches.split(',').map(keyword => keyword.trim()) : null,
         news_keywords: data.news_keywords || null,
-        date_modified: data.date_modified || null,
+        date_modified: new Date().toISOString(),
       };
 
       let result;
@@ -408,9 +408,9 @@ const BlogManager = () => {
       faq_schema: post.faq_schema ? JSON.stringify(post.faq_schema) : '',
       howto_schema: post.howto_schema ? JSON.stringify(post.howto_schema) : '',
       local_business_schema: post.local_business_schema ? JSON.stringify(post.local_business_schema) : '',
-      author_name: post.profiles?.first_name && post.profiles?.last_name 
+      author_name: post.author_name || (post.profiles?.first_name && post.profiles?.last_name 
         ? `${post.profiles.first_name} ${post.profiles.last_name}` 
-        : '',
+        : ''),
       review_rating: post.review_rating ? post.review_rating.toString() : '',
       video_url: post.video_url || '',
       image_gallery: post.image_gallery ? post.image_gallery.join(', ') : '',
@@ -918,19 +918,6 @@ const BlogManager = () => {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="date_modified"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date Modified</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </div>
 
@@ -975,9 +962,11 @@ const BlogManager = () => {
                       </Badge>
                     </td>
                     <td className="p-2">
-                      {post.profiles?.first_name && post.profiles?.last_name 
-                        ? `${post.profiles.first_name} ${post.profiles.last_name}`
-                        : 'Unknown'
+                      {post.author_name
+                        ? post.author_name
+                        : (post.profiles?.first_name && post.profiles?.last_name
+                            ? `${post.profiles.first_name} ${post.profiles.last_name}`
+                            : 'Unknown')
                       }
                     </td>
                     <td className="p-2">

@@ -105,11 +105,13 @@ const BlogDetail = () => {
             <article>
               {/* Hero Image */}
               <div className="relative overflow-hidden rounded-2xl mb-8">
-                <img 
-                  src={blog.image} 
-                  alt={blog.title}
-                  className="w-full h-64 md:h-96 object-cover"
-                />
+                {blog.featured_image && (
+                  <img
+                    src={blog.featured_image}
+                    className="w-full h-64 md:h-96 object-cover"
+                    alt={blog.title}
+                  />
+                )}
                 <div className="absolute top-6 left-6">
                   <span className="bg-emerald-600 text-white px-4 py-2 rounded-full text-sm font-medium">
                     {blog.category}
@@ -130,11 +132,7 @@ const BlogDetail = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Calendar className="w-5 h-5" />
-                    <span>{new Date(blog.date).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</span>
+                    <span>{blog.publish_date ? new Date(blog.publish_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Clock className="w-5 h-5" />
@@ -151,6 +149,11 @@ const BlogDetail = () => {
                     .replace(/class="cta-link"/g, 'class="text-emerald-600 font-semibold hover:text-emerald-700 underline transition-colors"')
                 }}
               />
+
+              {/* Author Name at End */}
+              <div className="mt-8 text-right text-gray-700 text-base italic">
+                Author: {blog.author_name || blog.author || 'Unknown'}
+              </div>
 
               {/* Share Section */}
               <div className="border-t border-gray-200 pt-8">
