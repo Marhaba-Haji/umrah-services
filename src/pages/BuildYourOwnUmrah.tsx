@@ -444,7 +444,7 @@ const BuildYourOwnUmrah = () => {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cart.reduce((total, item) => total + (item.type === 'flight' ? getFlightCartPrice(item) : item.price * item.quantity), 0);
   };
 
   const renderStepContent = () => {
@@ -1061,8 +1061,7 @@ const BuildYourOwnUmrah = () => {
                 <SelectContent>
                   <SelectItem value="JED">Jeddah (JED)</SelectItem>
                   <SelectItem value="MED">Madinah (MED)</SelectItem>
-                  <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
-                  {/* Add more valid IATA codes as needed */}
+                  <SelectItem value="MAK">Makkah (Mecca) (MAK)</SelectItem>
                 </SelectContent>
               </Select>
               <Popover>
@@ -1280,7 +1279,7 @@ const BuildYourOwnUmrah = () => {
 
     toast({
       title: "Package Created!",
-      description: `Your custom Umrah package (${cart.length} items, ₹${getTotalPrice()}) has been created. We'll contact you shortly to finalize the booking.`,
+      description: `Your custom Umrah package (${cart.length} items, ₹${getTotalPrice().toFixed(2)}) has been created. We'll contact you shortly to finalize the booking.`,
     });
 
     setCart([]);
@@ -1308,6 +1307,34 @@ const BuildYourOwnUmrah = () => {
           }
         : ci
     ));
+  };
+
+  const updateFlightPassengerCount = (item: CartItem, type: string, value: number) => {
+    setCart(prevCart => prevCart.map(ci =>
+      ci.id === item.id && ci.type === 'flight'
+        ? {
+            ...ci,
+            details: {
+              ...ci.details,
+              [type]: value,
+              // If adults changed, ensure infants <= adults
+              ...(type === 'adults' && ci.details.infants > value ? { infants: value } : {})
+            }
+          }
+        : ci
+    ));
+  };
+
+  // Helper to calculate flight price based on passenger counts and per-type prices
+  const getFlightCartPrice = (item) => {
+    if (item.type !== 'flight' || !item.details) return item.price * item.quantity;
+    const adults = item.details.adults ?? 1;
+    const children = item.details.children ?? 0;
+    const infants = item.details.infants ?? 0;
+    const adultPrice = item.details.adultPrice ?? 0;
+    const childPrice = item.details.childPrice ?? 0;
+    const infantPrice = item.details.infantPrice ?? 0;
+    return (adults * adultPrice) + (children * childPrice) + (infants * infantPrice);
   };
 
   return (
@@ -1483,26 +1510,6 @@ const BuildYourOwnUmrah = () => {
                           <X className="w-4 h-4" />
                         </button>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.type, item.quantity - 1)}
-                            className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.type, item.quantity + 1)}
-                            className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                        </div>
-                        <span className="font-semibold text-emerald-600">
-                          ₹{(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
                       {/* Hotel Room/Guest Editor */}
                       {item.type === 'hotel' && item.details && (
                         <div className="mt-3 p-2 bg-gray-50 rounded">
@@ -1520,6 +1527,7 @@ const BuildYourOwnUmrah = () => {
                                   updateHotelCartDetails(item, newRooms);
                                 }
                               }}
+                              disabled={Array.isArray(item.details.rooms) ? item.details.rooms.length >= 6 : false}
                             >
                               <Plus className="w-3 h-3 mr-1" /> Add Room
                             </Button>
@@ -1539,6 +1547,7 @@ const BuildYourOwnUmrah = () => {
                                   }}
                                   className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 text-gray-400"
                                   title="Remove Room"
+                                  disabled={Array.isArray(item.details.rooms) ? item.details.rooms.length <= 1 : true}
                                 >
                                   <Trash className="w-3 h-3" />
                                 </button>
@@ -1556,6 +1565,7 @@ const BuildYourOwnUmrah = () => {
                                   <Minus className="w-3 h-3" />
                                 </button>
                                 <span className="text-xs font-medium w-4 text-center">{room.guests}</span>
+                                {/* Add plus button for incrementing guests */}
                                 <button
                                   onClick={() => {
                                     // Increase guests (max 4)
@@ -1566,6 +1576,7 @@ const BuildYourOwnUmrah = () => {
                                     updateHotelCartDetails(item, newRooms);
                                   }}
                                   className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                                  disabled={room.guests >= 4}
                                 >
                                   <Plus className="w-3 h-3" />
                                 </button>
