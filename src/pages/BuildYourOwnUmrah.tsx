@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { CalendarIcon, Search, Filter, Star, MapPin, Users, Clock, Plane, Car, UserCheck, Mountain, ShoppingCart, Plus, Minus, X } from 'lucide-react';
+import { CalendarIcon, Search, Filter, Star, MapPin, Users, Clock, Plane, Car, UserCheck, Mountain, ShoppingCart, Plus, Minus, X, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import FlightStep from '../components/FlightStep';
+import { AmadeusAPI, AmadeusHotelSearchParams } from '@/utils/amadeusApi';
 
 interface Hotel {
   id: string;
@@ -138,6 +139,11 @@ const BuildYourOwnUmrah = () => {
     language: '',
     duration: ''
   });
+
+  const [amadeusHotels, setAmadeusHotels] = useState<any[]>([]);
+  const [amadeusLoading, setAmadeusLoading] = useState(false);
+  const [amadeusSearchPerformed, setAmadeusSearchPerformed] = useState(false);
+  const amadeus = new AmadeusAPI(import.meta.env.VITE_AMADEUS_API_KEY, import.meta.env.VITE_AMADEUS_API_SECRET);
 
   const calculateNights = () => {
     if (filters.checkin && filters.checkout) {
@@ -460,99 +466,191 @@ const BuildYourOwnUmrah = () => {
     }
   };
 
+  const handleAmadeusHotelSearch = async () => {
+    if (!filters.city || filters.city.length !== 3 || !filters.checkin || !filters.checkout || getTotalGuests() < 1) {
+      toast({ title: 'Missing fields', description: 'Please select a valid city and fill all hotel search fields', variant: 'destructive' });
+      return;
+    }
+    setAmadeusLoading(true);
+    setAmadeusSearchPerformed(true);
+    setAmadeusHotels([]);
+    try {
+      // Step 1: Get hotel IDs for the city
+      const hotelIdsArr = await amadeus.getHotelIdsByCity(filters.city);
+      if (!hotelIdsArr || hotelIdsArr.length === 0) {
+        toast({ title: 'No Hotels Found', description: 'No hotels found for this city.', variant: 'destructive' });
+        setAmadeusLoading(false);
+        return;
+      }
+      // Step 2: Search hotel offers using hotelIds
+      const params: any = {
+        hotelIds: hotelIdsArr.slice(0, 100).join(','), // Amadeus allows up to 100 IDs
+        checkInDate: filters.checkin.toISOString().slice(0, 10),
+        checkOutDate: filters.checkout.toISOString().slice(0, 10),
+        adults: getTotalGuests(),
+      };
+      const data = await amadeus.searchHotels(params);
+      setAmadeusHotels(data.data || []);
+      if (!data.data || data.data.length === 0) {
+        toast({ title: 'No Hotels Found', description: 'No hotels found for your search.', variant: 'destructive' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Search Failed', description: error.message || 'Unable to search hotels.', variant: 'destructive' });
+    } finally {
+      setAmadeusLoading(false);
+    }
+  };
+
   const renderHotels = () => (
     <div className="space-y-6">
-      {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {getFilteredHotels().map(hotel => {
-            const nights = calculateNights();
-            const totalGuests = getTotalGuests();
-            const totalRooms = filters.rooms.length;
-            const totalPrice = hotel.price_per_night * nights * totalRooms;
-            
-            return (
-              <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
-                <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-blue-100">
-                  {hotel.images && hotel.images[0] ? (
-                    <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <MapPin className="w-12 h-12 text-emerald-600" />
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2 bg-white rounded-full p-1">
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                      <span className="text-xs font-medium">{hotel.rating}</span>
-                    </div>
-                  </div>
+      {/* Move Search Hotels button to the left */}
+      <div className="flex justify-start mb-2">
+        <Button onClick={handleAmadeusHotelSearch} className="bg-emerald-600 text-white" disabled={amadeusLoading}>
+          <Search className="w-4 h-4 mr-1" />
+          {amadeusLoading ? 'Searching...' : 'Search Hotels'}
+        </Button>
+      </div>
+      {/* Amadeus Results */}
+      {amadeusSearchPerformed ? (
+        amadeusLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {amadeusHotels.map((hotel: any) => (
+              <Card key={hotel.hotel.hotelId} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-blue-100 flex items-center justify-center">
+                  {/* Amadeus does not always provide images in this endpoint */}
+                  <span className="text-2xl font-bold text-emerald-700">{hotel.hotel.name}</span>
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-lg mb-2">{hotel.name}</h3>
+                  <h3 className="font-semibold text-lg mb-2">{hotel.hotel.name}</h3>
                   <div className="flex items-center text-gray-600 mb-2">
                     <MapPin className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{hotel.city}</span>
+                    <span className="text-sm">{hotel.hotel.cityCode}</span>
                   </div>
-                  {hotel.distance_from_haram && (
-                    <p className="text-xs text-gray-500 mb-2">{hotel.distance_from_haram} from Haram</p>
-                  )}
-                  
-                  {nights > 0 && (
+                  <div className="text-xs text-gray-500 mb-2">{hotel.hotel.address?.lines?.join(', ')}</div>
+                  {hotel.offers && hotel.offers[0] && (
                     <div className="bg-gray-50 rounded-lg p-3 mb-3 text-sm">
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-gray-600">Duration:</span>
-                        <span className="font-medium">{nights} nights</span>
+                        <span className="text-gray-600">Room Type:</span>
+                        <span className="font-medium">{hotel.offers[0].room?.typeEstimated?.category || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between items-center mb-1">
-                        <span className="text-gray-600">Rooms:</span>
-                        <span className="font-medium">{totalRooms}</span>
+                        <span className="text-gray-600">Guests:</span>
+                        <span className="font-medium">{hotel.offers[0].guests?.adults || getTotalGuests()}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Guests:</span>
-                        <span className="font-medium">{totalGuests}</span>
+                        <span className="text-gray-600">Price:</span>
+                        <span className="font-bold text-emerald-600">{hotel.offers[0].price?.currency} {hotel.offers[0].price?.total}</span>
                       </div>
                     </div>
                   )}
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-right">
-                      <div className="text-sm text-gray-500">${hotel.price_per_night}/night</div>
-                      {nights > 0 && (
-                        <div className="text-xl font-bold text-emerald-600">${totalPrice}</div>
-                      )}
-                    </div>
-                    <Button 
-                      size="sm"
-                      onClick={() => addToCart({
-                        id: hotel.id,
-                        type: 'hotel',
-                        name: `${hotel.name} (${nights} nights)`,
-                        price: totalPrice,
-                        details: { 
-                          city: hotel.city, 
-                          rating: hotel.rating,
-                          nights: nights,
-                          rooms: totalRooms,
-                          guests: totalGuests,
-                          checkin: filters.checkin,
-                          checkout: filters.checkout
-                        }
-                      })}
-                      disabled={!filters.checkin || !filters.checkout}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
+                  <Button size="sm" onClick={() => addToCart({
+                    id: hotel.hotel.hotelId,
+                    type: 'hotel',
+                    name: hotel.hotel.name,
+                    price: hotel.offers && hotel.offers[0] ? Number(hotel.offers[0].price?.total) : 0,
+                    details: hotel
+                  })}>
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add
+                  </Button>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )
+      ) : (
+        // Default: show Supabase hotels
+        getFilteredHotels().length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-xl font-bold text-emerald-800 mb-2">Partner Hotels</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {getFilteredHotels().map(hotel => {
+                const nights = calculateNights();
+                const totalGuests = getTotalGuests();
+                const totalRooms = filters.rooms.length;
+                const totalPrice = hotel.price_per_night * nights * totalRooms;
+                return (
+                  <Card key={hotel.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    <div className="relative h-48 bg-gradient-to-br from-emerald-100 to-blue-100">
+                      {hotel.images && hotel.images[0] ? (
+                        <img src={hotel.images[0]} alt={hotel.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <MapPin className="w-12 h-12 text-emerald-600" />
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                          <span className="text-xs font-medium">{hotel.rating}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-lg mb-2">{hotel.name}</h3>
+                      <div className="flex items-center text-gray-600 mb-2">
+                        <MapPin className="w-4 h-4 mr-1" />
+                        <span className="text-sm">{hotel.city}</span>
+                      </div>
+                      {hotel.distance_from_haram && (
+                        <p className="text-xs text-gray-500 mb-2">{hotel.distance_from_haram} from Haram</p>
+                      )}
+                      {nights > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-3 mb-3 text-sm">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-gray-600">Duration:</span>
+                            <span className="font-medium">{nights} nights</span>
+                          </div>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-gray-600">Rooms:</span>
+                            <span className="font-medium">{totalRooms}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Guests:</span>
+                            <span className="font-medium">{totalGuests}</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <div className="text-right">
+                          <div className="text-sm text-gray-500">₹{hotel.price_per_night}/night</div>
+                          {nights > 0 && (
+                            <div className="text-xl font-bold text-emerald-600">₹{totalPrice}</div>
+                          )}
+                        </div>
+                        <Button 
+                          size="sm"
+                          onClick={() => addToCart({
+                            id: hotel.id,
+                            type: 'hotel',
+                            name: `${hotel.name} (${nights} nights)`,
+                            price: totalPrice > 0 ? totalPrice : hotel.price_per_night,
+                            details: { 
+                              city: hotel.city, 
+                              rating: hotel.rating,
+                              nights: nights,
+                              rooms: totalRooms,
+                              guests: totalGuests,
+                              checkin: filters.checkin,
+                              checkout: filters.checkout
+                            }
+                          })}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )
       )}
     </div>
   );
@@ -676,7 +774,7 @@ const BuildYourOwnUmrah = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-emerald-600">${visa.price}</div>
+                    <div className="text-xl font-bold text-emerald-600">₹{visa.price}</div>
                   </div>
                 </div>
                 <div className="space-y-2 mb-4">
@@ -728,7 +826,7 @@ const BuildYourOwnUmrah = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-emerald-600">${transport.price}</div>
+                    <div className="text-xl font-bold text-emerald-600">₹{transport.price}</div>
                   </div>
                 </div>
                 <div className="space-y-2 mb-4">
@@ -814,7 +912,7 @@ const BuildYourOwnUmrah = () => {
                   </div>
                   {guide.price && (
                     <div className="text-right">
-                      <div className="text-xl font-bold text-emerald-600">${guide.price}</div>
+                      <div className="text-xl font-bold text-emerald-600">₹{guide.price}</div>
                     </div>
                   )}
                 </div>
@@ -895,7 +993,7 @@ const BuildYourOwnUmrah = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-emerald-600">${ziarath.price}</div>
+                    <div className="text-xl font-bold text-emerald-600">₹{ziarath.price}</div>
                   </div>
                 </div>
                 <div className="space-y-2 mb-4">
@@ -955,22 +1053,21 @@ const BuildYourOwnUmrah = () => {
       case 1:
         return (
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
-              <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value === 'all' ? '' : value })}>
+            <div className="grid grid-cols-4 gap-4 items-end">
+              <Select value={filters.city} onValueChange={(value) => setFilters({ ...filters, city: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="City" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Cities</SelectItem>
-                  <SelectItem value="Makkah">Makkah</SelectItem>
-                  <SelectItem value="Madinah">Madinah</SelectItem>
-                  <SelectItem value="Jeddah">Jeddah</SelectItem>
+                  <SelectItem value="JED">Jeddah (JED)</SelectItem>
+                  <SelectItem value="MED">Madinah (MED)</SelectItem>
+                  <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
+                  {/* Add more valid IATA codes as needed */}
                 </SelectContent>
               </Select>
-              
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal", !filters.checkin && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal w-full", !filters.checkin && "text-muted-foreground")}> 
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {filters.checkin ? format(filters.checkin, "PPP") : "Check-in date"}
                   </Button>
@@ -985,10 +1082,9 @@ const BuildYourOwnUmrah = () => {
                   />
                 </PopoverContent>
               </Popover>
-              
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal", !filters.checkout && "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal w-full", !filters.checkout && "text-muted-foreground")}> 
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {filters.checkout ? format(filters.checkout, "PPP") : "Check-out date"}
                   </Button>
@@ -1003,43 +1099,28 @@ const BuildYourOwnUmrah = () => {
                   />
                 </PopoverContent>
               </Popover>
-            </div>
-
-            {calculateNights() > 0 && (
-              <div className="text-center">
-                <Badge variant="secondary" className="text-sm">
-                  {calculateNights()} {calculateNights() === 1 ? 'night' : 'nights'}
-                </Badge>
+              {/* Nights count badge styled as a field */}
+              <div className="flex items-center h-10 w-full">
+                <span className="flex-1 flex items-center justify-center h-10 rounded-lg bg-yellow-100 text-emerald-900 text-base font-semibold">
+                  {calculateNights() > 0 ? `${calculateNights()} night${calculateNights() === 1 ? '' : 's'}` : '0 nights'}
+                </span>
               </div>
-            )}
-
+            </div>
+            {/* Remove the separate line for the badge */}
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="font-medium text-gray-700">Rooms & Guests</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addRoom}
-                  className="h-8"
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Room
-                </Button>
+                <span className="text-sm text-gray-600">Total: {filters.rooms.length} room{filters.rooms.length > 1 ? 's' : ''}, {getTotalGuests()} guest{getTotalGuests() > 1 ? 's' : ''}</span>
               </div>
-              
               <div className="space-y-3">
                 {filters.rooms.map((room, index) => (
                   <div key={room.id} className="flex items-center justify-between bg-white rounded-lg p-3">
                     <div className="flex items-center space-x-4">
-                      <span className="text-sm font-medium text-gray-600">
-                        Room {index + 1}
-                      </span>
+                      <span className="text-sm font-medium text-gray-600">Room {index + 1}</span>
                       <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-500">Guests:</span>
                         <div className="flex items-center space-x-1">
                           <Button
-                            type="button"
                             variant="outline"
                             size="sm"
                             className="h-6 w-6 p-0"
@@ -1069,16 +1150,26 @@ const BuildYourOwnUmrah = () => {
                         size="sm"
                         className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
                         onClick={() => removeRoom(room.id)}
+                        aria-label="Remove Room"
                       >
-                        <X className="w-3 h-3" />
+                        <Trash className="w-4 h-4" />
                       </Button>
                     )}
                   </div>
                 ))}
               </div>
-              
-              <div className="mt-3 text-sm text-gray-600 text-center">
-                Total: {filters.rooms.length} {filters.rooms.length === 1 ? 'room' : 'rooms'}, {getTotalGuests()} {getTotalGuests() === 1 ? 'guest' : 'guests'}
+              {/* Move Add Room button to the left */}
+              <div className="flex justify-start mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addRoom}
+                  className="h-8"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Room
+                </Button>
               </div>
             </div>
           </div>
@@ -1189,10 +1280,34 @@ const BuildYourOwnUmrah = () => {
 
     toast({
       title: "Package Created!",
-      description: `Your custom Umrah package (${cart.length} items, $${getTotalPrice()}) has been created. We'll contact you shortly to finalize the booking.`,
+      description: `Your custom Umrah package (${cart.length} items, ₹${getTotalPrice()}) has been created. We'll contact you shortly to finalize the booking.`,
     });
 
     setCart([]);
+  };
+
+  const updateHotelCartDetails = (item: CartItem, newRooms: RoomConfig[]) => {
+    // Recalculate total guests and price
+    const nights = item.details.nights || 1;
+    const pricePerNight = item.details.price_per_night || item.price;
+    const totalRooms = newRooms.length;
+    const totalGuests = newRooms.reduce((sum, r) => sum + r.guests, 0);
+    const newPrice = pricePerNight * nights * totalRooms;
+    setCart(prevCart => prevCart.map(ci =>
+      ci.id === item.id && ci.type === 'hotel'
+        ? {
+            ...ci,
+            price: newPrice,
+            details: {
+              ...ci.details,
+              rooms: newRooms,
+              guests: totalGuests,
+              roomsCount: totalRooms
+            },
+            name: `${ci.details?.name || ci.name.split(' (')[0]} (${nights} nights)`
+          }
+        : ci
+    ));
   };
 
   return (
@@ -1385,9 +1500,81 @@ const BuildYourOwnUmrah = () => {
                           </button>
                         </div>
                         <span className="font-semibold text-emerald-600">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
+                      {/* Hotel Room/Guest Editor */}
+                      {item.type === 'hotel' && item.details && (
+                        <div className="mt-3 p-2 bg-gray-50 rounded">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-xs text-gray-700">Rooms & Guests</span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 py-0 text-xs"
+                              onClick={() => {
+                                // Add a new room (max 6 rooms)
+                                const rooms = Array.isArray(item.details.rooms) ? item.details.rooms : [{ id: '1', guests: 1 }];
+                                if (rooms.length < 6) {
+                                  const newRooms = [...rooms, { id: (rooms.length + 1).toString(), guests: 1 }];
+                                  updateHotelCartDetails(item, newRooms);
+                                }
+                              }}
+                            >
+                              <Plus className="w-3 h-3 mr-1" /> Add Room
+                            </Button>
+                          </div>
+                          {(Array.isArray(item.details.rooms) ? item.details.rooms : [{ id: '1', guests: 1 }]).map((room: any, idx: number) => (
+                            <div key={room.id} className="flex items-center justify-between mb-1 pl-2">
+                              <span className="text-xs text-gray-600">Room {idx + 1}</span>
+                              <div className="flex items-center space-x-1">
+                                <button
+                                  onClick={() => {
+                                    // Remove room (min 1 room)
+                                    const rooms = Array.isArray(item.details.rooms) ? item.details.rooms : [{ id: '1', guests: 1 }];
+                                    if (rooms.length > 1) {
+                                      const newRooms = rooms.filter((r: any) => r.id !== room.id);
+                                      updateHotelCartDetails(item, newRooms);
+                                    }
+                                  }}
+                                  className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 text-gray-400"
+                                  title="Remove Room"
+                                >
+                                  <Trash className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    // Decrease guests (min 1)
+                                    const rooms = Array.isArray(item.details.rooms) ? item.details.rooms : [{ id: '1', guests: 1 }];
+                                    const newRooms = rooms.map((r: any) =>
+                                      r.id === room.id ? { ...r, guests: Math.max(1, r.guests - 1) } : r
+                                    );
+                                    updateHotelCartDetails(item, newRooms);
+                                  }}
+                                  className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs font-medium w-4 text-center">{room.guests}</span>
+                                <button
+                                  onClick={() => {
+                                    // Increase guests (max 4)
+                                    const rooms = Array.isArray(item.details.rooms) ? item.details.rooms : [{ id: '1', guests: 1 }];
+                                    const newRooms = rooms.map((r: any) =>
+                                      r.id === room.id ? { ...r, guests: Math.min(4, r.guests + 1) } : r
+                                    );
+                                    updateHotelCartDetails(item, newRooms);
+                                  }}
+                                  className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                                <span className="text-xs text-gray-400 ml-2">Guests</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1396,7 +1583,7 @@ const BuildYourOwnUmrah = () => {
                   <div className="flex items-center justify-between mb-4">
                     <span className="font-semibold text-lg text-gray-900">Total</span>
                     <span className="font-bold text-2xl text-emerald-600">
-                      ${getTotalPrice().toFixed(2)}
+                      ₹{getTotalPrice().toFixed(2)}
                     </span>
                   </div>
                   

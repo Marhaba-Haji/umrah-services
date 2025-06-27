@@ -1,4 +1,3 @@
-
 interface AmadeusTokenResponse {
   access_token: string;
   token_type: string;
@@ -16,6 +15,16 @@ interface AmadeusFlightSearchParams {
   travelClass?: 'ECONOMY' | 'PREMIUM_ECONOMY' | 'BUSINESS' | 'FIRST';
   nonStop?: boolean;
   max?: number;
+}
+
+interface AmadeusHotelSearchParams {
+  cityCode: string;
+  checkInDate: string;
+  checkOutDate: string;
+  adults: number;
+  roomQuantity?: number;
+  radius?: number;
+  hotelName?: string;
 }
 
 class AmadeusAPI {
@@ -135,7 +144,51 @@ class AmadeusAPI {
     const data = await response.json();
     return data;
   }
+
+  async searchHotels(params: AmadeusHotelSearchParams) {
+    const token = await this.getAccessToken();
+    const url = new URL(`${this.baseUrl}/v3/shopping/hotel-offers`);
+    url.searchParams.append('cityCode', params.cityCode);
+    url.searchParams.append('checkInDate', params.checkInDate);
+    url.searchParams.append('checkOutDate', params.checkOutDate);
+    url.searchParams.append('adults', params.adults.toString());
+    if (params.roomQuantity) url.searchParams.append('roomQuantity', params.roomQuantity.toString());
+    if (params.radius) url.searchParams.append('radius', params.radius.toString());
+    if (params.hotelName) url.searchParams.append('hotelName', params.hotelName);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Hotel search failed: ${response.statusText} - ${JSON.stringify(errorData)}`);
+    }
+    const data = await response.json();
+    return data;
+  }
+
+  async getHotelIdsByCity(cityCode: string): Promise<string[]> {
+    const token = await this.getAccessToken();
+    const url = new URL(`${this.baseUrl}/v1/reference-data/locations/hotels/by-city`);
+    url.searchParams.append('cityCode', cityCode);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Hotel ID fetch failed: ${response.statusText} - ${JSON.stringify(errorData)}`);
+    }
+    const data = await response.json();
+    return (data.data || []).map((hotel: any) => hotel.hotelId);
+  }
 }
 
 export { AmadeusAPI };
-export type { AmadeusFlightSearchParams };
+export type { AmadeusFlightSearchParams, AmadeusHotelSearchParams };
