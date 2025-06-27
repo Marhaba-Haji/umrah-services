@@ -86,6 +86,58 @@ const BlogDetail = () => {
     }
   ];
 
+  // Helper function to split and inject CTAs
+  function renderBlogContentWithCTAs(content) {
+    if (!content || content.length < 1000) {
+      // Not enough content, just render as is
+      return [<div key="content" dangerouslySetInnerHTML={{ __html: content }} />];
+    }
+    // Split content into paragraphs
+    const paragraphs = content.split(/<p>|<\/p>/).filter(Boolean);
+    const total = paragraphs.length;
+    const firstCtaIndex = Math.floor(total / 3);
+    const secondCtaIndex = Math.floor((2 * total) / 3);
+    const result = [];
+    for (let i = 0; i < total; i++) {
+      if (paragraphs[i].trim()) {
+        result.push(<div key={`p-${i}`} dangerouslySetInnerHTML={{ __html: `<p>${paragraphs[i]}</p>` }} />);
+      }
+      if (i === firstCtaIndex) {
+        result.push(
+          <div key="cta-umrah-visa" className="my-8 rounded-2xl bg-gradient-to-r from-emerald-100 to-blue-100 border-l-4 border-emerald-500 p-6 flex flex-col md:flex-row items-center gap-6 shadow-lg">
+            <div className="flex-shrink-0">
+              <FileText className="w-12 h-12 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl md:text-2xl font-bold text-emerald-700 mb-2">Ready for Your Umrah Visa?</h3>
+              <p className="text-gray-700 mb-4">Start your sacred journey with a hassle-free Umrah visa application. Fast, reliable, and guided every step of the way.</p>
+              <Link to="/apply">
+                <Button className="bg-emerald-600 text-white hover:bg-emerald-700 text-lg px-6 py-2 rounded-full shadow-md transition">Apply for Umrah Visa</Button>
+              </Link>
+            </div>
+          </div>
+        );
+      }
+      if (i === secondCtaIndex) {
+        result.push(
+          <div key="cta-short-umrah" className="my-8 rounded-2xl bg-gradient-to-r from-orange-100 to-yellow-100 border-l-4 border-orange-400 p-6 flex flex-col md:flex-row items-center gap-6 shadow-lg">
+            <div className="flex-shrink-0">
+              <Package className="w-12 h-12 text-orange-500" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-xl md:text-2xl font-bold text-orange-700 mb-2">Explore Independent Short Umrah Packages</h3>
+              <p className="text-gray-700 mb-4">Looking for flexibility? Discover our specially curated short Umrah packages for independent travelers—affordable, convenient, and tailored for you.</p>
+              <Link to="/custom-packages">
+                <Button className="bg-orange-500 text-white hover:bg-orange-600 text-lg px-6 py-2 rounded-full shadow-md transition">View Short Umrah Packages</Button>
+              </Link>
+            </div>
+          </div>
+        );
+      }
+    }
+    return result;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -142,13 +194,13 @@ const BlogDetail = () => {
               </header>
 
               {/* Article Content */}
-              <div 
-                className="prose prose-lg max-w-none mb-8"
-                dangerouslySetInnerHTML={{ 
-                  __html: blog.content.replace(/class="cta-section"/g, 'class="bg-gradient-to-r from-emerald-50 to-blue-50 p-6 rounded-xl my-8 border-l-4 border-emerald-500"')
+              <div className="prose prose-lg max-w-none mb-8">
+                {renderBlogContentWithCTAs(
+                  blog.content
+                    .replace(/class="cta-section"/g, 'class="bg-gradient-to-r from-emerald-50 to-blue-50 p-6 rounded-xl my-8 border-l-4 border-emerald-500"')
                     .replace(/class="cta-link"/g, 'class="text-emerald-600 font-semibold hover:text-emerald-700 underline transition-colors"')
-                }}
-              />
+                )}
+              </div>
 
               {/* Author Name at End */}
               <div className="mt-8 text-right text-gray-700 text-base italic">
