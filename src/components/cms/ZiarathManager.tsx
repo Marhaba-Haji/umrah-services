@@ -27,6 +27,7 @@ interface ZiarathService {
   best_time?: string;
   images?: string[];
   status?: string;
+  vehicle_prices?: { [vehicleId: string]: number };
 }
 
 const ZiarathManager = () => {
@@ -35,6 +36,8 @@ const ZiarathManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingZiarath, setEditingZiarath] = useState<ZiarathService | null>(null);
   const [viewingZiarath, setViewingZiarath] = useState<ZiarathService | null>(null);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehiclePrices, setVehiclePrices] = useState<{ [vehicleId: string]: number }>({});
 
   const form = useForm({
     defaultValues: {
@@ -56,17 +59,25 @@ const ZiarathManager = () => {
 
   useEffect(() => {
     fetchZiaraths();
+    fetchVehicles();
   }, []);
 
   const fetchZiaraths = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from('ziarath_services')
-      .select('*');
+      .select('id,title,location,duration,price,description,ziarath_type,max_participants,inclusions,significance,historical_importance,best_time,images,status,vehicle_prices');
     if (!error && data) {
       setZiaraths(data);
     }
     setLoading(false);
+  };
+
+  const fetchVehicles = async () => {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('id, vehicle_name, vehicle_type, vehicle_image, capacity');
+    if (!error && data) setVehicles(data);
   };
 
   const onSubmit = async (data: any) => {
@@ -84,6 +95,7 @@ const ZiarathManager = () => {
       best_time: data.bestTime,
       images: data.images ? data.images.split(',').map((i: string) => i.trim()) : [],
       status: data.status,
+      vehicle_prices: vehiclePrices,
     };
 
     let error;
@@ -108,6 +120,7 @@ const ZiarathManager = () => {
 
   const handleEdit = (ziarath: ZiarathService) => {
     setEditingZiarath(ziarath);
+    setVehiclePrices(ziarath.vehicle_prices || {});
     form.reset({
       title: ziarath.title,
       location: ziarath.location,
@@ -340,6 +353,45 @@ const ZiarathManager = () => {
                       </FormItem>
                     )}
                   />
+                </div>
+                <div className="mt-4">
+                  <div className="font-semibold mb-2">Vehicle Pricing</div>
+                  {vehicles.map(vehicle => (
+                    <div key={vehicle.id} className="flex items-center gap-4 mb-2">
+                      <input
+                        type="checkbox"
+                        checked={vehicle.id in vehiclePrices}
+                        onChange={e => {
+                          const checked = e.target.checked;
+                          setVehiclePrices(prev => {
+                            const updated = { ...prev };
+                            if (!checked) delete updated[vehicle.id];
+                            else updated[vehicle.id] = updated[vehicle.id] ?? 0;
+                            return updated;
+                          });
+                        }}
+                      />
+                      <span className="min-w-[120px] flex items-center gap-2">
+                        {vehicle.vehicle_image && (
+                          <img src={vehicle.vehicle_image} alt={vehicle.vehicle_name} className="w-8 h-8 object-cover rounded" />
+                        )}
+                        {vehicle.vehicle_name} ({vehicle.vehicle_type})
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="border rounded px-2 py-1 w-32"
+                        placeholder="Enter price"
+                        value={vehiclePrices[vehicle.id] ?? ''}
+                        disabled={!(vehicle.id in vehiclePrices)}
+                        onChange={e => {
+                          const value = e.target.value;
+                          setVehiclePrices(prev => ({ ...prev, [vehicle.id]: value ? parseFloat(value) : 0 }));
+                        }}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">

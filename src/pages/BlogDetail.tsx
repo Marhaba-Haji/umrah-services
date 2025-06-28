@@ -142,7 +142,7 @@ const BlogDetail = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 lg:px-0 py-8">
         {/* Breadcrumb */}
         <div className="mb-6">
           <Link to="/blog-post" className="flex items-center text-emerald-600 hover:text-emerald-700 transition-colors">
@@ -153,7 +153,7 @@ const BlogDetail = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 lg:pl-16">
             <article>
               {/* Hero Image */}
               <div className="relative overflow-hidden rounded-2xl mb-8">
@@ -221,7 +221,10 @@ const BlogDetail = () => {
                       </Button>
                     </Link>
                     <Link to="/umrah-packages">
-                      <Button variant="outline" className="border-white text-white hover:bg-white hover:text-emerald-600">
+                      <Button
+                        variant="outline"
+                        className="border-emerald-600 text-emerald-600 hover:bg-white hover:text-emerald-700 hover:border-emerald-600"
+                      >
                         View Packages
                       </Button>
                     </Link>
