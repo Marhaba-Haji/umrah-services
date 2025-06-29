@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -15,73 +15,41 @@ import {
   Clock,
   Plane
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const GroupPackages = () => {
   const [filters, setFilters] = useState({});
+  const [groupPackages, setGroupPackages] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const groupPackages = [
-    {
-      id: 1,
-      title: "Essential Group Umrah",
-      duration: "7 Days",
-      price: "$1,299",
-      rating: 4.8,
-      reviews: 324,
-      groupSize: "15-20 people",
-      departure: "Every Friday",
-      includes: ["3-star hotel", "Shared transport", "Group guide", "Breakfast included"],
-      highlights: ["Makkah 4 nights", "Madinah 3 nights", "Ziarath tours", "Group prayers"],
-      popular: false,
-      image: "photo-1466442929976-97f336a657be"
-    },
-    {
-      id: 2,
-      title: "Premium Group Umrah",
-      duration: "10 Days",
-      price: "$1,899",
-      rating: 4.9,
-      reviews: 567,
-      groupSize: "12-15 people",
-      departure: "Twice weekly",
-      includes: ["4-star hotel", "AC transport", "Expert guide", "All meals"],
-      highlights: ["Makkah 6 nights", "Madinah 4 nights", "Historical tours", "Shopping tours"],
-      popular: true,
-      image: "photo-1523712999610-f77fbcfc3843"
-    },
-    {
-      id: 3,
-      title: "Luxury Group Umrah",
-      duration: "14 Days",
-      price: "$2,799",
-      rating: 5.0,
-      reviews: 189,
-      groupSize: "8-12 people",
-      departure: "Weekly",
-      includes: ["5-star hotel", "Private transport", "Personal guide", "Premium dining"],
-      highlights: ["Makkah 8 nights", "Madinah 6 nights", "VIP services", "Cultural experiences"],
-      popular: false,
-      image: "photo-1500673922987-e212871fec22"
-    },
-    {
-      id: 4,
-      title: "Extended Group Umrah",
-      duration: "15 Days",
-      price: "$2,199",
-      rating: 4.7,
-      reviews: 243,
-      groupSize: "10-15 people",
-      departure: "Monthly",
-      includes: ["4-star hotel", "Comfortable transport", "Experienced guide", "Most meals"],
-      highlights: ["Makkah 9 nights", "Madinah 6 nights", "Extended stay", "Spiritual sessions"],
-      popular: false,
-      image: "photo-1482938289607-e9573fc25ebb"
-    }
-  ];
+  useEffect(() => {
+    const fetchGroupPackages = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('umrah_packages')
+        .select('*')
+        .eq('is_group_package', true)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      if (!error && data) setGroupPackages(data);
+      setIsLoading(false);
+    };
+    fetchGroupPackages();
+  }, []);
 
   const handleFiltersChange = (newFilters: any) => {
     setFilters(newFilters);
-    console.log('Applied filters:', newFilters);
-    // Here you would implement the actual filtering logic
+    // Filtering logic can be added here
+  };
+
+  // Helper to get currency symbol
+  const getCurrencySymbol = (currency: string | undefined) => {
+    switch ((currency || 'INR').toUpperCase()) {
+      case 'INR': return '₹';
+      case 'USD': return '$';
+      case 'SAR': return '﷼';
+      default: return currency ? currency.toUpperCase() + ' ' : '₹';
+    }
   };
 
   return (
@@ -119,119 +87,126 @@ const GroupPackages = () => {
 
             {/* Right Panel - Packages */}
             <div className="flex-1">
-              <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-                {groupPackages.map((pkg) => (
-                  <Card 
-                    key={pkg.id}
-                    className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white"
-                  >
-                    {pkg.popular && (
-                      <div className="absolute top-4 right-4 z-10">
-                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold">
-                          <Star className="w-3 h-3 mr-1" />
-                          Popular
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Package Image */}
-                    <div className="relative h-48 overflow-hidden">
-                      <img 
-                        src={`https://images.unsplash.com/${pkg.image}?w=800&h=400&fit=crop`}
-                        alt={pkg.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                      <div className="absolute bottom-4 left-4 text-white">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <div className="flex items-center">
-                            {[1,2,3,4,5].map((star) => (
-                              <Star 
-                                key={star} 
-                                className={`w-4 h-4 ${star <= pkg.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                              />
-                            ))}
-                            <span className="ml-2 text-sm">({pkg.reviews})</span>
+              {/* Info note about currency */}
+              <div className="mb-4 text-sm text-gray-500 italic">All prices are in INR (₹) unless otherwise specified.</div>
+              {isLoading ? (
+                <div>Loading packages...</div>
+              ) : groupPackages.length === 0 ? (
+                <div>No group packages found</div>
+              ) : (
+                <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                  {groupPackages.map((pkg) => (
+                    <Card key={pkg.id} className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white">
+                      {/* Featured image if available */}
+                      {pkg.featured_image && (
+                        <div className="relative h-48 overflow-hidden">
+                          <img src={pkg.featured_image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                        </div>
+                      )}
+                      <CardHeader className="pb-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <CardTitle className="text-xl font-bold text-gray-900">{pkg.name}</CardTitle>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-emerald-600">{getCurrencySymbol(pkg.currency)}{pkg.price}</div>
+                            <div className="text-sm text-gray-500">per person</div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <CardTitle className="text-xl font-bold text-gray-900">
-                          {pkg.title}
-                        </CardTitle>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold text-emerald-600">{pkg.price}</div>
-                          <div className="text-sm text-gray-500">per person</div>
+                        {/* Highlights Row */}
+                        <div className="flex flex-wrap gap-3 items-center text-xs text-gray-700 mb-2">
+                          {/* Duration */}
+                          <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                            <Clock className="w-4 h-4 mr-1 text-emerald-500" />
+                            {pkg.duration}
+                          </span>
+                          {/* Group Size */}
+                          {pkg.max_capacity && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <Users className="w-4 h-4 mr-1 text-emerald-500" />
+                              {pkg.max_capacity} max
+                            </span>
+                          )}
+                          {/* Makkah Hotel */}
+                          {pkg.makkah_hotel?.name && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
+                              Makkah: {pkg.makkah_hotel.name}
+                            </span>
+                          )}
+                          {/* Madinah Hotel */}
+                          {pkg.madinah_hotel?.name && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
+                              Madinah: {pkg.madinah_hotel.name}
+                            </span>
+                          )}
+                          {/* Departure/Return */}
+                          {pkg.flight_details?.departure_from_airport && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              Dep: {pkg.flight_details.departure_from_airport}
+                            </span>
+                          )}
+                          {pkg.flight_details?.return_from_airport && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              Ret: {pkg.flight_details.return_from_airport}
+                            </span>
+                          )}
+                          {/* Airline */}
+                          {pkg.flight_details?.airline_name && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              {pkg.flight_details.airline_name}
+                            </span>
+                          )}
+                          {/* Flight Type */}
+                          {pkg.flight_details?.flight_type && (
+                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              {pkg.flight_details.flight_type}
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {pkg.duration}
+                      </CardHeader>
+                      <CardContent>
+                        <div className="mb-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Description:</h4>
+                          <div className="text-xs text-gray-700">{pkg.description}</div>
                         </div>
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-1" />
-                          {pkg.groupSize}
-                        </div>
-                        <div className="flex items-center">
-                          <Plane className="w-4 h-4 mr-1" />
-                          {pkg.departure}
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      {/* Highlights */}
-                      <div className="mb-4">
-                        <h4 className="font-semibold text-gray-900 mb-2">Package Highlights:</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {pkg.highlights.map((highlight, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                              <MapPin className="w-3 h-3 text-emerald-500" />
-                              <span className="text-xs text-gray-700">{highlight}</span>
+                        {/* Inclusions */}
+                        {pkg.inclusions && pkg.inclusions.length > 0 && (
+                          <div className="mb-2">
+                            <h5 className="font-semibold text-gray-900 mb-1">Inclusions:</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {pkg.inclusions.map((inc, idx) => (
+                                <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{inc}</Badge>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Includes */}
-                      <div className="mb-6">
-                        <h4 className="font-semibold text-gray-900 mb-2">Includes:</h4>
-                        <div className="grid grid-cols-2 gap-2">
-                          {pkg.includes.map((include, index) => (
-                            <div key={index} className="flex items-center space-x-2">
-                              <CheckCircle className="w-3 h-3 text-emerald-500" />
-                              <span className="text-xs text-gray-700">{include}</span>
+                          </div>
+                        )}
+                        {/* Cities Covered */}
+                        {pkg.cities_covered && pkg.cities_covered.length > 0 && (
+                          <div className="mb-2">
+                            <h5 className="font-semibold text-gray-900 mb-1">Cities Covered:</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {pkg.cities_covered.map((city, idx) => (
+                                <Badge key={idx} className="bg-teal-100 text-teal-700 border-teal-200">{city}</Badge>
+                              ))}
                             </div>
-                          ))}
+                          </div>
+                        )}
+                        {/* Call to Action */}
+                        <div className="mt-4 flex justify-end">
+                          <Button asChild>
+                            <Link to={`/group-packages/${pkg.id}`}>View Details</Link>
+                          </Button>
                         </div>
-                      </div>
-                      
-                      <div className="flex space-x-3">
-                        <Link to={`/package-details/${pkg.id}`} className="flex-1">
-                          <Button 
-                            variant="outline"
-                            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50"
-                          >
-                            View Details
-                          </Button>
-                        </Link>
-                        <Link to={`/package-details/${pkg.id}`} className="flex-1">
-                          <Button 
-                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90"
-                          >
-                            Book Now
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

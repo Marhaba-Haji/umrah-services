@@ -1,0 +1,15 @@
+ALTER TABLE public.umrah_packages
+  DROP COLUMN IF EXISTS meta_title,
+  DROP COLUMN IF EXISTS meta_description,
+  DROP COLUMN IF EXISTS target_keywords,
+  DROP COLUMN IF EXISTS page_schema,
+  DROP COLUMN IF EXISTS og_title,
+  DROP COLUMN IF EXISTS og_description,
+  DROP COLUMN IF EXISTS og_image,
+  DROP COLUMN IF EXISTS slug,
+  DROP COLUMN IF EXISTS makkah_hotel_id,
+  DROP COLUMN IF EXISTS madinah_hotel_id,
+  DROP COLUMN IF EXISTS mealPlan,
+  DROP COLUMN IF EXISTS packageCategory,
+  DROP COLUMN IF EXISTS packageType,
+  DROP COLUMN IF EXISTS duration_category; 

@@ -13,43 +13,123 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface DatabasePackage {
   id?: string;
   name: string;
-  description: string;
+  description: string | null;
   duration: string;
   price: number;
   status: 'draft' | 'active' | 'inactive';
-  category: string;
-  inclusions: string[];
-  exclusions: string[];
-  images: string[];
+  category: string | null;
+  category_id: string | null;
+  inclusions: string[] | null;
+  exclusions: string[] | null;
+  images: string[] | null;
+  featured_image: string | null;
   makkah_hotel: any;
+  makkah_hotel_id: string | null;
   madinah_hotel: any;
+  madinah_hotel_id: string | null;
   flight_details: any;
   itinerary: any;
   pricing: any;
+  room_type_pricing: any;
+  max_capacity: number | null;
+  available_spots: number | null;
+  departure_date: string | null;
+  return_date: string | null;
+  booking_deadline: string | null;
+  is_group_package: boolean | null;
+  min_participants: number | null;
+  activities: string[] | null;
+  cities_covered: string[] | null;
+  flight_included: boolean | null;
+  season_category: string | null;
+  terms_conditions: string | null;
+  meal_plan: string | null;
+  package_category: string | null;
+  package_type: string | null;
+  meta_title?: string;
+  meta_description?: string;
+  target_keywords?: string[];
+  page_schema?: string;
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  slug?: string;
+  airline_name?: string;
+  flight_type?: string;
+  departure_from_airport?: string;
+  return_from_airport?: string;
+  seo?: {
+    meta_title?: string;
+    meta_description?: string;
+    target_keywords?: string[];
+    page_schema?: string;
+    og_title?: string;
+    og_description?: string;
+    og_image?: string;
+    slug?: string;
+  };
+  hotels: {
+    makkah_hotel_id: string | null;
+    madinah_hotel_id: string | null;
+  };
+  room_type_pricing: {
+    single: number | null;
+    double: number | null;
+    triple: number | null;
+  };
+  currency?: string;
 }
 
-interface FormPackage {
-  name: string;
-  description: string;
-  duration: string;
-  price: number;
+interface FormPackage extends Omit<DatabasePackage, 'id' | 'status'> {
   status: 'draft' | 'published' | 'archived';
-  category: string;
-  inclusions: string[];
-  exclusions: string[];
-  images: string[];
-  makkah_hotel: any;
-  madinah_hotel: any;
-  flight_details: any;
-  itinerary: any;
-  pricing: any;
 }
+
+const Dropdown = ({ label, id, value, onChange, options, loading, required = false, multiple = false, error, helper }) => (
+  <div>
+    <Label htmlFor={id}>{label}</Label>
+    <select
+      id={id}
+      value={value}
+      onChange={onChange}
+      required={required}
+      multiple={multiple}
+      className={error ? 'border-red-500' : ''}
+    >
+      {!multiple && <option value="">Select {label.toLowerCase()}</option>}
+      {loading ? <option>Loading...</option> : options.map(opt => (
+        <option key={opt.id} value={opt.id}>{opt.name}</option>
+      ))}
+    </select>
+    {helper && <div className="text-xs text-gray-500">{helper}</div>}
+    {error && <span className="text-red-500 text-xs">{error}</span>}
+  </div>
+);
+
+const FileUpload = ({ label, id, onChange, disabled, multiple = false, previewUrls = [], uploading, helper }) => (
+  <div>
+    <Label htmlFor={id}>{label}</Label>
+    <input id={id} type="file" accept="image/*" onChange={onChange} disabled={disabled} multiple={multiple} />
+    {uploading && <span className="text-xs text-blue-500">Uploading...</span>}
+    {helper && <div className="text-xs text-gray-500">{helper}</div>}
+    {previewUrls && previewUrls.length > 0 && (
+      <div className="flex gap-2 mt-2 flex-wrap">
+        {previewUrls.map((url, idx) => (
+          <img key={idx} src={url} alt={`Image ${idx + 1}`} className="h-16 rounded" />
+        ))}
+      </div>
+    )}
+  </div>
+);
 
 const PackageManager = () => {
   const [packages, setPackages] = useState<DatabasePackage[]>([]);
   const [editingPackage, setEditingPackage] = useState<DatabasePackage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [hotels, setHotels] = useState<{id: string, name: string}[]>([]);
+  const [activitiesList, setActivitiesList] = useState<{id: string, name: string}[]>([]);
 
   const [formData, setFormData] = useState<FormPackage>({
     name: '',
@@ -58,19 +138,126 @@ const PackageManager = () => {
     price: 0,
     status: 'draft',
     category: '',
+    category_id: '',
     inclusions: [],
     exclusions: [],
     images: [],
+    featured_image: '',
     makkah_hotel: null,
+    makkah_hotel_id: '',
     madinah_hotel: null,
+    madinah_hotel_id: '',
     flight_details: null,
-    itinerary: null,
-    pricing: null
+    itinerary: [],
+    pricing: {},
+    room_type_pricing: null,
+    max_capacity: null,
+    available_spots: null,
+    departure_date: '',
+    return_date: '',
+    booking_deadline: '',
+    is_group_package: false,
+    min_participants: null,
+    activities: [],
+    cities_covered: [],
+    flight_included: false,
+    season_category: '',
+    terms_conditions: '',
+    meal_plan: '',
+    package_category: '',
+    package_type: '',
+    meta_title: '',
+    meta_description: '',
+    target_keywords: [],
+    page_schema: '',
+    og_title: '',
+    og_description: '',
+    og_image: '',
+    slug: '',
+    airline_name: '',
+    flight_type: '',
+    departure_from_airport: '',
+    return_from_airport: '',
   });
+
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [hotelsLoading, setHotelsLoading] = useState(false);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
+
+  const [uploading, setUploading] = useState(false);
+
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('form');
+
+  // Meal Plan dropdown options
+  const mealPlanOptions = [
+    'Room Only',
+    'Breakfast',
+    'Half board',
+    'Full board',
+  ];
+  // Package Category dropdown options
+  const packageCategoryOptions = [
+    'Saver',
+    'Budget',
+    'Economy',
+    'Economy Plus',
+    'Standard',
+    'Deluxe',
+    'Super Deluxe',
+    'Premium',
+    'Hilton',
+    'Luxury',
+  ];
+
+  // Islamic months + December for season category
+  const seasonCategoryOptions = [
+    'Muharram',
+    'Safar',
+    'Rabi al-Awwal',
+    'Rabi al-Thani',
+    'Jumada al-Awwal',
+    'Jumada al-Thani',
+    'Rajab',
+    "Sha'ban",
+    'Ramadan',
+    'Shawwal',
+    'Dhu al-Qadah',
+    'Dhu al-Hijjah',
+    'December',
+  ];
+
+  // Date helpers
+  const today = new Date();
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  const minDepartureDate = formatDate(addDays(today, 3));
+  const minReturnDate = formData.departure_date ? formatDate(addDays(new Date(formData.departure_date), 1)) : minDepartureDate;
+  const maxBookingDeadline = formData.departure_date ? formatDate(addDays(new Date(formData.departure_date), -1)) : minDepartureDate;
 
   useEffect(() => {
     fetchPackages();
+    fetchCategories();
+    fetchHotels();
+    fetchActivities();
   }, []);
+
+  useEffect(() => {
+    if (!slugManuallyEdited) {
+      setFormData(prev => ({
+        ...prev,
+        slug: generateSlug(prev.meta_title || prev.name, prev.target_keywords || [])
+      }));
+    }
+    // eslint-disable-next-line
+  }, [formData.meta_title, formData.name, formData.target_keywords]);
 
   const fetchPackages = async () => {
     setIsLoading(true);
@@ -94,6 +281,27 @@ const PackageManager = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    const { data, error } = await supabase.from('categories').select('id, name').eq('is_active', true).order('name');
+    if (!error && data) setCategories(data);
+    setCategoriesLoading(false);
+  };
+
+  const fetchHotels = async () => {
+    setHotelsLoading(true);
+    const { data, error } = await supabase.from('hotels').select('id, name').eq('is_active', true).order('name');
+    if (!error && data) setHotels(data);
+    setHotelsLoading(false);
+  };
+
+  const fetchActivities = async () => {
+    setActivitiesLoading(true);
+    const { data, error } = await supabase.from('activities').select('id, name').order('name');
+    if (!error && data) setActivitiesList(data);
+    setActivitiesLoading(false);
+  };
+
   const handleInputChange = (field: keyof FormPackage, value: any) => {
     setFormData(prev => ({
       ...prev,
@@ -108,9 +316,72 @@ const PackageManager = () => {
       'archived': 'inactive'
     };
 
+    // Combine flight fields into flight_details JSON object
+    const flight_details = {
+      departure_from_airport: formPackage.departure_from_airport,
+      return_from_airport: formPackage.return_from_airport,
+      airline_name: formPackage.airline_name,
+      flight_type: formPackage.flight_type,
+    };
+
+    // Combine hotel fields as objects (if needed)
+    const makkah_hotel = formPackage.makkah_hotel;
+    const madinah_hotel = formPackage.madinah_hotel;
+
+    // Combine SEO fields into seo
+    const seo = formPackage.seo && typeof formPackage.seo === 'object' ? formPackage.seo : {};
+
+    // Combine hotel fields into hotels
+    const hotels = formPackage.hotels && typeof formPackage.hotels === 'object' ? formPackage.hotels : {};
+
+    // Combine room type pricing fields into room_type_pricing
+    const room_type_pricing = {
+      single: formPackage.room_type_pricing?.single,
+      double: formPackage.room_type_pricing?.double,
+      triple: formPackage.room_type_pricing?.triple,
+      // Add more as needed
+    };
+
+    // Ensure itinerary is an array of {title, description}
+    let itinerary = Array.isArray(formPackage.itinerary)
+      ? formPackage.itinerary
+      : Object.entries(formPackage.itinerary || {}).map(([title, description]) => ({ title, description }));
+
+    // Remove legacy fields from root
+    const {
+      airline_name,
+      flight_type,
+      departure_from_airport,
+      return_from_airport,
+      meta_title,
+      meta_description,
+      target_keywords,
+      page_schema,
+      og_title,
+      og_description,
+      og_image,
+      slug,
+      makkah_hotel_id,
+      madinah_hotel_id,
+      room_type_pricing: _room_type_pricing,
+      mealPlan,
+      packageCategory,
+      packageType,
+      includes,
+      ...rest
+    } = formPackage;
+
     return {
-      ...formPackage,
-      status: statusMap[formPackage.status]
+      ...rest,
+      status: statusMap[formPackage.status],
+      season_category: formPackage.season_category,
+      flight_details,
+      makkah_hotel,
+      madinah_hotel,
+      seo,
+      hotels,
+      room_type_pricing,
+      itinerary,
     };
   };
 
@@ -121,50 +392,140 @@ const PackageManager = () => {
       'inactive': 'archived'
     };
 
+    const flight = dbPackage.flight_details || {};
+    const seo = dbPackage.seo || {};
+    const hotels = dbPackage.hotels || {};
+    const roomTypePricing = dbPackage.room_type_pricing || {};
+    const pricing = dbPackage.pricing || {};
+
     return {
       ...dbPackage,
-      status: statusMap[dbPackage.status]
+      status: statusMap[dbPackage.status],
+      season_category: dbPackage.season_category || '',
+      airline_name: flight.airline_name || '',
+      flight_type: flight.flight_type || '',
+      departure_from_airport: flight.departure_from_airport || '',
+      return_from_airport: flight.return_from_airport || '',
+      meta_title: seo.meta_title || '',
+      meta_description: seo.meta_description || '',
+      target_keywords: seo.target_keywords || [],
+      page_schema: seo.page_schema || '',
+      og_title: seo.og_title || '',
+      og_description: seo.og_description || '',
+      og_image: seo.og_image || '',
+      slug: seo.slug || '',
+      makkah_hotel_id: hotels.makkah_hotel_id || '',
+      madinah_hotel_id: hotels.madinah_hotel_id || '',
+      pricing: pricing,
+      room_type_pricing: {
+        single: roomTypePricing.single || null,
+        double: roomTypePricing.double || null,
+        triple: roomTypePricing.triple || null,
+        // Add more as needed
+      },
     };
   };
 
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!formData.name) newErrors.name = 'Package name is required.';
+    if (!formData.duration) newErrors.duration = 'Duration is required.';
+    if (!formData.price || isNaN(formData.price)) newErrors.price = 'Price is required.';
+    if (!formData.category_id) newErrors.category_id = 'Category is required.';
+    // Add more validations as needed
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Helper to stringify objects with sorted keys for stable comparison
+  function stableStringify(obj) {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+      return JSON.stringify(
+        Object.keys(obj).sort().reduce((acc, key) => {
+          acc[key] = obj[key];
+          return acc;
+        }, {})
+      );
+    }
+    return JSON.stringify(obj);
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setIsLoading(true);
-
     try {
       const dbData = convertFormToDatabase(formData);
-      
       if (editingPackage?.id) {
-        const { error } = await supabase
+        const { error, data } = await supabase
           .from('umrah_packages')
           .update(dbData)
-          .eq('id', editingPackage.id);
+          .eq('id', editingPackage.id)
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          toast({ title: 'Error', description: `Update failed: ${error.message}`, variant: 'destructive' });
+          return;
+        }
+
+        // --- Automated field update check ---
+        const dbKeys = Object.keys(data[0]);
+        const updateKeys = Object.keys(dbData);
+
+        let missingInDB = [];
+        let unchangedFields = [];
+        let typeMismatches = [];
+
+        for (const key of updateKeys) {
+          if (!dbKeys.includes(key)) {
+            missingInDB.push(key);
+          } else if (stableStringify(dbData[key]) !== stableStringify(data[0][key])) {
+            unchangedFields.push({
+              field: key,
+              sent: dbData[key],
+              inDB: data[0][key],
+              sentType: typeof dbData[key],
+              dbType: typeof data[0][key]
+            });
+            if (typeof dbData[key] !== typeof data[0][key]) {
+              typeMismatches.push(key);
+            }
+          }
+        }
+
+        if (missingInDB.length > 0) {
+          console.warn('Fields in update object but missing in DB row:', missingInDB);
+        }
+        if (unchangedFields.length > 0) {
+          console.warn('Fields present but did not update:', unchangedFields);
+        }
+        if (typeMismatches.length > 0) {
+          console.warn('Type mismatches:', typeMismatches);
+        }
+
         toast({
-          title: "Success",
-          description: "Package updated successfully",
+          title: 'Success',
+          description: 'Package updated successfully!',
+          variant: 'default',
         });
       } else {
         const { error } = await supabase
           .from('umrah_packages')
           .insert([dbData]);
-
         if (error) throw error;
         toast({
-          title: "Success",
-          description: "Package created successfully",
+          title: 'Success',
+          description: 'Package created successfully!',
+          variant: 'default',
         });
       }
-
       resetForm();
       fetchPackages();
     } catch (error) {
-      console.error('Error saving package:', error);
       toast({
-        title: "Error",
-        description: "Failed to save package",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to save package',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -179,21 +540,59 @@ const PackageManager = () => {
       price: 0,
       status: 'draft',
       category: '',
+      category_id: '',
       inclusions: [],
       exclusions: [],
       images: [],
+      featured_image: '',
       makkah_hotel: null,
+      makkah_hotel_id: '',
       madinah_hotel: null,
+      madinah_hotel_id: '',
       flight_details: null,
-      itinerary: null,
-      pricing: null
+      itinerary: [],
+      pricing: {},
+      room_type_pricing: null,
+      max_capacity: null,
+      available_spots: null,
+      departure_date: '',
+      return_date: '',
+      booking_deadline: '',
+      is_group_package: false,
+      min_participants: null,
+      activities: [],
+      cities_covered: [],
+      flight_included: false,
+      season_category: '',
+      terms_conditions: '',
+      meal_plan: '',
+      package_category: '',
+      package_type: '',
+      meta_title: '',
+      meta_description: '',
+      target_keywords: [],
+      page_schema: '',
+      og_title: '',
+      og_description: '',
+      og_image: '',
+      slug: '',
+      airline_name: '',
+      flight_type: '',
+      departure_from_airport: '',
+      return_from_airport: '',
     });
     setEditingPackage(null);
+    setActiveTab('form');
   };
 
   const handleEdit = (pkg: DatabasePackage) => {
     setEditingPackage(pkg);
-    setFormData(convertDatabaseToForm(pkg));
+    setFormData({
+      ...convertDatabaseToForm(pkg),
+      makkah_hotel_id: pkg.makkah_hotel?.id || '',
+      madinah_hotel_id: pkg.madinah_hotel?.id || '',
+    });
+    setActiveTab('form');
   };
 
   const handleDelete = async (id: string) => {
@@ -222,6 +621,115 @@ const PackageManager = () => {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'featured_image' | 'images') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      if (field === 'featured_image') {
+        const file = files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-featured.${fileExt}`;
+        const { error } = await supabase.storage.from('package-images').upload(fileName, file, { upsert: true });
+        if (error) throw error;
+        const { data: publicUrlData } = supabase.storage.from('package-images').getPublicUrl(fileName);
+        console.log('Featured image public URL:', publicUrlData?.publicUrl);
+        if (publicUrlData?.publicUrl) {
+          setFormData(prev => ({ ...prev, featured_image: publicUrlData.publicUrl }));
+        }
+      } else {
+        const urls: string[] = [];
+        for (const file of Array.from(files)) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+          const { error } = await supabase.storage.from('package-images').upload(fileName, file, { upsert: true });
+          if (error) throw error;
+          const { data: publicUrlData } = supabase.storage.from('package-images').getPublicUrl(fileName);
+          console.log('Image public URL:', publicUrlData?.publicUrl);
+          if (publicUrlData?.publicUrl) urls.push(publicUrlData.publicUrl);
+        }
+        setFormData(prev => ({ ...prev, images: urls }));
+      }
+    } catch (err) {
+      alert('Image upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const file = files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-og.${fileExt}`;
+      const { error } = await supabase.storage.from('package-images').upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data: publicUrlData } = supabase.storage.from('package-images').getPublicUrl(fileName);
+      console.log('OG image public URL:', publicUrlData?.publicUrl);
+      if (publicUrlData?.publicUrl) {
+        setFormData(prev => ({ ...prev, og_image: publicUrlData.publicUrl }));
+      }
+    } catch (err) {
+      alert('OG image upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const generateSlug = (title: string, keywords: string[]) => {
+    let base = title || '';
+    if (keywords && keywords.length > 0) base += '-' + keywords[0];
+    return base
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  };
+
+  // Helper to get currency symbol
+  const getCurrencySymbol = (currency: string | undefined) => {
+    switch ((currency || 'INR').toUpperCase()) {
+      case 'INR': return '₹';
+      case 'USD': return '$';
+      case 'SAR': return '﷼';
+      default: return currency ? currency.toUpperCase() + ' ' : '₹';
+    }
+  };
+
+  // Helper to safely display number input values
+  const safeNumberInputValue = (val: any) => {
+    if (val === undefined || val === null || val === '' || isNaN(Number(val))) {
+      return '';
+    }
+    return val;
+  };
+
+  // Handler to update both makkah_hotel_id and makkah_hotel JSON object
+  const handleMakkahHotelChange = (selectedHotelId) => {
+    const selectedHotel = hotels.find(h => h.id === selectedHotelId);
+    setFormData(prev => ({
+      ...prev,
+      makkah_hotel_id: selectedHotelId,
+      makkah_hotel: selectedHotel
+        ? { id: selectedHotel.id, name: selectedHotel.name }
+        : null
+    }));
+  };
+
+  // Handler to update both madinah_hotel_id and madinah_hotel JSON object
+  const handleMadinahHotelChange = (selectedHotelId) => {
+    const selectedHotel = hotels.find(h => h.id === selectedHotelId);
+    setFormData(prev => ({
+      ...prev,
+      madinah_hotel_id: selectedHotelId,
+      madinah_hotel: selectedHotel
+        ? { id: selectedHotel.id, name: selectedHotel.name }
+        : null
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -229,7 +737,7 @@ const PackageManager = () => {
         <Button onClick={resetForm}>Add New Package</Button>
       </div>
 
-      <Tabs defaultValue="form" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="form">Package Form</TabsTrigger>
           <TabsTrigger value="list">Package List</TabsTrigger>
@@ -238,68 +746,44 @@ const PackageManager = () => {
         <TabsContent value="form">
           <Card>
             <CardHeader>
-              <CardTitle>
-                {editingPackage ? 'Edit Package' : 'Create New Package'}
-              </CardTitle>
+              <CardTitle>{editingPackage ? 'Edit Package' : 'Create New Package'}</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Basic Info */}
+                <section>
+                  <h3 className="font-semibold mb-2">Basic Info</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* name, description, duration, price, status */}
                   <div>
                     <Label htmlFor="name">Package Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      required
-                    />
+                      <Input id="name" value={formData.name} onChange={e => handleInputChange('name', e.target.value)} required />
+                    {errors.name && <span className="text-red-500 text-xs">{errors.name}</span>}
                   </div>
                   <div>
                     <Label htmlFor="duration">Duration</Label>
-                    <Input
-                      id="duration"
-                      value={formData.duration}
-                      onChange={(e) => handleInputChange('duration', e.target.value)}
-                      required
-                    />
+                      <Input id="duration" value={formData.duration} onChange={e => handleInputChange('duration', e.target.value)} required />
+                    {errors.duration && <span className="text-red-500 text-xs">{errors.duration}</span>}
                   </div>
                   <div>
                     <Label htmlFor="price">Price</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', parseFloat(e.target.value))}
-                      required
-                      placeholder="₹10000"
-                    />
+                      <Input 
+                        id="price" 
+                        type="number" 
+                        value={safeNumberInputValue(formData.price)} 
+                        onChange={e => {
+                          const value = e.target.value;
+                          const parsed = value ? parseFloat(value) : 0;
+                          handleInputChange('price', isNaN(parsed) ? 0 : parsed);
+                        }} 
+                        required 
+                      />
+                    {errors.price && <span className="text-red-500 text-xs">{errors.price}</span>}
                   </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
-                      value={formData.category}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    rows={4}
-                  />
-                </div>
-
                 <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
+                      <Select value={formData.status} onValueChange={value => handleInputChange('status', value)}>
+                        <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="published">Published</SelectItem>
@@ -307,7 +791,553 @@ const PackageManager = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" value={formData.description || ''} onChange={e => handleInputChange('description', e.target.value)} rows={3} />
+                    </div>
+                  </div>
+                </section>
 
+                {/* Hotels */}
+                <section>
+                  <h3 className="font-semibold mb-2">Hotels</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="makkah_hotel_id">Makkah Hotel</Label>
+                      <select
+                        id="makkah_hotel_id"
+                        value={formData.makkah_hotel?.id || ''}
+                        onChange={e => handleMakkahHotelChange(e.target.value)}
+                      >
+                        <option value="">Select hotel</option>
+                        {hotelsLoading ? <option>Loading...</option> : hotels.map(h => (
+                          <option key={h.id} value={h.id}>{h.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="madinah_hotel_id">Madinah Hotel</Label>
+                      <select
+                        id="madinah_hotel_id"
+                        value={formData.madinah_hotel?.id || ''}
+                        onChange={e => handleMadinahHotelChange(e.target.value)}
+                      >
+                        <option value="">Select hotel</option>
+                        {hotelsLoading ? <option>Loading...</option> : hotels.map(h => (
+                          <option key={h.id} value={h.id}>{h.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Departure From Airport */}
+                <section>
+                  <h3 className="font-semibold mb-2">Departure From Airport</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="departure_from_airport">Departure From Airport</Label>
+                      <Input
+                        id="departure_from_airport"
+                        value={formData.departure_from_airport || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, departure_from_airport: e.target.value }))}
+                        placeholder="Enter departure airport name or code"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Return From Airport */}
+                <section>
+                  <h3 className="font-semibold mb-2">Return From Airport</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="return_from_airport">Return From Airport</Label>
+                      <select
+                        id="return_from_airport"
+                        value={formData.return_from_airport || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, return_from_airport: e.target.value }))}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select airport</option>
+                        <option value="Jeddah">Jeddah</option>
+                        <option value="Madinah">Madinah</option>
+                      </select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Dates */}
+                <section>
+                  <h3 className="font-semibold mb-2">Dates</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="departure_date">Departure Date</Label>
+                      <Input
+                        id="departure_date"
+                        type="date"
+                        value={formData.departure_date || ''}
+                        min={minDepartureDate}
+                        onChange={e => setFormData(prev => ({ ...prev, departure_date: e.target.value, return_date: '', booking_deadline: '' }))}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="return_date">Return Date</Label>
+                      <Input
+                        id="return_date"
+                        type="date"
+                        value={formData.return_date || ''}
+                        min={minReturnDate}
+                        onChange={e => setFormData(prev => ({ ...prev, return_date: e.target.value }))}
+                        disabled={!formData.departure_date}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="booking_deadline">Booking Deadline</Label>
+                      <Input
+                        id="booking_deadline"
+                        type="date"
+                        value={formData.booking_deadline || ''}
+                        max={maxBookingDeadline}
+                        min={formatDate(today)}
+                        onChange={e => setFormData(prev => ({ ...prev, booking_deadline: e.target.value }))}
+                        disabled={!formData.departure_date}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Capacity */}
+                <section>
+                  <h3 className="font-semibold mb-2">Capacity</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="max_capacity">Max Capacity</Label>
+                      <Input 
+                        id="max_capacity" 
+                        type="number" 
+                        value={safeNumberInputValue(formData.max_capacity)} 
+                        onChange={e => {
+                          const value = e.target.value;
+                          const parsed = value ? parseInt(value, 10) : null;
+                          handleInputChange('max_capacity', isNaN(parsed) ? null : parsed);
+                        }} 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="available_spots">Available Spots</Label>
+                      <Input 
+                        id="available_spots" 
+                        type="number" 
+                        value={safeNumberInputValue(formData.available_spots)} 
+                        onChange={e => {
+                          const value = e.target.value;
+                          const parsed = value ? parseInt(value, 10) : null;
+                          handleInputChange('available_spots', isNaN(parsed) ? null : parsed);
+                        }} 
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="is_group_package">Is Group Package</Label>
+                      <input id="is_group_package" type="checkbox" checked={!!formData.is_group_package} onChange={e => handleInputChange('is_group_package', e.target.checked)} />
+                    </div>
+                    {formData.is_group_package && (
+                      <div>
+                        <Label htmlFor="min_participants">Min Participants</Label>
+                        <Input 
+                          id="min_participants" 
+                          type="number" 
+                          value={safeNumberInputValue(formData.min_participants)} 
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseInt(value, 10) : null;
+                            handleInputChange('min_participants', isNaN(parsed) ? null : parsed);
+                          }} 
+                        />
+                        <div className="text-xs text-gray-500">Only required for group packages</div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+
+                {/* Images */}
+                <section>
+                  <h3 className="font-semibold mb-2">Images</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="featured_image">Featured Image</Label>
+                      <FileUpload label="Featured Image" id="featured_image" onChange={e => handleImageUpload(e, 'featured_image')} disabled={uploading} previewUrls={formData.featured_image ? [formData.featured_image] : []} uploading={uploading} helper="Upload a main image for this package." />
+                    </div>
+                    <div>
+                      <Label htmlFor="images">Images</Label>
+                      <FileUpload label="Images" id="images" onChange={e => handleImageUpload(e, 'images')} disabled={uploading} multiple previewUrls={formData.images || []} uploading={uploading} helper="You can upload multiple images." />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Price */}
+                <section>
+                  <h3 className="font-semibold mb-2">Price</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Sharing Prices */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Sharing</h4>
+                      <div className="mb-2">
+                        <Label htmlFor="price_quint">Quint</Label>
+                        <Input
+                          id="price_quint"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.quint)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, quint: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Quint price"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <Label htmlFor="price_quad">Quad</Label>
+                        <Input
+                          id="price_quad"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.quad)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, quad: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Quad price"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <Label htmlFor="price_child_no_bed">Child Without Bed</Label>
+                        <Input
+                          id="price_child_no_bed"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.child_no_bed)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, child_no_bed: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Child without bed price"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <Label htmlFor="price_infant">Infant</Label>
+                        <Input
+                          id="price_infant"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.infant)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, infant: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Infant price"
+                        />
+                      </div>
+                    </div>
+                    {/* Private Prices */}
+                    <div>
+                      <h4 className="font-semibold mb-2">Private</h4>
+                      <div className="mb-2">
+                        <Label htmlFor="price_triple">Triple</Label>
+                        <Input
+                          id="price_triple"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.triple)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, triple: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Triple price"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <Label htmlFor="price_double">Double</Label>
+                        <Input
+                          id="price_double"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.double)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, double: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Double price"
+                        />
+                      </div>
+                      <div className="mb-2">
+                        <Label htmlFor="price_single">Single</Label>
+                        <Input
+                          id="price_single"
+                          type="number"
+                          min="0"
+                          value={safeNumberInputValue(formData.pricing?.single)}
+                          onChange={e => {
+                            const value = e.target.value;
+                            const parsed = value ? parseFloat(value) : null;
+                            setFormData(prev => ({
+                              ...prev,
+                              pricing: { ...prev.pricing, single: isNaN(parsed) ? null : parsed }
+                            }));
+                          }}
+                          placeholder="Single price"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Advanced Options */}
+                <section>
+                  <h3 className="font-semibold mb-2">Advanced Options</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="category_id">Category</Label>
+                      <select id="category_id" value={formData.category_id || ''} onChange={e => handleInputChange('category_id', e.target.value)} required>
+                        <option value="">Select category</option>
+                        {categoriesLoading ? <option>Loading...</option> : categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                      </select>
+                      {errors.category_id && <span className="text-red-500 text-xs">{errors.category_id}</span>}
+                    </div>
+                    <div>
+                      <Label htmlFor="activities">Activities</Label>
+                      <Dropdown label="Activities" id="activities" value={formData.activities || []} onChange={e => handleInputChange('activities', Array.from(e.target.selectedOptions, o => o.value))} options={activitiesList} loading={activitiesLoading} multiple helper="Hold Ctrl or Cmd to select multiple" />
+                    </div>
+                    <div>
+                      <Label htmlFor="inclusions">Inclusions (comma separated)</Label>
+                      <Input id="inclusions" value={formData.inclusions?.join(',') || ''} onChange={e => handleInputChange('inclusions', e.target.value.split(','))} />
+                      <div className="text-xs text-gray-500">Comma separated values</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="exclusions">Exclusions (comma separated)</Label>
+                      <Input id="exclusions" value={formData.exclusions?.join(',') || ''} onChange={e => handleInputChange('exclusions', e.target.value.split(','))} />
+                      <div className="text-xs text-gray-500">Comma separated values</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="cities_covered">Cities Covered (comma separated)</Label>
+                      <Input id="cities_covered" value={formData.cities_covered?.join(',') || ''} onChange={e => handleInputChange('cities_covered', e.target.value.split(','))} />
+                      <div className="text-xs text-gray-500">Comma separated values</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="season_category">Season Category</Label>
+                      <select
+                        id="season_category"
+                        value={formData.season_category || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, season_category: e.target.value }))}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select season</option>
+                        {seasonCategoryOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="terms_conditions">Terms & Conditions</Label>
+                      <Textarea id="terms_conditions" value={formData.terms_conditions || ''} onChange={e => handleInputChange('terms_conditions', e.target.value)} rows={3} />
+                    </div>
+                    <div>
+                      <Label htmlFor="meal_plan">Meal Plan</Label>
+                      <select
+                        id="meal_plan"
+                        value={formData.meal_plan || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, meal_plan: e.target.value }))}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select meal plan</option>
+                        {mealPlanOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="package_category">Package Category</Label>
+                      <select
+                        id="package_category"
+                        value={formData.package_category || ''}
+                        onChange={e => setFormData(prev => ({ ...prev, package_category: e.target.value }))}
+                        className="w-full border rounded px-3 py-2"
+                      >
+                        <option value="">Select category</option>
+                        {packageCategoryOptions.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Label htmlFor="flight_included">Flight Included</Label>
+                      <input id="flight_included" type="checkbox" checked={!!formData.flight_included} onChange={e => handleInputChange('flight_included', e.target.checked)} />
+                    </div>
+                    {formData.flight_included && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div>
+                          <Label htmlFor="airline_name">Airline Name</Label>
+                          <Input
+                            id="airline_name"
+                            value={formData.airline_name || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, airline_name: e.target.value }))}
+                            placeholder="Enter airline name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="flight_type">Flight Type</Label>
+                          <select
+                            id="flight_type"
+                            value={formData.flight_type || ''}
+                            onChange={e => setFormData(prev => ({ ...prev, flight_type: e.target.value }))}
+                            className="w-full border rounded px-3 py-2"
+                          >
+                            <option value="">Select type</option>
+                            <option value="Direct">Direct</option>
+                            <option value="Connecting">Connecting</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                    {/* Add more fields as needed for arrays/JSON */}
+                  </div>
+                </section>
+
+                {/* SEO & Social Sharing */}
+                <section>
+                  <h3 className="font-semibold mb-2">SEO & Social Sharing</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="meta_title">Meta Title</Label>
+                      <Input id="meta_title" value={formData.meta_title || ''} onChange={e => setFormData(prev => ({ ...prev, meta_title: e.target.value }))} maxLength={60} />
+                      <div className="text-xs text-gray-500">Recommended: 50-60 characters. Use main keywords.</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="meta_description">Meta Description</Label>
+                      <Textarea id="meta_description" value={formData.meta_description || ''} onChange={e => setFormData(prev => ({ ...prev, meta_description: e.target.value }))} maxLength={160} rows={2} />
+                      <div className="text-xs text-gray-500">Recommended: 120-160 characters. Summarize the package and include keywords.</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="target_keywords">Target Keywords</Label>
+                      <Input id="target_keywords" value={formData.target_keywords?.join(',') || ''} onChange={e => setFormData(prev => ({ ...prev, target_keywords: e.target.value.split(',').map(k => k.trim()) }))} />
+                      <div className="text-xs text-gray-500">Comma separated. E.g. umrah, makkah, madinah, group package</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="slug">Slug</Label>
+                      <Input id="slug" value={formData.slug || ''} onChange={e => { setFormData(prev => ({ ...prev, slug: e.target.value })); setSlugManuallyEdited(true); }} />
+                      <div className="text-xs text-gray-500">Auto-generated from title/keywords. You can edit if needed.</div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label htmlFor="page_schema">Page Schema (JSON-LD)</Label>
+                      <Textarea id="page_schema" value={formData.page_schema || ''} onChange={e => setFormData(prev => ({ ...prev, page_schema: e.target.value }))} rows={3} />
+                      <div className="text-xs text-gray-500">Paste valid JSON-LD for rich results (e.g. Product, Breadcrumb, FAQ, etc).</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="og_title">OG Title</Label>
+                      <Input id="og_title" value={formData.og_title || ''} onChange={e => setFormData(prev => ({ ...prev, og_title: e.target.value }))} maxLength={60} />
+                      <div className="text-xs text-gray-500">Open Graph title for social sharing. Usually same as meta title.</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="og_description">OG Description</Label>
+                      <Textarea id="og_description" value={formData.og_description || ''} onChange={e => setFormData(prev => ({ ...prev, og_description: e.target.value }))} maxLength={160} rows={2} />
+                      <div className="text-xs text-gray-500">Open Graph description for social sharing. Usually same as meta description.</div>
+                    </div>
+                    <div>
+                      <Label htmlFor="og_image">OG Image</Label>
+                      <FileUpload label="OG Image" id="og_image" onChange={handleOgImageUpload} disabled={uploading} previewUrls={formData.og_image ? [formData.og_image] : []} uploading={uploading} helper="Upload a 1200x630px image for best results." />
+                    </div>
+                  </div>
+                </section>
+
+                {/* Itinerary */}
+                <section>
+                  <h3 className="font-semibold mb-2">Itinerary</h3>
+                  {formData.itinerary && Array.isArray(formData.itinerary) && formData.itinerary.length > 0 ? (
+                    formData.itinerary.map((item, idx) => (
+                      <div key={idx} className="mb-4 border rounded p-3 relative">
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <Label htmlFor={`itinerary-title-${idx}`}>Title</Label>
+                            <Input
+                              id={`itinerary-title-${idx}`}
+                              value={item.title || ''}
+                              onChange={e => {
+                                const newItinerary = [...formData.itinerary];
+                                newItinerary[idx] = { ...newItinerary[idx], title: e.target.value };
+                                setFormData(prev => ({ ...prev, itinerary: newItinerary }));
+                              }}
+                              placeholder="Itinerary title"
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <Label htmlFor={`itinerary-desc-${idx}`}>Description</Label>
+                            <Textarea
+                              id={`itinerary-desc-${idx}`}
+                              value={item.description || ''}
+                              onChange={e => {
+                                const newItinerary = [...formData.itinerary];
+                                newItinerary[idx] = { ...newItinerary[idx], description: e.target.value };
+                                setFormData(prev => ({ ...prev, itinerary: newItinerary }));
+                              }}
+                              placeholder="Itinerary description"
+                              rows={2}
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            className="self-end h-10 ml-2"
+                            onClick={() => {
+                              const newItinerary = formData.itinerary.filter((_, i) => i !== idx);
+                              setFormData(prev => ({ ...prev, itinerary: newItinerary }));
+                            }}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-500 mb-2">No itinerary added yet.</div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const newItinerary = Array.isArray(formData.itinerary) ? [...formData.itinerary] : [];
+                      newItinerary.push({ title: '', description: '' });
+                      setFormData(prev => ({ ...prev, itinerary: newItinerary }));
+                    }}
+                  >
+                    Add Itinerary
+                  </Button>
+                </section>
+
+                {/* Submit Button */}
                 <div className="flex gap-4">
                   <Button type="submit" disabled={isLoading}>
                     {isLoading ? 'Saving...' : editingPackage ? 'Update Package' : 'Create Package'}
@@ -343,7 +1373,7 @@ const PackageManager = () => {
                           <p className="text-sm text-gray-600">{pkg.description}</p>
                           <div className="flex gap-2 mt-2">
                             <Badge variant="outline">{pkg.duration}</Badge>
-                            <Badge variant="outline">${pkg.price}</Badge>
+                            <Badge variant="outline">{getCurrencySymbol(pkg.currency)}{pkg.price}</Badge>
                             <Badge variant={pkg.status === 'active' ? 'default' : 'secondary'}>
                               {pkg.status}
                             </Badge>
