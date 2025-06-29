@@ -13,7 +13,8 @@ import {
   Star, 
   CheckCircle,
   Clock,
-  Plane
+  Plane,
+  Landmark
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -95,116 +96,139 @@ const GroupPackages = () => {
                 <div>No group packages found</div>
               ) : (
                 <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-                  {groupPackages.map((pkg) => (
-                    <Card key={pkg.id} className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white">
-                      {/* Featured image if available */}
-                      {pkg.featured_image && (
-                        <div className="relative h-48 overflow-hidden">
-                          <img src={pkg.featured_image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                        </div>
-                      )}
-                      <CardHeader className="pb-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <CardTitle className="text-xl font-bold text-gray-900">{pkg.name}</CardTitle>
-                          <div className="text-right">
-                            <div className="text-2xl font-bold text-emerald-600">{getCurrencySymbol(pkg.currency)}{pkg.price}</div>
-                            <div className="text-sm text-gray-500">per person</div>
-                          </div>
-                        </div>
-                        {/* Highlights Row */}
-                        <div className="flex flex-wrap gap-3 items-center text-xs text-gray-700 mb-2">
-                          {/* Duration */}
-                          <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                            <Clock className="w-4 h-4 mr-1 text-emerald-500" />
-                            {pkg.duration}
-                          </span>
-                          {/* Group Size */}
-                          {pkg.max_capacity && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Users className="w-4 h-4 mr-1 text-emerald-500" />
-                              {pkg.max_capacity} max
+                  {groupPackages.map((pkg) => {
+                    // Clamp available_spots and min_participants to max_capacity
+                    const maxCap = pkg.max_capacity || 0;
+                    const availableSpots = Math.min(pkg.available_spots ?? 0, maxCap);
+                    const minParticipants = Math.min(pkg.min_participants ?? 0, maxCap);
+                    const isSoldOut = availableSpots === 0;
+                    return (
+                      <Card key={pkg.id} className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white">
+                        {/* Featured image if available */}
+                        {pkg.featured_image && (
+                          <div className="relative h-48 overflow-hidden">
+                            <img src={pkg.featured_image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                            {/* Group tag (top left) */}
+                            {pkg.is_group_package && (
+                              <span className="absolute top-2 left-2 z-10">
+                                <Badge className="bg-emerald-600 text-white shadow">Group</Badge>
+                              </span>
+                            )}
+                            {/* Package category tag (top right) */}
+                            {pkg.package_category && (
+                              <span className="absolute top-2 right-2 z-10">
+                                <Badge className="bg-amber-100 text-amber-800 border-amber-200 shadow">{pkg.package_category}</Badge>
+                              </span>
+                            )}
+                            {/* Duration (bottom left) */}
+                            <span className="absolute bottom-2 left-2 z-10">
+                              <Badge className="bg-white/80 text-emerald-700 border-emerald-200 flex items-center gap-1 shadow">
+                                <Clock className="w-4 h-4 text-emerald-500" />
+                                {pkg.duration}
+                              </Badge>
                             </span>
-                          )}
-                          {/* Makkah Hotel */}
-                          {pkg.makkah_hotel?.name && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
-                              Makkah: {pkg.makkah_hotel.name}
-                            </span>
-                          )}
-                          {/* Madinah Hotel */}
-                          {pkg.madinah_hotel?.name && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
-                              Madinah: {pkg.madinah_hotel.name}
-                            </span>
-                          )}
-                          {/* Departure/Return */}
-                          {pkg.flight_details?.departure_from_airport && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
-                              Dep: {pkg.flight_details.departure_from_airport}
-                            </span>
-                          )}
-                          {pkg.flight_details?.return_from_airport && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
-                              Ret: {pkg.flight_details.return_from_airport}
-                            </span>
-                          )}
-                          {/* Airline */}
-                          {pkg.flight_details?.airline_name && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
-                              {pkg.flight_details.airline_name}
-                            </span>
-                          )}
-                          {/* Flight Type */}
-                          {pkg.flight_details?.flight_type && (
-                            <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                              <Plane className="w-4 h-4 mr-1 text-emerald-500" />
-                              {pkg.flight_details.flight_type}
-                            </span>
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="mb-4">
-                          <h4 className="font-semibold text-gray-900 mb-2">Description:</h4>
-                          <div className="text-xs text-gray-700">{pkg.description}</div>
-                        </div>
-                        {/* Inclusions */}
-                        {pkg.inclusions && pkg.inclusions.length > 0 && (
-                          <div className="mb-2">
-                            <h5 className="font-semibold text-gray-900 mb-1">Inclusions:</h5>
-                            <div className="flex flex-wrap gap-2">
-                              {pkg.inclusions.map((inc, idx) => (
-                                <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{inc}</Badge>
-                              ))}
-                            </div>
+                            {/* Sold Out tag (top left, below group tag if both) */}
+                            {isSoldOut && (
+                              <span className={`absolute top-${pkg.is_group_package ? '10' : '2'} left-2 z-10`}>
+                                <Badge className="bg-red-600 text-white shadow">Sold Out</Badge>
+                              </span>
+                            )}
                           </div>
                         )}
-                        {/* Cities Covered */}
-                        {pkg.cities_covered && pkg.cities_covered.length > 0 && (
-                          <div className="mb-2">
-                            <h5 className="font-semibold text-gray-900 mb-1">Cities Covered:</h5>
-                            <div className="flex flex-wrap gap-2">
-                              {pkg.cities_covered.map((city, idx) => (
-                                <Badge key={idx} className="bg-teal-100 text-teal-700 border-teal-200">{city}</Badge>
-                              ))}
+                        <CardHeader className="pb-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col gap-2">
+                              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                {pkg.name}
+                              </CardTitle>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-emerald-600">{getCurrencySymbol(pkg.currency)}{pkg.price}</div>
+                              <div className="text-sm text-gray-500">per person</div>
                             </div>
                           </div>
-                        )}
-                        {/* Call to Action */}
-                        <div className="mt-4 flex justify-end">
-                          <Button asChild>
-                            <Link to={`/group-packages/${pkg.id}`}>View Details</Link>
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          {/* Highlights Row */}
+                          <div className="flex flex-wrap gap-3 items-center text-xs text-gray-700 mb-2">
+                            {/* Makkah and Madinah Hotels on the same row with icons */}
+                            {(pkg.makkah_hotel?.name || pkg.madinah_hotel?.name) && (
+                              <div className="flex gap-3 items-center">
+                                {pkg.makkah_hotel?.name && (
+                                  <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                    {/* Kaaba icon (Landmark from lucide-react) */}
+                                    <Landmark className="w-4 h-4 mr-1 text-emerald-500" />
+                                    {pkg.makkah_hotel.name}
+                                  </span>
+                                )}
+                                {pkg.madinah_hotel?.name && (
+                                  <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                    {/* Use Landmark for Madinah as well */}
+                                    <Landmark className="w-4 h-4 mr-1 text-emerald-500" />
+                                    {pkg.madinah_hotel.name}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                            {/* Departure only (no return) */}
+                            {pkg.flight_details?.departure_from_airport && (
+                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                                Dep: {pkg.flight_details.departure_from_airport}
+                              </span>
+                            )}
+                            {/* Airline */}
+                            {pkg.flight_details?.airline_name && (
+                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                                {pkg.flight_details.airline_name}
+                              </span>
+                            )}
+                            {/* Flight Type */}
+                            {pkg.flight_details?.flight_type && (
+                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
+                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                                {pkg.flight_details.flight_type}
+                              </span>
+                            )}
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {/* Inclusions */}
+                          {pkg.inclusions && pkg.inclusions.length > 0 && (
+                            <div className="mb-2">
+                              <h5 className="font-semibold text-gray-900 mb-1">Inclusions:</h5>
+                              <div className="flex flex-wrap gap-2">
+                                {pkg.inclusions.map((inc, idx) => (
+                                  <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{inc}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Cities Covered */}
+                          {pkg.cities_covered && pkg.cities_covered.length > 0 && (
+                            <div className="mb-2">
+                              <h5 className="font-semibold text-gray-900 mb-1">Cities Covered:</h5>
+                              <div className="flex flex-wrap gap-2">
+                                {pkg.cities_covered.map((city, idx) => (
+                                  <Badge key={idx} className="bg-teal-100 text-teal-700 border-teal-200">{city}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {/* Call to Action */}
+                          <div className="mt-4 flex justify-end">
+                            {pkg.seo?.slug ? (
+                              <Button asChild>
+                                <Link to={`/group-packages/${pkg.seo.slug}`}>View Details</Link>
+                              </Button>
+                            ) : (
+                              <span className="text-red-500 text-xs">No slug available</span>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </div>

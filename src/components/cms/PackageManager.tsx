@@ -192,6 +192,9 @@ const PackageManager = () => {
 
   const [activeTab, setActiveTab] = useState('form');
 
+  const [slugError, setSlugError] = useState('');
+  const [slugChecking, setSlugChecking] = useState(false);
+
   // Meal Plan dropdown options
   const mealPlanOptions = [
     'Room Only',
@@ -450,9 +453,30 @@ const PackageManager = () => {
     return JSON.stringify(obj);
   }
 
+  // Real-time slug uniqueness check
+  const checkSlugUnique = async (slug) => {
+    if (!slug) {
+      setSlugError('Slug cannot be empty.');
+      return;
+    }
+    setSlugChecking(true);
+    const { data, error } = await supabase
+      .from('umrah_packages')
+      .select('id')
+      .eq('slug', slug);
+    setSlugChecking(false);
+    // Exclude current package if editing
+    const isDuplicate = data && data.some(row => row.id !== editingPackage?.id);
+    if (isDuplicate) {
+      setSlugError('This slug is already in use. Please choose another.');
+    } else {
+      setSlugError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm() || slugError) return;
     setIsLoading(true);
     try {
       const dbData = convertFormToDatabase(formData);
@@ -1248,9 +1272,15 @@ const PackageManager = () => {
                     </div>
                     <div>
                       <Label htmlFor="slug">Slug</Label>
-                      <Input id="slug" value={formData.slug || ''} onChange={e => { setFormData(prev => ({ ...prev, slug: e.target.value })); setSlugManuallyEdited(true); }} />
+                      <Input id="slug" value={formData.slug || ''} onChange={e => {
+                        const newSlug = e.target.value;
+                        setFormData(prev => ({ ...prev, slug: newSlug }));
+                        checkSlugUnique(newSlug);
+                      }} />
                       <div className="text-xs text-gray-500">Auto-generated from title/keywords. You can edit if needed.</div>
                     </div>
+                    {slugError && <span className="text-red-500 text-xs">{slugError}</span>}
+                    {slugChecking && <span className="text-gray-500 text-xs">Checking slug...</span>}
                     <div className="md:col-span-2">
                       <Label htmlFor="page_schema">Page Schema (JSON-LD)</Label>
                       <Textarea id="page_schema" value={formData.page_schema || ''} onChange={e => setFormData(prev => ({ ...prev, page_schema: e.target.value }))} rows={3} />
