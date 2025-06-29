@@ -2,580 +2,437 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, Car } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Plus, Edit, Trash2, Save, X, Upload } from 'lucide-react';
 
-const VEHICLE_TYPES = [
-  'Sedan', 'Mini Van', 'GMC', 'Large Van', 'Mini Bus', 'Bus', 'Van', 'Coach'
-];
-const FEATURE_OPTIONS = [
-  'AC', 'WiFi', 'Reclining Seats', 'Charger', 'TV', 'Music', 'Luggage', 'Water', 'Snacks', 'GPS', 'Leather Seats', 'Sunroof'
-];
-
-const VEHICLE_TYPE_MAP = {
-  'Sedan': 'car',
-  'Mini Van': 'van',
-  'GMC': 'luxury_car',
-  'Large Van': 'van',
-  'Mini Bus': 'bus',
-  'Bus': 'bus',
-  'Van': 'van',
-  'Coach': 'bus',
-};
-
-const defaultValues = {
-  vehicle_type: '',
-  vehicle_name: '',
-  route: '',
-  capacity: '',
-  price: '',
-  description: '',
-  features: [],
-  driver_name: '',
-  driver_contact: '',
-  vehicle_details: '',
-  is_ac: true,
-  luggage_capacity: '',
-  is_active: true,
-  trip_distance: '',
-  trip_duration: '',
-  vehicle_image: '',
-};
-
-const vehicleDefaultValues = {
-  vehicle_name: '',
-  vehicle_type: '',
-  capacity: '',
-  luggage_capacity: '',
-  features: [],
-  vehicle_image: '',
-  description: '',
-};
-
-const routeDefaultValues = {
-  route_name: '',
-  trip_duration: '',
-  trip_distance: '',
-  description: '',
-};
+interface TransportService {
+  id: string;
+  route: string;
+  vehicle_type: string;
+  capacity: number;
+  price: number;
+  description: string;
+  vehicle_name: string;
+  vehicle_image: string;
+  features: string[];
+  is_ac: boolean;
+  is_active: boolean;
+  trip_duration: string;
+  trip_distance: string;
+  driver_name: string;
+  driver_contact: string;
+  luggage_capacity: string;
+  vehicle_details: Record<string, any>;
+}
 
 const TransportManager = () => {
-  const [transports, setTransports] = useState([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTransport, setEditingTransport] = useState(null);
+  const [services, setServices] = useState<TransportService[]>([]);
   const [loading, setLoading] = useState(true);
-  const [imageFile, setImageFile] = useState(null);
-  const [vehicles, setVehicles] = useState([]);
-  const [routes, setRoutes] = useState([]);
-  const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
-  const [isRouteDialogOpen, setIsRouteDialogOpen] = useState(false);
-  const [vehicleImageFile, setVehicleImageFile] = useState(null);
-  const [isTransportDialogOpen, setIsTransportDialogOpen] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState('');
-  const [selectedRouteId, setSelectedRouteId] = useState('');
-  const [transportPrice, setTransportPrice] = useState('');
+  const [editMode, setEditMode] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState<Partial<TransportService>>({
+    route: '',
+    vehicle_type: 'sedan',
+    capacity: 4,
+    price: 0,
+    description: '',
+    vehicle_name: '',
+    vehicle_image: '',
+    features: [],
+    is_ac: true,
+    is_active: true,
+    trip_duration: '',
+    trip_distance: '',
+    driver_name: '',
+    driver_contact: '',
+    luggage_capacity: '',
+    vehicle_details: {}
+  });
 
-  const form = useForm({ defaultValues });
-  const vehicleForm = useForm({ defaultValues: vehicleDefaultValues });
-  const routeForm = useForm({ defaultValues: routeDefaultValues });
-
-  // Fetch all transports from Supabase
-  const fetchTransports = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('transport_services')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error) setTransports(data || []);
-    setLoading(false);
-  };
-
-  // Fetch all vehicles
-  const fetchVehicles = async () => {
-    const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .order('vehicle_name');
-    if (!error) setVehicles(data || []);
-  };
-
-  // Fetch all routes
-  const fetchRoutes = async () => {
-    const { data, error } = await supabase
-      .from('routes')
-      .select('*')
-      .order('route_name');
-    if (!error) setRoutes(data || []);
-  };
-
-  useEffect(() => { fetchTransports(); fetchVehicles(); fetchRoutes(); }, []);
-
-  // Add or update transport
-  const onSubmit = async (data) => {
-    let vehicleImageUrl = data.vehicle_image;
-    if (imageFile) {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('lovable-uploads').upload(fileName, imageFile);
-      if (uploadError) {
-        alert('Image upload failed: ' + uploadError.message);
-        return;
-      }
-      vehicleImageUrl = `${supabaseUrl}/storage/v1/object/public/lovable-uploads/${fileName}`;
-    }
-    const payload = {
-      vehicle_type: VEHICLE_TYPE_MAP[data.vehicle_type] || 'car',
-      vehicle_name: data.vehicle_name,
-      route: data.route,
-      capacity: parseInt(data.capacity),
-      price: parseFloat(data.price),
-      description: data.description || null,
-      features: data.features,
-      driver_name: data.driver_name || null,
-      driver_contact: data.driver_contact || null,
-      vehicle_details: data.vehicle_details
-        ? (data.vehicle_details.trim().startsWith('{') ? JSON.parse(data.vehicle_details) : data.vehicle_details)
-        : null,
-      is_ac: data.is_ac,
-      luggage_capacity: data.luggage_capacity || null,
-      is_active: data.is_active,
-      trip_distance: data.trip_distance || null,
-      trip_duration: data.trip_duration || null,
-      vehicle_image: vehicleImageUrl || null,
-    };
-
-    let result;
-    if (editingTransport) {
-      result = await supabase
+  const fetchServices = async () => {
+    try {
+      const { data, error } = await supabase
         .from('transport_services')
-        .update(payload)
-        .eq('id', editingTransport.id);
-    } else {
-      result = await supabase
-        .from('transport_services')
-        .insert([payload]);
-    }
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (result.error) {
-      alert('Failed to save transport: ' + result.error.message);
-      return;
+      if (error) throw error;
+      
+      const formattedData = data?.map(service => ({
+        ...service,
+        vehicle_details: service.vehicle_details || {}
+      })) || [];
+      
+      setServices(formattedData);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      toast.error('Failed to fetch transport services');
     }
-
-    setIsDialogOpen(false);
-    setEditingTransport(null);
-    form.reset(defaultValues);
-    fetchTransports();
-    setImageFile(null);
   };
 
-  // Edit handler
-  const handleEdit = (transport) => {
-    setEditingTransport(transport);
-    form.reset({
-      vehicle_type: transport.vehicle_type,
-      vehicle_name: transport.vehicle_name || '',
-      route: transport.route,
-      capacity: transport.capacity.toString(),
-      price: transport.price.toString(),
-      description: transport.description || '',
-      features: transport.features || [],
-      driver_name: transport.driver_name || '',
-      driver_contact: transport.driver_contact || '',
-      vehicle_details: transport.vehicle_details ? JSON.stringify(transport.vehicle_details) : '',
-      is_ac: transport.is_ac,
-      luggage_capacity: transport.luggage_capacity || '',
-      is_active: transport.is_active,
-      trip_distance: transport.trip_distance || '',
-      trip_duration: transport.trip_duration || '',
-      vehicle_image: transport.vehicle_image || '',
-    });
-    setIsDialogOpen(true);
-    setImageFile(null);
-  };
-
-  // Delete handler
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this transport?')) return;
-    const { error } = await supabase
-      .from('transport_services')
-      .delete()
-      .eq('id', id);
-    if (error) {
-      alert('Failed to delete transport: ' + error.message);
-      return;
-    }
-    fetchTransports();
-  };
-
-  // Add vehicle
-  const onVehicleSubmit = async (data) => {
-    let vehicleImageUrl = '';
-    if (vehicleImageFile) {
-      const fileExt = vehicleImageFile.name.split('.').pop();
-      const fileName = `${Date.now()}-vehicle-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('lovable-uploads').upload(fileName, vehicleImageFile);
-      if (uploadError) {
-        alert('Image upload failed: ' + uploadError.message);
-        return;
-      }
-      vehicleImageUrl = `${supabaseUrl}/storage/v1/object/public/lovable-uploads/${fileName}`;
-    }
-    const { error } = await supabase.from('vehicles').insert([
-      {
-        vehicle_name: data.vehicle_name,
-        vehicle_type: data.vehicle_type,
-        capacity: parseInt(data.capacity),
-        luggage_capacity: data.luggage_capacity,
-        features: data.features,
-        vehicle_image: vehicleImageUrl,
-        description: data.description,
-      },
-    ]);
-    if (error) { alert('Failed to save vehicle: ' + error.message); return; }
-    setIsVehicleDialogOpen(false);
-    vehicleForm.reset(vehicleDefaultValues);
-    setVehicleImageFile(null);
-    fetchVehicles();
-  };
-
-  // Add route
-  const onRouteSubmit = async (data) => {
-    const { error } = await supabase.from('routes').insert([
-      {
-        route_name: data.route_name,
-        trip_duration: data.trip_duration,
-        trip_distance: data.trip_distance,
-        description: data.description,
-      },
-    ]);
-    if (error) { alert('Failed to save route: ' + error.message); return; }
-    setIsRouteDialogOpen(false);
-    routeForm.reset(routeDefaultValues);
-    fetchRoutes();
-  };
-
-  // Add transport from vehicle and route
-  const onTransportSubmit = async (e) => {
-    e.preventDefault();
-    const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-    const route = routes.find(r => r.id === selectedRouteId);
-    if (!vehicle || !route || !transportPrice) {
-      alert('Please select a vehicle, route, and enter a price.');
-      return;
-    }
-    const payload = {
-      vehicle_type: vehicle.vehicle_type,
-      vehicle_name: vehicle.vehicle_name,
-      route: route.route_name,
-      capacity: vehicle.capacity,
-      price: parseFloat(transportPrice),
-      description: vehicle.description,
-      features: vehicle.features,
-      luggage_capacity: vehicle.luggage_capacity,
-      vehicle_image: vehicle.vehicle_image,
-      trip_distance: route.trip_distance,
-      trip_duration: route.trip_duration,
-      is_active: true,
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await fetchServices();
+      setLoading(false);
     };
-    const { error } = await supabase.from('transport_services').insert([payload]);
-    if (error) { alert('Failed to save transport: ' + error.message); return; }
-    setIsTransportDialogOpen(false);
-    setSelectedVehicleId('');
-    setSelectedRouteId('');
-    setTransportPrice('');
-    fetchTransports();
+    loadData();
+  }, []);
+
+  const handleImageUpload = async (file: File, field: 'vehicle_image') => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `transport/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('transport-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('transport-images')
+        .getPublicUrl(filePath);
+
+      setFormData(prev => ({ ...prev, [field]: data.publicUrl }));
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
+    }
   };
+
+  if (loading) {
+    return <div className="flex justify-center p-8">Loading transport services...</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-4 items-center justify-between">
-        <h3 className="text-xl font-semibold">Transport Management</h3>
-        <div className="flex gap-2">
-          <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { vehicleForm.reset(vehicleDefaultValues); }}>
-                <Plus className="w-4 h-4 mr-2" /> Add Vehicle
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-6">
-              <DialogHeader>
-                <DialogTitle>Add Vehicle</DialogTitle>
-                <DialogDescription>
-                  Fill in the details to add a new vehicle. All fields marked * are required.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...vehicleForm}>
-                <form onSubmit={vehicleForm.handleSubmit(onVehicleSubmit)} className="space-y-4">
-                  <FormField control={vehicleForm.control} name="vehicle_name" render={({ field }) => (
-                    <FormItem><FormLabel>Vehicle Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="vehicle_type" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select vehicle type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Sedan">Sedan</SelectItem>
-                          <SelectItem value="Mini Van">Mini Van</SelectItem>
-                          <SelectItem value="GMC">GMC</SelectItem>
-                          <SelectItem value="Van">Van</SelectItem>
-                          <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                          <SelectItem value="Bus">Bus</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="capacity" render={({ field }) => (
-                    <FormItem><FormLabel>Capacity</FormLabel><FormControl><Input type="number" min={1} {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="luggage_capacity" render={({ field }) => (
-                    <FormItem><FormLabel>Luggage Capacity</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="features" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Features</FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {FEATURE_OPTIONS.map(option => (
-                          <label key={option} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={field.value?.includes(option)}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  field.onChange([...(field.value || []), option]);
-                                } else {
-                                  field.onChange((field.value || []).filter(f => f !== option));
-                                }
-                              }}
-                            />
-                            <span>{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="vehicle_image" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle Image</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            setVehicleImageFile(file || null);
-                            if (!file) field.onChange('');
-                          }}
-                        />
-                      </FormControl>
-                      {vehicleImageFile && (
-                        <img src={URL.createObjectURL(vehicleImageFile)} alt="preview" className="w-24 h-16 object-cover rounded mt-2" />
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <Button type="submit">Save Vehicle</Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isRouteDialogOpen} onOpenChange={setIsRouteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { routeForm.reset(routeDefaultValues); }}>
-                <Plus className="w-4 h-4 mr-2" /> Add Route
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-6">
-              <DialogHeader>
-                <DialogTitle>Add Route</DialogTitle>
-                <DialogDescription>
-                  Enter the details for the new route. All fields marked * are required.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...routeForm}>
-                <form onSubmit={routeForm.handleSubmit(onRouteSubmit)} className="space-y-4">
-                  <FormField control={routeForm.control} name="route_name" render={({ field }) => (
-                    <FormItem><FormLabel>Route Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="trip_duration" render={({ field }) => (
-                    <FormItem><FormLabel>Trip Duration</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="trip_distance" render={({ field }) => (
-                    <FormItem><FormLabel>Trip Distance</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <Button type="submit">Save Route</Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-          <Dialog open={isTransportDialogOpen} onOpenChange={setIsTransportDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { setSelectedVehicleId(''); setSelectedRouteId(''); setTransportPrice(''); }}>
-                <Plus className="w-4 h-4 mr-2" /> Add Transport
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-6">
-              <DialogHeader>
-                <DialogTitle>Add Transport</DialogTitle>
-                <DialogDescription>
-                  Select a vehicle and a route, and enter a price to create a new transport service.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={onTransportSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Vehicle</label>
-                  <select className="w-full border rounded p-2" value={selectedVehicleId} onChange={e => setSelectedVehicleId(e.target.value)} required>
-                    <option value="">Select vehicle</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.vehicle_name} ({v.vehicle_type})</option>
-                    ))}
-                  </select>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Transport Services Management</h2>
+        <Button onClick={() => setShowAddForm(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Service
+        </Button>
+      </div>
+
+      {showAddForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add New Transport Service</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TransportForm
+              data={formData}
+              onChange={setFormData}
+              onSave={async (data) => {
+                try {
+                  const { error } = await supabase
+                    .from('transport_services')
+                    .insert([data]);
+
+                  if (error) throw error;
+                  toast.success('Transport service created successfully');
+                  await fetchServices();
+                  setShowAddForm(false);
+                  setFormData({
+                    route: '',
+                    vehicle_type: 'sedan',
+                    capacity: 4,
+                    price: 0,
+                    description: '',
+                    vehicle_name: '',
+                    vehicle_image: '',
+                    features: [],
+                    is_ac: true,
+                    is_active: true,
+                    trip_duration: '',
+                    trip_distance: '',
+                    driver_name: '',
+                    driver_contact: '',
+                    luggage_capacity: '',
+                    vehicle_details: {}
+                  });
+                } catch (error) {
+                  console.error('Error creating transport service:', error);
+                  toast.error('Failed to create transport service');
+                }
+              }}
+              onCancel={() => setShowAddForm(false)}
+              onImageUpload={handleImageUpload}
+            />
+          </CardContent>
+        </Card>
+      )}
+      
+      <div className="grid gap-4">
+        {services.map((service) => (
+          <Card key={service.id}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>{service.vehicle_name}</CardTitle>
+                <div className="flex gap-2 mt-2">
+                  <Badge>{service.vehicle_type}</Badge>
+                  <Badge variant="outline">₹{service.price}</Badge>
+                  <Badge variant={service.is_active ? 'default' : 'secondary'}>
+                    {service.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Route</label>
-                  <select className="w-full border rounded p-2" value={selectedRouteId} onChange={e => setSelectedRouteId(e.target.value)} required>
-                    <option value="">Select route</option>
-                    {routes.map(r => (
-                      <option key={r.id} value={r.id}>{r.route_name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Price</label>
-                  <input className="w-full border rounded p-2" type="number" min="0" step="0.01" value={transportPrice} onChange={e => setTransportPrice(e.target.value)} required placeholder="₹1000" />
-                </div>
-                <Button type="submit">Save Transport</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              </div>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+interface TransportFormProps {
+  data: Partial<TransportService>;
+  onChange: (data: Partial<TransportService>) => void;
+  onSave: (data: Partial<TransportService>) => Promise<void>;
+  onCancel: () => void;
+  onImageUpload: (file: File, field: 'vehicle_image') => Promise<void>;
+}
+
+const TransportForm: React.FC<TransportFormProps> = ({
+  data,
+  onChange,
+  onSave,
+  onCancel,
+  onImageUpload
+}) => {
+  const handleChange = (field: keyof TransportService, value: any) => {
+    onChange({ ...data, [field]: value });
+  };
+
+  const handleFeaturesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const featuresArray = value.split(',').map(item => item.trim());
+    handleChange('features', featuresArray);
+  };
+
+  const handleVehicleDetailsChange = (field: string, value: any) => {
+    const updatedDetails = { ...data.vehicle_details, [field]: value };
+    handleChange('vehicle_details', updatedDetails);
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <Label htmlFor="route">Route</Label>
+        <Input
+          id="route"
+          value={data.route || ''}
+          onChange={(e) => handleChange('route', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="vehicle_type">Vehicle Type</Label>
+        <Select value={data.vehicle_type || 'sedan'} onValueChange={(value) => handleChange('vehicle_type', value)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="sedan">Sedan</SelectItem>
+            <SelectItem value="suv">SUV</SelectItem>
+            <SelectItem value="van">Van</SelectItem>
+            <SelectItem value="bus">Bus</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="capacity">Capacity</Label>
+        <Input
+          id="capacity"
+          type="number"
+          value={data.capacity || 4}
+          onChange={(e) => handleChange('capacity', Number(e.target.value))}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="price">Price</Label>
+        <Input
+          id="price"
+          type="number"
+          value={data.price || 0}
+          onChange={(e) => handleChange('price', Number(e.target.value))}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={data.description || ''}
+          onChange={(e) => handleChange('description', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="vehicle_name">Vehicle Name</Label>
+        <Input
+          id="vehicle_name"
+          value={data.vehicle_name || ''}
+          onChange={(e) => handleChange('vehicle_name', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="vehicle_image">Vehicle Image</Label>
+        <Input
+          type="file"
+          id="vehicle_image"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              onImageUpload(file, 'vehicle_image');
+            }
+          }}
+        />
+        {data.vehicle_image && (
+          <img src={data.vehicle_image} alt="Vehicle" className="mt-2 max-h-32" />
+        )}
+      </div>
+
+      <div>
+        <Label htmlFor="features">Features (comma separated)</Label>
+        <Textarea
+          id="features"
+          value={(data.features || []).join(', ')}
+          onChange={handleFeaturesChange}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="is_ac">Is AC</Label>
+        <Select value={data.is_ac === true ? 'true' : 'false'} onValueChange={(value) => handleChange('is_ac', value === 'true')}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">Yes</SelectItem>
+            <SelectItem value="false">No</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="is_active">Is Active</Label>
+        <Select value={data.is_active === true ? 'true' : 'false'} onValueChange={(value) => handleChange('is_active', value === 'true')}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">Yes</SelectItem>
+            <SelectItem value="false">No</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="trip_duration">Trip Duration</Label>
+        <Input
+          id="trip_duration"
+          value={data.trip_duration || ''}
+          onChange={(e) => handleChange('trip_duration', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="trip_distance">Trip Distance</Label>
+        <Input
+          id="trip_distance"
+          value={data.trip_distance || ''}
+          onChange={(e) => handleChange('trip_distance', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="driver_name">Driver Name</Label>
+        <Input
+          id="driver_name"
+          value={data.driver_name || ''}
+          onChange={(e) => handleChange('driver_name', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="driver_contact">Driver Contact</Label>
+        <Input
+          id="driver_contact"
+          value={data.driver_contact || ''}
+          onChange={(e) => handleChange('driver_contact', e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="luggage_capacity">Luggage Capacity</Label>
+        <Input
+          id="luggage_capacity"
+          value={data.luggage_capacity || ''}
+          onChange={(e) => handleChange('luggage_capacity', e.target.value)}
+        />
+      </div>
+
+      <div className="md:col-span-2">
+        <Label>Vehicle Details</Label>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div>
+            <Label htmlFor="fuel_type">Fuel Type</Label>
+            <Input
+              id="fuel_type"
+              value={data.vehicle_details?.fuel_type || ''}
+              onChange={(e) => handleVehicleDetailsChange('fuel_type', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="transmission">Transmission</Label>
+            <Input
+              id="transmission"
+              value={data.vehicle_details?.transmission || ''}
+              onChange={(e) => handleVehicleDetailsChange('transmission', e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="model_year">Model Year</Label>
+            <Input
+              id="model_year"
+              type="number"
+              value={data.vehicle_details?.model_year || ''}
+              onChange={(e) => handleVehicleDetailsChange('model_year', Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <Label htmlFor="color">Color</Label>
+            <Input
+              id="color"
+              value={data.vehicle_details?.color || ''}
+              onChange={(e) => handleVehicleDetailsChange('color', e.target.value)}
+            />
+          </div>
         </div>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>All Transport Services</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            <table className="min-w-full text-sm border">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="p-2 border">Vehicle Type</th>
-                  <th className="p-2 border">Vehicle Name</th>
-                  <th className="p-2 border">Trip Distance</th>
-                  <th className="p-2 border">Trip Duration</th>
-                  <th className="p-2 border">Image</th>
-                  <th className="p-2 border">Route</th>
-                  <th className="p-2 border">Capacity</th>
-                  <th className="p-2 border">Price (₹)</th>
-                  <th className="p-2 border">Active</th>
-                  <th className="p-2 border">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transports.map(transport => (
-                  <tr key={transport.id}>
-                    <td className="p-2 border">{transport.vehicle_type}</td>
-                    <td className="p-2 border">{transport.vehicle_name}</td>
-                    <td className="p-2 border">{transport.trip_distance}</td>
-                    <td className="p-2 border">{transport.trip_duration}</td>
-                    <td className="p-2 border">{transport.vehicle_image && <img src={transport.vehicle_image} alt="vehicle" className="w-16 h-10 object-cover rounded" />}</td>
-                    <td className="p-2 border">{transport.route}</td>
-                    <td className="p-2 border">{transport.capacity}</td>
-                    <td className="p-2 border">{transport.price}</td>
-                    <td className="p-2 border">{transport.is_active ? 'Yes' : 'No'}</td>
-                    <td className="p-2 border space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(transport)}>
-                        <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(transport.id)}>
-                        <Trash2 className="w-4 h-4" />
-                        </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
-      {/* Vehicles Table */}
-      <Card>
-        <CardHeader><CardTitle>All Vehicles</CardTitle></CardHeader>
-        <CardContent>
-          <table className="min-w-full text-sm border mb-4">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Type</th>
-                <th className="p-2 border">Capacity</th>
-                <th className="p-2 border">Luggage</th>
-                <th className="p-2 border">Features</th>
-                <th className="p-2 border">Image</th>
-                <th className="p-2 border">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.map(vehicle => (
-                <tr key={vehicle.id}>
-                  <td className="p-2 border">{vehicle.vehicle_name}</td>
-                  <td className="p-2 border">{vehicle.vehicle_type}</td>
-                  <td className="p-2 border">{vehicle.capacity}</td>
-                  <td className="p-2 border">{vehicle.luggage_capacity}</td>
-                  <td className="p-2 border">{Array.isArray(vehicle.features) ? vehicle.features.join(', ') : vehicle.features}</td>
-                  <td className="p-2 border">{vehicle.vehicle_image && <img src={vehicle.vehicle_image} alt="vehicle" className="w-16 h-10 object-cover rounded" />}</td>
-                  <td className="p-2 border">{vehicle.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
-      {/* Routes Table */}
-      <Card>
-        <CardHeader><CardTitle>All Routes</CardTitle></CardHeader>
-        <CardContent>
-          <table className="min-w-full text-sm border mb-4">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 border">Name</th>
-                <th className="p-2 border">Duration</th>
-                <th className="p-2 border">Distance</th>
-                <th className="p-2 border">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {routes.map(route => (
-                <tr key={route.id}>
-                  <td className="p-2 border">{route.route_name}</td>
-                  <td className="p-2 border">{route.trip_duration}</td>
-                  <td className="p-2 border">{route.trip_distance}</td>
-                  <td className="p-2 border">{route.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+
+      <div className="md:col-span-2 flex gap-4 justify-end">
+        <Button variant="outline" onClick={onCancel}>
+          <X className="w-4 h-4 mr-2" />
+          Cancel
+        </Button>
+        <Button onClick={() => onSave(data)}>
+          <Save className="w-4 h-4 mr-2" />
+          Save Service
+        </Button>
+      </div>
     </div>
   );
 };
