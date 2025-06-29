@@ -17,16 +17,42 @@ const GroupPackageDetail = () => {
 
   useEffect(() => {
     const fetchPackage = async () => {
+      if (!slug) {
+        setError('No slug provided');
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
-      const { data, error } = await supabase
+      console.log('Fetching package with slug:', slug);
+      
+      // Try different query approaches
+      let { data, error } = await supabase
         .from('umrah_packages')
         .select('*')
-        .eq('slug', slug)
+        .filter('seo->slug', 'eq', slug)
         .single();
-      if (error || !data) {
-        setError('Package not found.');
-        setPkg(null);
+      
+      if (error) {
+        console.log('First query failed:', error);
+        // Try alternative approach
+        const { data: data2, error: error2 } = await supabase
+          .from('umrah_packages')
+          .select('*')
+          .eq('seo->>slug', slug)
+          .single();
+        
+        if (error2) {
+          console.log('Second query failed:', error2);
+          setError('Package not found.');
+          setPkg(null);
+        } else {
+          console.log('Second query succeeded:', data2);
+          setPkg(data2);
+          setError(null);
+        }
       } else {
+        console.log('First query succeeded:', data);
         setPkg(data);
         setError(null);
       }

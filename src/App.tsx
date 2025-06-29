@@ -12,6 +12,7 @@ import GroupFlights from "./pages/GroupFlights";
 import Services from "./pages/Services";
 import UmrahPackages from "./pages/UmrahPackages";
 import GroupPackages from "./pages/GroupPackages";
+import GroupPackageDetail from "./pages/GroupPackageDetail";
 import CustomPackages from "./pages/CustomPackages";
 import PackageDetails from "./pages/PackageDetails";
 import AdvancedPackageDetails from "./pages/AdvancedPackageDetails";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/umrah-packages" element={<UmrahPackages />} />
           <Route path="/group-packages" element={<GroupPackages />} />
+          <Route path="/group-packages/:slug" element={<GroupPackageDetail />} />
           <Route path="/custom-packages" element={<CustomPackages />} />
           <Route path="/package-details/:id" element={<PackageDetails />} />
           <Route path="/advanced-package/:id" element={<AdvancedPackageDetails />} />

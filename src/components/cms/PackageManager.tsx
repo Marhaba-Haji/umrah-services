@@ -332,7 +332,17 @@ const PackageManager = () => {
     const madinah_hotel = formPackage.madinah_hotel;
 
     // Combine SEO fields into seo
-    const seo = formPackage.seo && typeof formPackage.seo === 'object' ? formPackage.seo : {};
+    const seo = {
+      ...(formPackage.seo && typeof formPackage.seo === 'object' ? formPackage.seo : {}),
+      slug: formPackage.slug,
+      meta_title: formPackage.meta_title,
+      meta_description: formPackage.meta_description,
+      target_keywords: formPackage.target_keywords,
+      page_schema: formPackage.page_schema,
+      og_title: formPackage.og_title,
+      og_description: formPackage.og_description,
+      og_image: formPackage.og_image,
+    };
 
     // Combine hotel fields into hotels
     const hotels = formPackage.hotels && typeof formPackage.hotels === 'object' ? formPackage.hotels : {};
@@ -463,7 +473,7 @@ const PackageManager = () => {
     const { data, error } = await supabase
       .from('umrah_packages')
       .select('id')
-      .eq('slug', slug);
+      .eq('seo->slug', slug);
     setSlugChecking(false);
     // Exclude current package if editing
     const isDuplicate = data && data.some(row => row.id !== editingPackage?.id);
