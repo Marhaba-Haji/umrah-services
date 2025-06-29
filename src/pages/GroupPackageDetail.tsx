@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -7,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Clock, Users, Plane, Landmark, Star, Check, X, Phone, Mail, Calendar, MapPin, Shield, Award, Heart } from 'lucide-react';
+import { Clock, Users, Plane, Landmark, Star, Check, X, Phone, Mail, Calendar, MapPin, Shield, Award, Heart, Hotel } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -108,6 +109,21 @@ const GroupPackageDetail = () => {
   const totalTravelers = selectedTravelers.adults + selectedTravelers.childWithBed + selectedTravelers.childNoBed + selectedTravelers.infants;
   const basePrice = pkg.price || 0;
   const totalCost = basePrice * totalTravelers;
+
+  // Helper function to get nights from duration string
+  const getNightsFromDuration = (duration: string, city: string) => {
+    if (!duration) return 0;
+    const match = duration.match(/(\d+)/);
+    if (match) {
+      const totalNights = parseInt(match[1]);
+      // Assume equal split between Makkah and Madinah if both are present
+      if (pkg.makkah_hotel && pkg.madinah_hotel) {
+        return Math.ceil(totalNights / 2);
+      }
+      return totalNights;
+    }
+    return 0;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -300,66 +316,196 @@ const GroupPackageDetail = () => {
                 </div>
               </TabsContent>
 
-              {/* Hotels Tab */}
+              {/* Hotels Tab - Updated to match reference image */}
               <TabsContent value="hotels">
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {pkg.makkah_hotel && (
-                    <Card className="shadow-lg border-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Landmark className="w-5 h-5 text-emerald-600" />
-                          Makkah Hotel
+                    <Card className="shadow-lg border-0 overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white">
+                        <CardTitle className="flex items-center gap-3">
+                          <Hotel className="w-6 h-6" />
+                          Makkah Accommodation ({getNightsFromDuration(pkg.duration, 'makkah')} nights)
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <h3 className="text-2xl font-bold text-gray-900">{pkg.makkah_hotel.name}</h3>
-                          {pkg.makkah_hotel.address && (
-                            <p className="text-gray-600 flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
-                              {pkg.makkah_hotel.address}
-                            </p>
-                          )}
-                          {pkg.makkah_hotel.amenities && (
-                            <div className="flex flex-wrap gap-2">
-                              {pkg.makkah_hotel.amenities.map((amenity: string, idx: number) => (
-                                <Badge key={idx} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                                  {amenity}
-                                </Badge>
-                              ))}
+                      <CardContent className="p-0">
+                        <div className="grid lg:grid-cols-5 gap-0">
+                          {/* Hotel Image */}
+                          <div className="lg:col-span-2">
+                            <div className="h-64 lg:h-full relative">
+                              <img
+                                src={pkg.makkah_hotel.image || '/placeholder.svg'}
+                                alt={pkg.makkah_hotel.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                             </div>
-                          )}
+                          </div>
+                          
+                          {/* Hotel Details */}
+                          <div className="lg:col-span-3 p-6">
+                            <div className="mb-4">
+                              <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.makkah_hotel.name}</h3>
+                              <div className="flex items-center gap-1 mb-3">
+                                {Array.from({ length: pkg.makkah_hotel.rating || 5 }).map((_, i) => (
+                                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                ))}
+                                <span className="text-sm text-gray-600 ml-2">({pkg.makkah_hotel.rating || 5}/5)</span>
+                              </div>
+                              
+                              {pkg.makkah_hotel.distance && (
+                                <div className="flex items-center gap-2 text-emerald-600 font-medium mb-4">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{pkg.makkah_hotel.distance} from Haram</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Hotel Amenities */}
+                            <div>
+                              <h4 className="font-semibold text-gray-800 mb-3">Hotel Amenities:</h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                {pkg.makkah_hotel.amenities && pkg.makkah_hotel.amenities.map((amenity: string, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm font-medium text-gray-700">{amenity}</span>
+                                    <Check className="w-4 h-4 text-emerald-600" />
+                                  </div>
+                                ))}
+                                {/* Default amenities if none specified */}
+                                {(!pkg.makkah_hotel.amenities || pkg.makkah_hotel.amenities.length === 0) && (
+                                  <>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Free WiFi</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">AC</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Room Service</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Buffet Breakfast</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Prayer Area</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">24/7 Reception</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Laundry Service</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Elevator Access</span>
+                                      <Check className="w-4 h-4 text-emerald-600" />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
 
                   {pkg.madinah_hotel && (
-                    <Card className="shadow-lg border-0">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <Landmark className="w-5 h-5 text-blue-600" />
-                          Madinah Hotel
+                    <Card className="shadow-lg border-0 overflow-hidden">
+                      <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+                        <CardTitle className="flex items-center gap-3">
+                          <Hotel className="w-6 h-6" />
+                          Madinah Accommodation ({getNightsFromDuration(pkg.duration, 'madinah')} nights)
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <h3 className="text-2xl font-bold text-gray-900">{pkg.madinah_hotel.name}</h3>
-                          {pkg.madinah_hotel.address && (
-                            <p className="text-gray-600 flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
-                              {pkg.madinah_hotel.address}
-                            </p>
-                          )}
-                          {pkg.madinah_hotel.amenities && (
-                            <div className="flex flex-wrap gap-2">
-                              {pkg.madinah_hotel.amenities.map((amenity: string, idx: number) => (
-                                <Badge key={idx} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  {amenity}
-                                </Badge>
-                              ))}
+                      <CardContent className="p-0">
+                        <div className="grid lg:grid-cols-5 gap-0">
+                          {/* Hotel Image */}
+                          <div className="lg:col-span-2">
+                            <div className="h-64 lg:h-full relative">
+                              <img
+                                src={pkg.madinah_hotel.image || '/placeholder.svg'}
+                                alt={pkg.madinah_hotel.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                             </div>
-                          )}
+                          </div>
+                          
+                          {/* Hotel Details */}
+                          <div className="lg:col-span-3 p-6">
+                            <div className="mb-4">
+                              <h3 className="text-2xl font-bold text-gray-900 mb-2">{pkg.madinah_hotel.name}</h3>
+                              <div className="flex items-center gap-1 mb-3">
+                                {Array.from({ length: pkg.madinah_hotel.rating || 5 }).map((_, i) => (
+                                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                ))}
+                                <span className="text-sm text-gray-600 ml-2">({pkg.madinah_hotel.rating || 5}/5)</span>
+                              </div>
+                              
+                              {pkg.madinah_hotel.distance && (
+                                <div className="flex items-center gap-2 text-blue-600 font-medium mb-4">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{pkg.madinah_hotel.distance} from Masjid Nabawi</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Hotel Amenities */}
+                            <div>
+                              <h4 className="font-semibold text-gray-800 mb-3">Hotel Amenities:</h4>
+                              <div className="grid grid-cols-2 gap-3">
+                                {pkg.madinah_hotel.amenities && pkg.madinah_hotel.amenities.map((amenity: string, idx: number) => (
+                                  <div key={idx} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm font-medium text-gray-700">{amenity}</span>
+                                    <Check className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                ))}
+                                {/* Default amenities if none specified */}
+                                {(!pkg.madinah_hotel.amenities || pkg.madinah_hotel.amenities.length === 0) && (
+                                  <>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Free WiFi</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">AC</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Room Service</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Buffet Breakfast</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Prayer Area</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">24/7 Reception</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Concierge Service</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm font-medium text-gray-700">Business Center</span>
+                                      <Check className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

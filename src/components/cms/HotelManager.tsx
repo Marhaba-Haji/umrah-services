@@ -12,7 +12,7 @@ import { Eye, Edit, Trash2, Plus, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Hotel {
-  id: number;
+  id: string;
   name: string;
   location: string;
   rating: number;
@@ -22,7 +22,7 @@ interface Hotel {
   amenities: string[];
   city: string;
   distanceFromHaram?: string;
-  distanceFromMasjidENabawi?: string;
+  distanceFromMasjidENabawi?: number;
   images?: string[];
   latitude?: string;
   longitude?: string;
@@ -60,14 +60,14 @@ const HotelManager = ({ session }) => {
         name: hotel.name,
         location: hotel.location,
         rating: hotel.rating,
-        pricePerNight: hotel.price_per_night,
+        pricePerNight: hotel.price_per_night?.toString() || '0',
         status: hotel.status,
         description: hotel.description,
-        amenities: hotel.amenities,
+        amenities: hotel.amenities || [],
         city: hotel.city,
-        distanceFromHaram: hotel.distance_from_haram,
+        distanceFromHaram: hotel.distance_from_haram?.toString(),
         distanceFromMasjidENabawi: hotel.distance_from_masjid_e_nabawi,
-        images: hotel.images,
+        images: hotel.images || [],
         latitude: hotel.latitude,
         longitude: hotel.longitude,
         isShuttle: hotel.is_shuttle,
@@ -112,7 +112,7 @@ const HotelManager = ({ session }) => {
       description: data.description,
       amenities: data.amenities,
       city: data.city,
-      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? parseInt(data.distanceFromHaram, 10) : null,
+      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? data.distanceFromHaram.toString() : null,
       distance_from_masjid_e_nabawi: data.city === 'madinah' && data.distanceFromMasjidENabawi ? parseInt(data.distanceFromMasjidENabawi, 10) : null,
       images: data.images,
       latitude: data.latitude,
@@ -154,7 +154,7 @@ const HotelManager = ({ session }) => {
       amenities: hotel.amenities,
       city: hotel.city,
       distanceFromHaram: hotel.distanceFromHaram,
-      distanceFromMasjidENabawi: hotel.distanceFromMasjidENabawi,
+      distanceFromMasjidENabawi: hotel.distanceFromMasjidENabawi?.toString(),
       images: hotel.images,
       latitude: hotel.latitude,
       longitude: hotel.longitude,
@@ -164,7 +164,7 @@ const HotelManager = ({ session }) => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const supabaseClient = getSupabaseClient();
     const { error } = await supabaseClient.from('hotels').delete().eq('id', id);
     if (error) {
@@ -289,7 +289,7 @@ const HotelManager = ({ session }) => {
                       <FormItem>
                         <FormLabel>Distance from Haram (meters)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 500" type="number" {...field} />
+                          <Input placeholder="e.g. 500" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -304,7 +304,7 @@ const HotelManager = ({ session }) => {
                       <FormItem>
                         <FormLabel>Distance from Masjid-e-Nabawi (meters)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 700" type="number" {...field} />
+                          <Input placeholder="e.g. 700" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
