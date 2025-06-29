@@ -17,6 +17,7 @@ import {
   Landmark
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 const GroupPackages = () => {
   const [filters, setFilters] = useState({});
@@ -97,136 +98,175 @@ const GroupPackages = () => {
               ) : (
                 <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
                   {groupPackages.map((pkg) => {
-                    // Clamp available_spots and min_participants to max_capacity
                     const maxCap = pkg.max_capacity || 0;
                     const availableSpots = Math.min(pkg.available_spots ?? 0, maxCap);
                     const minParticipants = Math.min(pkg.min_participants ?? 0, maxCap);
                     const isSoldOut = availableSpots === 0;
+                    const spotsUrgency = availableSpots > 0 && availableSpots <= 5;
+                    const inclusionsToShow = (pkg.inclusions || []).slice(0, 4);
+                    const moreInclusions = (pkg.inclusions || []).length - inclusionsToShow.length;
                     return (
-                      <Card key={pkg.id} className="group relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white">
-                        {/* Featured image if available */}
-                        {pkg.featured_image && (
-                          <div className="relative h-48 overflow-hidden">
-                            <img src={pkg.featured_image} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                            {/* Group tag (top left) */}
-                            {pkg.is_group_package && (
-                              <span className="absolute top-2 left-2 z-10">
-                                <Badge className="bg-emerald-600 text-white shadow">Group</Badge>
-                              </span>
-                            )}
-                            {/* Package category tag (top right) */}
-                            {pkg.package_category && (
-                              <span className="absolute top-2 right-2 z-10">
-                                <Badge className="bg-amber-100 text-amber-800 border-amber-200 shadow">{pkg.package_category}</Badge>
-                              </span>
-                            )}
-                            {/* Duration (bottom left) */}
-                            <span className="absolute bottom-2 left-2 z-10">
-                              <Badge className="bg-white/80 text-emerald-700 border-emerald-200 flex items-center gap-1 shadow">
+                      <div
+                        key={pkg.id}
+                        className="relative group rounded-3xl overflow-hidden shadow-2xl bg-white/90 border border-emerald-100 hover:shadow-emerald-200 transition-all duration-300 flex flex-col min-h-[540px]"
+                        tabIndex={0}
+                        aria-label={`View details for ${pkg.name}`}
+                      >
+                        {/* Image with overlays */}
+                        <div className="relative h-56 md:h-64 w-full overflow-hidden aspect-[16/9] rounded-3xl">
+                          <img
+                            src={pkg.featured_image || '/public/placeholder.svg'}
+                            alt={pkg.name}
+                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 rounded-3xl"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          {/* Departure city badge on image, bottom right */}
+                          {pkg.flight_details?.departure_from_airport && (
+                            <div className="absolute bottom-4 right-4 z-20">
+                              <Badge className="bg-blue-600/90 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide backdrop-blur border border-white/20 flex items-center">
+                                <Plane className="w-4 h-4 mr-1 text-white inline-block" />
+                                {pkg.flight_details.departure_from_airport}
+                              </Badge>
+                            </div>
+                          )}
+                          {/* Glassy overlay for badges */}
+                          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            <div className="flex justify-between p-4">
+                              <div className="flex flex-col gap-2">
+                                {pkg.is_group_package && (
+                                  <Badge className="backdrop-blur bg-emerald-600/80 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide">Group</Badge>
+                                )}
+                                {isSoldOut && (
+                                  <Badge className="backdrop-blur bg-red-600/90 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide animate-pulse">Sold Out</Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-col gap-2 items-end">
+                                {pkg.package_category && (
+                                  <Badge className="backdrop-blur bg-amber-100/80 text-amber-800 border-amber-200 shadow px-3 py-1 text-xs font-bold tracking-wide">{pkg.package_category}</Badge>
+                                )}
+                              </div>
+                        </div>
+                            <div className="flex justify-between items-end p-4">
+                              <Badge className="backdrop-blur bg-white/80 text-emerald-700 border-emerald-200 flex items-center gap-1 shadow px-3 py-1 text-xs font-semibold">
                                 <Clock className="w-4 h-4 text-emerald-500" />
                                 {pkg.duration}
                               </Badge>
-                            </span>
-                            {/* Sold Out tag (top left, below group tag if both) */}
-                            {isSoldOut && (
-                              <span className={`absolute top-${pkg.is_group_package ? '10' : '2'} left-2 z-10`}>
-                                <Badge className="bg-red-600 text-white shadow">Sold Out</Badge>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <CardHeader className="pb-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex flex-col gap-2">
-                              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                {pkg.name}
-                              </CardTitle>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-emerald-600">{getCurrencySymbol(pkg.currency)}{pkg.price}</div>
-                              <div className="text-sm text-gray-500">per person</div>
+                              {spotsUrgency && !isSoldOut && (
+                                <Badge className="backdrop-blur bg-gradient-to-r from-orange-400/80 to-red-400/80 text-white shadow px-3 py-1 text-xs font-bold animate-pulse">
+                                  Only {availableSpots} left!
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                          {/* Highlights Row */}
-                          <div className="flex flex-wrap gap-3 items-center text-xs text-gray-700 mb-2">
-                            {/* Makkah and Madinah Hotels on the same row with icons */}
-                            {(pkg.makkah_hotel?.name || pkg.madinah_hotel?.name) && (
-                              <div className="flex gap-3 items-center">
-                                {pkg.makkah_hotel?.name && (
-                                  <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                                    {/* Kaaba icon (Landmark from lucide-react) */}
-                                    <Landmark className="w-4 h-4 mr-1 text-emerald-500" />
-                                    {pkg.makkah_hotel.name}
-                                  </span>
-                                )}
-                                {pkg.madinah_hotel?.name && (
-                                  <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                                    {/* Use Landmark for Madinah as well */}
-                                    <Landmark className="w-4 h-4 mr-1 text-emerald-500" />
-                                    {pkg.madinah_hotel.name}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                            {/* Departure only (no return) */}
-                            {pkg.flight_details?.departure_from_airport && (
-                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
-                                Dep: {pkg.flight_details.departure_from_airport}
-                              </span>
-                            )}
-                            {/* Airline */}
+                        </div>
+                        {/* Card Content */}
+                        <div className="flex flex-col flex-1 p-6 pb-4">
+                          {/* Departure date and season category badges below image, above title */}
+                          {(pkg.departure_date || pkg.season_category) && (
+                            <div className="mb-2 flex flex-wrap gap-2 items-center">
+                              {pkg.departure_date && (
+                                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold px-3 py-1 rounded-full text-xs shadow">
+                                  <Calendar className="w-4 h-4 mr-1 inline-block" />
+                                  {format(new Date(pkg.departure_date), 'dd-MMM-yyyy')}
+                                </Badge>
+                              )}
+                              {pkg.season_category && (
+                                <Badge className="bg-gradient-to-r from-emerald-200 to-teal-100 text-emerald-800 border-emerald-200 font-semibold px-3 py-1 rounded-full text-xs shadow">
+                                  {pkg.season_category}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 mb-2">
+                            <Users className="w-5 h-5 text-emerald-500" aria-hidden="true" />
+                            <h2 className="text-2xl font-extrabold text-gray-900 truncate flex-1" title={pkg.name}>{pkg.name}</h2>
+                          </div>
+                          {/* Hotels in a single row, truncate if too long */}
+                          {(pkg.makkah_hotel?.name || pkg.madinah_hotel?.name) && (
+                            <div className="flex gap-2 items-center mb-3 text-sm text-gray-700 w-full overflow-hidden">
+                              {pkg.makkah_hotel?.name && (
+                                <span className="flex items-center bg-emerald-50 px-2 py-1 rounded-lg max-w-[48%] truncate" title={`Makkah Hotel: ${pkg.makkah_hotel.name}`}> 
+                                  <Landmark className="w-4 h-4 mr-1 text-emerald-500 flex-shrink-0" />
+                                  <span className="truncate">{pkg.makkah_hotel.name}</span>
+                                </span>
+                              )}
+                              {pkg.madinah_hotel?.name && (
+                                <span className="flex items-center bg-emerald-50 px-2 py-1 rounded-lg max-w-[48%] truncate" title={`Madinah Hotel: ${pkg.madinah_hotel.name}`}> 
+                                  <Landmark className="w-4 h-4 mr-1 text-emerald-500 flex-shrink-0" />
+                                  <span className="truncate">{pkg.madinah_hotel.name}</span>
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {/* Flights (except departure city) */}
+                          <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-700">
                             {pkg.flight_details?.airline_name && (
-                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              <span className="flex items-center bg-blue-50 px-2 py-1 rounded-lg" title="Airline">
+                                <Plane className="w-4 h-4 mr-1 text-blue-500" />
                                 {pkg.flight_details.airline_name}
                               </span>
                             )}
-                            {/* Flight Type */}
                             {pkg.flight_details?.flight_type && (
-                              <span className="flex items-center bg-emerald-50 px-2 py-1 rounded">
-                                <Plane className="w-4 h-4 mr-1 text-emerald-500" />
+                              <span className="flex items-center bg-blue-50 px-2 py-1 rounded-lg" title="Flight Type">
+                                <Plane className="w-4 h-4 mr-1 text-blue-500" />
                                 {pkg.flight_details.flight_type}
                               </span>
                             )}
                           </div>
-                        </CardHeader>
-                        <CardContent>
-                          {/* Inclusions */}
-                          {pkg.inclusions && pkg.inclusions.length > 0 && (
-                            <div className="mb-2">
-                              <h5 className="font-semibold text-gray-900 mb-1">Inclusions:</h5>
-                              <div className="flex flex-wrap gap-2">
-                                {pkg.inclusions.map((inc, idx) => (
-                                  <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{inc}</Badge>
-                                ))}
+                          {/* Price & CTA */}
+                          <div className="mt-auto flex flex-col gap-2">
+                            <div className="flex items-end justify-between">
+                              <div>
+                                <span className="text-3xl font-extrabold text-emerald-600">{getCurrencySymbol(pkg.currency)}{pkg.price}</span>
+                                <span className="text-xs text-gray-500 ml-1">per person</span>
                               </div>
                             </div>
-                          )}
-                          {/* Cities Covered */}
-                          {pkg.cities_covered && pkg.cities_covered.length > 0 && (
-                            <div className="mb-2">
-                              <h5 className="font-semibold text-gray-900 mb-1">Cities Covered:</h5>
-                              <div className="flex flex-wrap gap-2">
-                                {pkg.cities_covered.map((city, idx) => (
-                                  <Badge key={idx} className="bg-teal-100 text-teal-700 border-teal-200">{city}</Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {/* Call to Action */}
-                          <div className="mt-4 flex justify-end">
-                            {pkg.seo?.slug ? (
-                              <Button asChild>
-                                <Link to={`/group-packages/${pkg.seo.slug}`}>View Details</Link>
-                              </Button>
-                            ) : (
-                              <span className="text-red-500 text-xs">No slug available</span>
-                            )}
+                            <Button
+                              asChild
+                              size="lg"
+                              className="w-full mt-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 rounded-2xl shadow-lg text-base tracking-wide transition-all duration-300 hover:scale-105 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                              aria-label={`View details for ${pkg.name}`}
+                              tabIndex={0}
+                              disabled={isSoldOut}
+                            >
+                              <Link to={`/group-packages/${pkg.seo?.slug || pkg.slug || pkg.id}`}>
+                                {isSoldOut ? 'Sold Out' : 'View Details'}
+                              </Link>
+                            </Button>
                           </div>
-                        </CardContent>
-                      </Card>
+                          {/* Inclusions Section */}
+                          {inclusionsToShow.length > 0 && (
+                            <div className="mt-5 -mx-6 px-6 py-4 rounded-2xl bg-gradient-to-br from-emerald-100/80 via-white/80 to-teal-100/80 border-t border-emerald-200 shadow-lg shadow-emerald-100/40 relative overflow-hidden">
+                              {/* Optional: subtle pattern or overlay */}
+                              <div className="absolute inset-0 pointer-events-none opacity-10" style={{background: 'radial-gradient(circle at 80% 20%, #34d399 0%, transparent 70%)'}} />
+                              <div className="relative z-10">
+                                <div className="font-bold text-emerald-900 mb-3 text-base tracking-wide drop-shadow-sm">Inclusions</div>
+                                <div className="flex flex-wrap gap-2">
+                                  {inclusionsToShow.map((inc, idx) => (
+                                    <Badge key={idx} className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1 text-sm font-medium rounded-full shadow-sm">
+                                      {inc}
+                                    </Badge>
+                                  ))}
+                                  {moreInclusions > 0 && (
+                                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 px-3 py-1 text-sm font-medium rounded-full shadow-sm">
+                                      +{moreInclusions} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/* Package category badge on image, top right */}
+                        {pkg.package_category && (
+                          <div className="absolute top-4 right-4 z-20">
+                            <Badge className="backdrop-blur bg-amber-100/80 text-amber-800 border-amber-200 shadow px-3 py-1 text-xs font-bold tracking-wide">
+                              {pkg.package_category}
+                            </Badge>
+                          </div>
+                        )}
+                        </div>
                     );
                   })}
                 </div>
