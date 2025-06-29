@@ -26,6 +26,7 @@ import GuideBooking from "./pages/GuideBooking";
 import ZiarathBooking from "./pages/ZiarathBooking";
 import OtherSaudiVisas from "./pages/OtherSaudiVisas";
 import BuildYourOwnUmrah from './pages/BuildYourOwnUmrah';
+import PackageDetailDynamic from "./pages/PackageDetailDynamic";
 
 const queryClient = new QueryClient();
 
@@ -46,10 +47,11 @@ const App = () => (
           <Route path="/services" element={<Services />} />
           <Route path="/umrah-packages" element={<UmrahPackages />} />
           <Route path="/group-packages" element={<GroupPackages />} />
-          <Route path="/group-packages/:slug" element={<GroupPackageDetail />} />
+          <Route path="/group-packages/:slug" element={<PackageDetailDynamic />} />
           <Route path="/custom-packages" element={<CustomPackages />} />
-          <Route path="/package-details/:id" element={<PackageDetails />} />
-          <Route path="/advanced-package/:id" element={<AdvancedPackageDetails />} />
+          <Route path="/custom-packages/:slug" element={<PackageDetailDynamic />} />
+          <Route path="/package-details/:slug" element={<PackageDetailDynamic />} />
+          <Route path="/advanced-package/:slug" element={<PackageDetailDynamic />} />
           <Route path="/blog-post" element={<Blogs />} />
           <Route path="/blog-post/:slug" element={<BlogDetail />} />
           <Route path="/contact" element={<Contact />} />
