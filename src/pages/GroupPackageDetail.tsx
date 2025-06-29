@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/Header';
@@ -8,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Clock, Users, Plane, Landmark, Star, Check, X, Phone, Mail, Calendar, MapPin, Shield, Award, Heart, Hotel } from 'lucide-react';
+import { Clock, Users, Plane, Landmark, Star, Check, X, Phone, Mail, Calendar, MapPin, Shield, Award, Heart, Hotel, User, Bed, UserCheck, Baby } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -61,6 +60,73 @@ const GroupPackageDetail = () => {
     fetchPackage();
   }, [slug]);
 
+  const getCurrencySymbol = (currency: string | undefined) => {
+    switch ((currency || 'INR').toUpperCase()) {
+      case 'INR': return '₹';
+      case 'USD': return '$';
+      case 'SAR': return '﷼';
+      default: return currency ? currency.toUpperCase() + ' ' : '₹';
+    }
+  };
+
+  const maxCap = pkg?.max_capacity || 0;
+  const availableSpots = Math.min(pkg?.available_spots ?? 0, maxCap);
+  const isSoldOut = availableSpots === 0;
+  const reviews = pkg?.reviews || 847;
+  const rating = pkg?.rating || 4.9;
+
+  const totalTravelers = selectedTravelers.adults + selectedTravelers.childWithBed + selectedTravelers.childNoBed + selectedTravelers.infants;
+  const basePrice = pkg?.price || 0;
+  const totalCost = basePrice * totalTravelers;
+
+  // Helper function to get nights from duration string
+  const getNightsFromDuration = (duration: string, city: string) => {
+    if (!duration) return 0;
+    const match = duration.match(/(\d+)/);
+    if (match) {
+      const totalNights = parseInt(match[1]);
+      // Assume equal split between Makkah and Madinah if both are present
+      if (pkg?.makkah_hotel && pkg?.madinah_hotel) {
+        return Math.ceil(totalNights / 2);
+      }
+      return totalNights;
+    }
+    return 0;
+  };
+
+  // Pricing data based on room type
+  const getPricingData = () => {
+    const baseCurrency = getCurrencySymbol(pkg?.currency);
+    const baseAdultPrice = pkg?.price || 89999;
+    
+    return {
+      single: {
+        adult: baseAdultPrice,
+        childWithBed: Math.round(baseAdultPrice * 0.75),
+        childNoBed: Math.round(baseAdultPrice * 0.5),
+        infant: Math.round(baseAdultPrice * 0.13)
+      },
+      double: {
+        adult: Math.round(baseAdultPrice * 0.78),
+        childWithBed: Math.round(baseAdultPrice * 0.58),
+        childNoBed: Math.round(baseAdultPrice * 0.39),
+        infant: Math.round(baseAdultPrice * 0.11)
+      },
+      triple: {
+        adult: Math.round(baseAdultPrice * 0.68),
+        childWithBed: Math.round(baseAdultPrice * 0.48),
+        childNoBed: Math.round(baseAdultPrice * 0.29),
+        infant: Math.round(baseAdultPrice * 0.09)
+      },
+      quad: {
+        adult: Math.round(baseAdultPrice * 0.58),
+        childWithBed: Math.round(baseAdultPrice * 0.38),
+        childNoBed: Math.round(baseAdultPrice * 0.25),
+        infant: Math.round(baseAdultPrice * 0.08)
+      }
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -90,40 +156,6 @@ const GroupPackageDetail = () => {
       </div>
     );
   }
-
-  const getCurrencySymbol = (currency: string | undefined) => {
-    switch ((currency || 'INR').toUpperCase()) {
-      case 'INR': return '₹';
-      case 'USD': return '$';
-      case 'SAR': return '﷼';
-      default: return currency ? currency.toUpperCase() + ' ' : '₹';
-    }
-  };
-
-  const maxCap = pkg.max_capacity || 0;
-  const availableSpots = Math.min(pkg.available_spots ?? 0, maxCap);
-  const isSoldOut = availableSpots === 0;
-  const reviews = pkg.reviews || 847;
-  const rating = pkg.rating || 4.9;
-
-  const totalTravelers = selectedTravelers.adults + selectedTravelers.childWithBed + selectedTravelers.childNoBed + selectedTravelers.infants;
-  const basePrice = pkg.price || 0;
-  const totalCost = basePrice * totalTravelers;
-
-  // Helper function to get nights from duration string
-  const getNightsFromDuration = (duration: string, city: string) => {
-    if (!duration) return 0;
-    const match = duration.match(/(\d+)/);
-    if (match) {
-      const totalNights = parseInt(match[1]);
-      // Assume equal split between Makkah and Madinah if both are present
-      if (pkg.makkah_hotel && pkg.madinah_hotel) {
-        return Math.ceil(totalNights / 2);
-      }
-      return totalNights;
-    }
-    return 0;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -189,11 +221,12 @@ const GroupPackageDetail = () => {
           {/* Left Content */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="mb-8 bg-white shadow-lg rounded-xl p-2 grid grid-cols-6 w-full">
+              <TabsList className="mb-8 bg-white shadow-lg rounded-xl p-2 grid grid-cols-7 w-full">
                 <TabsTrigger value="overview" className="rounded-lg">Overview</TabsTrigger>
                 <TabsTrigger value="hotels" className="rounded-lg">Hotels</TabsTrigger>
                 <TabsTrigger value="itinerary" className="rounded-lg">Itinerary</TabsTrigger>
                 <TabsTrigger value="activities" className="rounded-lg">Activities</TabsTrigger>
+                <TabsTrigger value="pricing" className="rounded-lg">Pricing</TabsTrigger>
                 <TabsTrigger value="inclusions" className="rounded-lg">Inclusions</TabsTrigger>
                 <TabsTrigger value="terms" className="rounded-lg">Terms</TabsTrigger>
               </TabsList>
@@ -513,9 +546,107 @@ const GroupPackageDetail = () => {
                 </div>
               </TabsContent>
 
-              {/* Other tabs remain the same as before */}
-              
-              
+              {/* Pricing Tab */}
+              <TabsContent value="pricing">
+                <Card className="shadow-lg border-0">
+                  <CardHeader className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-t-lg">
+                    <CardTitle className="flex items-center gap-3">
+                      <Calendar className="w-6 h-6" />
+                      Comprehensive Pricing Chart
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {Object.entries(getPricingData()).map(([roomType, prices]) => (
+                      <div key={roomType} className="mb-8 last:mb-0">
+                        <h3 className="text-xl font-bold text-gray-900 mb-4 capitalize">
+                          {roomType === 'single' ? 'Single Room Sharing' : 
+                           roomType === 'double' ? 'Double Room Sharing' :
+                           roomType === 'triple' ? 'Triple Room Sharing' : 'Quad Room Sharing'}
+                        </h3>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {/* Adult */}
+                          <div className="bg-blue-50 rounded-xl p-4 text-center border border-blue-200">
+                            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <User className="w-6 h-6 text-blue-600" />
+                            </div>
+                            <h4 className="font-semibold text-gray-800 mb-1">Adult</h4>
+                            <div className="text-2xl font-bold text-blue-600 mb-1">
+                              {getCurrencySymbol(pkg?.currency)}{prices.adult.toLocaleString()}
+                            </div>
+                            <p className="text-sm text-gray-600">per person</p>
+                          </div>
+
+                          {/* Child with bed */}
+                          <div className="bg-green-50 rounded-xl p-4 text-center border border-green-200">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Bed className="w-6 h-6 text-green-600" />
+                            </div>
+                            <h4 className="font-semibold text-gray-800 mb-1">Child (with bed)</h4>
+                            <div className="text-2xl font-bold text-green-600 mb-1">
+                              {getCurrencySymbol(pkg?.currency)}{prices.childWithBed.toLocaleString()}
+                            </div>
+                            <p className="text-sm text-gray-600">per child</p>
+                          </div>
+
+                          {/* Child no bed */}
+                          <div className="bg-orange-50 rounded-xl p-4 text-center border border-orange-200">
+                            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <UserCheck className="w-6 h-6 text-orange-600" />
+                            </div>
+                            <h4 className="font-semibold text-gray-800 mb-1">Child (no bed)</h4>
+                            <div className="text-2xl font-bold text-orange-600 mb-1">
+                              {getCurrencySymbol(pkg?.currency)}{prices.childNoBed.toLocaleString()}
+                            </div>
+                            <p className="text-sm text-gray-600">per child</p>
+                          </div>
+
+                          {/* Infant */}
+                          <div className="bg-purple-50 rounded-xl p-4 text-center border border-purple-200">
+                            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                              <Baby className="w-6 h-6 text-purple-600" />
+                            </div>
+                            <h4 className="font-semibold text-gray-800 mb-1">Infant</h4>
+                            <div className="text-2xl font-bold text-purple-600 mb-1">
+                              {getCurrencySymbol(pkg?.currency)}{prices.infant.toLocaleString()}
+                            </div>
+                            <p className="text-sm text-gray-600">per infant</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Pricing Notes */}
+                    <div className="mt-8 p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-semibold text-gray-800 mb-3">Pricing Notes:</h4>
+                      <ul className="space-y-2 text-sm text-gray-600">
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span>All prices are per person and include accommodation, meals, and transportation</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span>Child pricing applies to ages 2-11 years</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span>Infant pricing applies to ages 0-2 years</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span>Room sharing discounts are automatically applied based on occupancy</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <span>Final pricing may vary based on travel dates and availability</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Itinerary Tab */}
               <TabsContent value="itinerary">
                 <Card className="shadow-lg border-0">
                   <CardHeader>
@@ -553,6 +684,7 @@ const GroupPackageDetail = () => {
                 </Card>
               </TabsContent>
 
+              {/* Activities Tab */}
               <TabsContent value="activities">
                 <Card className="shadow-lg border-0">
                   <CardHeader>
@@ -575,6 +707,7 @@ const GroupPackageDetail = () => {
                 </Card>
               </TabsContent>
 
+              {/* Inclusions Tab */}
               <TabsContent value="inclusions">
                 <div className="grid md:grid-cols-2 gap-6">
                   <Card className="shadow-lg border-0">
@@ -625,6 +758,7 @@ const GroupPackageDetail = () => {
                 </div>
               </TabsContent>
 
+              {/* Terms Tab */}
               <TabsContent value="terms">
                 <Card className="shadow-lg border-0">
                   <CardHeader>
