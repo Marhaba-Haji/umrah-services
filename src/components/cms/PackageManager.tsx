@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,46 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Plus, Edit, Trash2, Save, X } from 'lucide-react';
 
-interface FormPackage {
-  id?: string;
-  name: string;
-  description: string;
-  duration: string;
-  price: number;
-  status: 'draft' | 'published' | 'archived';
-  category: string;
-  category_id: string;
-  inclusions: string[];
-  exclusions: string[];
-  images: string[];
-  featured_image: string;
-  terms_conditions: string;
-  max_capacity: number;
-  available_spots: number;
-  departure_date: string;
-  return_date: string;
-  booking_deadline: string;
-  is_group_package: boolean;
-  package_type: string;
-  package_category: string;
-  meal_plan: string;
-  season_category: string;
-  currency: string;
-  cities_covered: string[];
-  activities: string[];
-  flight_details: any;
-  flight_included: boolean;
-  min_participants: number;
-  itinerary: any;
-  makkah_hotel: any;
-  madinah_hotel: any;
-  hotels: any;
-  pricing: any;
-  room_type_pricing: any;
-  seo: any;
-}
-
-interface DatabasePackage {
+// Use the actual database types from the schema
+interface UmrahPackage {
   id: string;
   name: string;
   description: string;
@@ -91,13 +54,13 @@ interface DatabasePackage {
 }
 
 const PackageManager = () => {
-  const [packages, setPackages] = useState<DatabasePackage[]>([]);
+  const [packages, setPackages] = useState<UmrahPackage[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [hotels, setHotels] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState<FormPackage>({
+  const [formData, setFormData] = useState<Partial<UmrahPackage>>({
     name: '',
     description: '',
     duration: '',
@@ -188,7 +151,7 @@ const PackageManager = () => {
     loadData();
   }, []);
 
-  const handleSave = async (packageData: FormPackage) => {
+  const handleSave = async (packageData: Partial<UmrahPackage>) => {
     try {
       const dataToSave = {
         ...packageData,
@@ -246,7 +209,7 @@ const PackageManager = () => {
     }
   };
 
-  const handleEdit = (pkg: DatabasePackage) => {
+  const handleEdit = (pkg: UmrahPackage) => {
     setFormData({
       id: pkg.id,
       name: pkg.name,
@@ -417,9 +380,9 @@ const PackageManager = () => {
 };
 
 interface PackageFormProps {
-  data: FormPackage;
-  onChange: (data: FormPackage) => void;
-  onSave: (data: FormPackage) => void;
+  data: Partial<UmrahPackage>;
+  onChange: (data: Partial<UmrahPackage>) => void;
+  onSave: (data: Partial<UmrahPackage>) => void;
   onCancel: () => void;
   categories: { id: string; name: string }[];
   hotels: { id: string; name: string }[];
@@ -433,7 +396,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
   categories,
   hotels
 }) => {
-  const handleChange = (field: keyof FormPackage, value: any) => {
+  const handleChange = (field: keyof UmrahPackage, value: any) => {
     onChange({ ...data, [field]: value });
   };
 
@@ -443,7 +406,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Label htmlFor="name">Package Name</Label>
         <Input
           id="name"
-          value={data.name}
+          value={data.name || ''}
           onChange={(e) => handleChange('name', e.target.value)}
         />
       </div>
@@ -452,7 +415,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Label htmlFor="duration">Duration</Label>
         <Input
           id="duration"
-          value={data.duration}
+          value={data.duration || ''}
           onChange={(e) => handleChange('duration', e.target.value)}
           placeholder="e.g., 10 Days 9 Nights"
         />
@@ -463,14 +426,14 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Input
           id="price"
           type="number"
-          value={data.price}
+          value={data.price || 0}
           onChange={(e) => handleChange('price', Number(e.target.value))}
         />
       </div>
 
       <div>
         <Label htmlFor="currency">Currency</Label>
-        <Select value={data.currency} onValueChange={(value) => handleChange('currency', value)}>
+        <Select value={data.currency || 'INR'} onValueChange={(value) => handleChange('currency', value)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -486,7 +449,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          value={data.description}
+          value={data.description || ''}
           onChange={(e) => handleChange('description', e.target.value)}
         />
       </div>
@@ -496,7 +459,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Input
           id="max_capacity"
           type="number"
-          value={data.max_capacity}
+          value={data.max_capacity || 0}
           onChange={(e) => handleChange('max_capacity', Number(e.target.value))}
         />
       </div>
@@ -506,7 +469,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Input
           id="available_spots"
           type="number"
-          value={data.available_spots}
+          value={data.available_spots || 0}
           onChange={(e) => handleChange('available_spots', Number(e.target.value))}
         />
       </div>
@@ -516,7 +479,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Input
           id="departure_date"
           type="date"
-          value={data.departure_date}
+          value={data.departure_date || ''}
           onChange={(e) => handleChange('departure_date', e.target.value)}
         />
       </div>
@@ -526,14 +489,14 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Input
           id="return_date"
           type="date"
-          value={data.return_date}
+          value={data.return_date || ''}
           onChange={(e) => handleChange('return_date', e.target.value)}
         />
       </div>
 
       <div>
         <Label htmlFor="status">Status</Label>
-        <Select value={data.status} onValueChange={(value: 'draft' | 'published' | 'archived') => handleChange('status', value)}>
+        <Select value={data.status || 'draft'} onValueChange={(value: 'draft' | 'published' | 'archived') => handleChange('status', value)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -549,7 +512,7 @@ const PackageForm: React.FC<PackageFormProps> = ({
         <Label htmlFor="package_category">Package Category</Label>
         <Input
           id="package_category"
-          value={data.package_category}
+          value={data.package_category || ''}
           onChange={(e) => handleChange('package_category', e.target.value)}
         />
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Plus, Edit, Trash2, Save, X, Upload } from 'lucide-react';
 interface TransportService {
   id: string;
   route: string;
-  vehicle_type: string;
+  vehicle_type: 'sedan' | 'suv' | 'minivan' | 'bus' | 'van';
   capacity: number;
   price: number;
   description: string;
@@ -64,8 +65,23 @@ const TransportManager = () => {
       if (error) throw error;
       
       const formattedData = data?.map(service => ({
-        ...service,
-        vehicle_details: service.vehicle_details || {}
+        id: service.id,
+        route: service.route,
+        vehicle_type: service.vehicle_type as 'sedan' | 'suv' | 'minivan' | 'bus' | 'van',
+        capacity: service.capacity,
+        price: service.price,
+        description: service.description || '',
+        vehicle_name: service.vehicle_name || '',
+        vehicle_image: service.vehicle_image || '',
+        features: service.features || [],
+        is_ac: service.is_ac ?? true,
+        is_active: service.is_active ?? true,
+        trip_duration: service.trip_duration || '',
+        trip_distance: service.trip_distance || '',
+        driver_name: service.driver_name || '',
+        driver_contact: service.driver_contact || '',
+        luggage_capacity: service.luggage_capacity || '',
+        vehicle_details: typeof service.vehicle_details === 'object' ? service.vehicle_details as Record<string, any> : {}
       })) || [];
       
       setServices(formattedData);
@@ -236,7 +252,7 @@ const TransportForm: React.FC<TransportFormProps> = ({
 
       <div>
         <Label htmlFor="vehicle_type">Vehicle Type</Label>
-        <Select value={data.vehicle_type || 'sedan'} onValueChange={(value) => handleChange('vehicle_type', value)}>
+        <Select value={data.vehicle_type || 'sedan'} onValueChange={(value: 'sedan' | 'suv' | 'minivan' | 'bus' | 'van') => handleChange('vehicle_type', value)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>

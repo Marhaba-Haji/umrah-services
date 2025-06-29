@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ interface SaudiVisa {
   number_of_entries: string;
   requirements: string[];
   description: string;
-  status: string;
+  status: 'active' | 'suspended' | 'discontinued';
   approval_rate: number;
 }
 
@@ -64,7 +65,7 @@ const SaudiVisasManager = () => {
         number_of_entries: visa.number_of_entries,
         requirements: visa.requirements || [],
         description: visa.description || '',
-        status: visa.status,
+        status: visa.status as 'active' | 'suspended' | 'discontinued',
         approval_rate: visa.approval_rate || 0
       })) || [];
       
@@ -87,9 +88,17 @@ const SaudiVisasManager = () => {
   const handleSave = async (visaData: Partial<SaudiVisa>) => {
     try {
       const dataToSave = {
-        ...visaData,
-        price: Number(visaData.price),
-        approval_rate: Number(visaData.approval_rate)
+        visa_type: visaData.visa_type || '',
+        visa_category: visaData.visa_category || '',
+        price: Number(visaData.price) || 0,
+        processing_time: visaData.processing_time || '',
+        visa_validity: visaData.visa_validity || '',
+        stay_validity: visaData.stay_validity || '',
+        number_of_entries: visaData.number_of_entries || '',
+        requirements: visaData.requirements || [],
+        description: visaData.description || '',
+        status: visaData.status || 'active',
+        approval_rate: Number(visaData.approval_rate) || 0
       };
 
       if (visaData.id) {
@@ -340,13 +349,14 @@ const VisaForm: React.FC<VisaFormProps> = ({
 
       <div>
         <Label htmlFor="status">Status</Label>
-        <Select value={data.status || 'active'} onValueChange={(value) => handleChange('status', value)}>
+        <Select value={data.status || 'active'} onValueChange={(value: 'active' | 'suspended' | 'discontinued') => handleChange('status', value)}>
           <SelectTrigger>
             <SelectValue placeholder="Select status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+            <SelectItem value="discontinued">Discontinued</SelectItem>
           </SelectContent>
         </Select>
       </div>
