@@ -1316,6 +1316,59 @@ const PackageManager = () => {
                 {/* Itinerary */}
                 <section>
                   <h3 className="font-semibold mb-2">Itinerary</h3>
+                  <div className="flex gap-2 mb-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          itinerary: [
+                            { title: 'Day 1: Arrival in Makkah & Umrah – First Embrace of the Divine House', description: 'Arrive in the blessed city of Makkah. After check-in and a moment to settle, enter Ihram (if not already done), and perform your Umrah — the Tawaf, Sa\'i, and Halq/Qasr. Your heart will never forget the first sight of the Kaaba. The journey of purification begins.' },
+                            { title: 'Day 2–3: Worship & Stillness – Time with Your Lord', description: 'Spend time in Masjid al-Haram, absorbing its spiritual light. Pray, reflect, make dua. These are days of silence, sincerity, and surrender. Let the world fade. Let Allah remain.' },
+                            { title: 'Day 4: Makkah Ziyarah + Masjid Jor\'ana – Following the Path of the Prophets', description: 'A guided visit to the most revered sites of Makkah: Mina, Arafat, Muzdalifah, Jabal al-Noor, Jabal al-Thawr, and Jannat al-Mu\'alla. End at Masjid Jor\'ana — where the Prophet ﷺ entered Ihram. You may choose to do so as well, and relive a Nafl Umrah as he did.' },
+                            { title: 'Day 5: Visit to Masjid Aisha – Honoring Her Devotion', description: 'Privately visit Masjid Aisha (Masjid Taneem), where Ummul Mu\'minin Hazrat Aisha (RA) was granted special permission to perform her Umrah. A moment of reflection on personal sacrifice and spiritual yearning. This is not a group activity — just you and your intention.' },
+                            { title: 'Day 6: Optional Taif Excursion – Where the Prophet ﷺ Wept, Angels Watched', description: 'An optional full-day trip to Taif. Walk through the valley where the Prophet ﷺ was wounded and humiliated, yet responded only with dua. A land of pain turned into prayer — a lesson for every believer.' },
+                            { title: 'Day 7–9: Last Days in Makkah – Overflowing Hearts, Open Palms', description: 'Continue your days of devotion. Perform another Nafl Umrah if desired. Pray near the Kaaba, seek forgiveness, and make lifelong promises to Allah. These moments will live in your heart forever.' },
+                            { title: 'Day 10: Journey to Madinah via Badr – From Struggle to Submission', description: 'Depart for Madinah by road. Stop at the battlefield of Badr — where 313 believers stood in complete trust of Allah and were granted divine victory. Reflect on what it means to trust and surrender.' },
+                            { title: 'Day 11: Arrival in Madinah – Salaam Ya Rasool ﷺ', description: 'Check in and visit Masjid an-Nabawi for your first salaam. The Rawdah awaits — a garden from Paradise. Send your salawat, hold your tears. You are in the presence of the Beloved ﷺ.' },
+                            { title: 'Day 12: Madinah Ziyarah – A City Shaped by Revelation', description: 'Visit Masjid Quba, Masjid Qiblatain, Mount Uhud, and Jannat al-Baqi\'. Each site is a chapter in the story of Islam, each step a reminder of love, loyalty, and sacrifice.' },
+                            { title: 'Day 13–14: Moments in Madinah – A City of Peace', description: 'Spend time in quiet worship and reflection. Each salah in the Prophet\'s Mosque is worth 1,000 elsewhere. Think, write, make dua — and transform every intention into a plan for change.' },
+                            { title: 'Day 15: Departure – A Heart Washed Clean', description: 'Return home with a soul renewed, sins forgiven, and faith restored. This is not the end. It\'s the beginning of living what you prayed for.' },
+                          ]
+                        }));
+                      }}
+                    >
+                      15 Days
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          itinerary: [
+                            { title: 'Day 1: Arrival in Makkah & Umrah – The First Gaze', description: 'Arrive in Makkah, check into your hotel, and prepare for Umrah. Perform Tawaf, Sa\'i, and Halq/Qasr with full heart. A lifetime of sins forgiven in a single evening.' },
+                            { title: 'Day 2: Makkah Reflections & Ziyarah', description: 'Visit Mina, Arafat, Muzdalifah, Jabal al-Noor, and Jannat al-Mu\'alla. Spend your last night in sincere worship near the Kaaba — the House of your Lord.' },
+                            { title: 'Day 3: Travel to Madinah & Salaam to the Prophet ﷺ', description: 'Early morning transfer to Madinah. Visit Masjid an-Nabawi and offer your first salaam. Return home with tears of love and a soul uplifted.' },
+                          ]
+                        }));
+                      }}
+                    >
+                      3 Days
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const newItinerary = Array.isArray(formData.itinerary) ? [...formData.itinerary] : [];
+                        newItinerary.push({ title: '', description: '' });
+                        setFormData(prev => ({ ...prev, itinerary: newItinerary }));
+                      }}
+                    >
+                      Add Itinerary
+                    </Button>
+                  </div>
                   {formData.itinerary && Array.isArray(formData.itinerary) && formData.itinerary.length > 0 ? (
                     formData.itinerary.map((item, idx) => (
                       <div key={idx} className="mb-4 border rounded p-3 relative">
@@ -1364,17 +1417,6 @@ const PackageManager = () => {
                   ) : (
                     <div className="text-sm text-gray-500 mb-2">No itinerary added yet.</div>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      const newItinerary = Array.isArray(formData.itinerary) ? [...formData.itinerary] : [];
-                      newItinerary.push({ title: '', description: '' });
-                      setFormData(prev => ({ ...prev, itinerary: newItinerary }));
-                    }}
-                  >
-                    Add Itinerary
-                  </Button>
                 </section>
 
                 {/* Submit Button */}

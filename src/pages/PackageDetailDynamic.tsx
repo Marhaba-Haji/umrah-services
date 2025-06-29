@@ -19,6 +19,8 @@ const PackageDetailDynamic = () => {
   const [selectedRoomType, setSelectedRoomType] = useState('double');
   const [guestCount, setGuestCount] = useState({ adults: 2, childWithBed: 0, childWithoutBed: 0, infants: 0 });
   const [totalCost, setTotalCost] = useState(0);
+  const [activityDetails, setActivityDetails] = useState<any[]>([]);
+  const [hotelDetails, setHotelDetails] = useState<{ makkah?: any; madinah?: any }>({});
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -51,6 +53,53 @@ const PackageDetailDynamic = () => {
       (guestCount.infants * (pricing.infant || 0));
     setTotalCost(cost);
   }, [pkg, selectedRoomType, guestCount]);
+
+  useEffect(() => {
+    if (!pkg || !Array.isArray(pkg.activities) || pkg.activities.length === 0) return;
+    // If activities are already objects with name, skip fetch
+    if (typeof pkg.activities[0] === 'object' && pkg.activities[0].name) {
+      setActivityDetails(pkg.activities);
+      return;
+    }
+    // Otherwise, fetch activity details by IDs
+    const fetchActivities = async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('id, name, description')
+        .in('id', pkg.activities);
+      if (!error && data) setActivityDetails(data);
+    };
+    fetchActivities();
+  }, [pkg]);
+
+  useEffect(() => {
+    if (!pkg) return;
+    const fetchHotels = async () => {
+      let newHotelDetails: any = {};
+      // Fetch Makkah hotel if needed
+      if (pkg.makkah_hotel && (typeof pkg.makkah_hotel === 'string' || !pkg.makkah_hotel.featured_image)) {
+        const makkahId = typeof pkg.makkah_hotel === 'string' ? pkg.makkah_hotel : pkg.makkah_hotel.id;
+        if (makkahId) {
+          const { data } = await supabase.from('hotels').select('*').eq('id', makkahId).single();
+          if (data) newHotelDetails.makkah = data;
+        }
+      } else if (pkg.makkah_hotel) {
+        newHotelDetails.makkah = pkg.makkah_hotel;
+      }
+      // Fetch Madinah hotel if needed
+      if (pkg.madinah_hotel && (typeof pkg.madinah_hotel === 'string' || !pkg.madinah_hotel.featured_image)) {
+        const madinahId = typeof pkg.madinah_hotel === 'string' ? pkg.madinah_hotel : pkg.madinah_hotel.id;
+        if (madinahId) {
+          const { data } = await supabase.from('hotels').select('*').eq('id', madinahId).single();
+          if (data) newHotelDetails.madinah = data;
+        }
+      } else if (pkg.madinah_hotel) {
+        newHotelDetails.madinah = pkg.madinah_hotel;
+      }
+      setHotelDetails(newHotelDetails);
+    };
+    fetchHotels();
+  }, [pkg]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-lg">Loading package details...</div>;
   if (error) return <div className="min-h-screen flex items-center justify-center text-lg text-red-600">{error}</div>;
@@ -90,14 +139,13 @@ const PackageDetailDynamic = () => {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 h-14 mb-6">
-                <TabsTrigger value="overview" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Overview</TabsTrigger>
-                <TabsTrigger value="hotels" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Hotels</TabsTrigger>
-                <TabsTrigger value="itinerary" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Itinerary</TabsTrigger>
-                <TabsTrigger value="activities" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Activities</TabsTrigger>
-                <TabsTrigger value="pricing" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Pricing</TabsTrigger>
-                <TabsTrigger value="inclusions" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Inclusions</TabsTrigger>
-                <TabsTrigger value="terms" className="data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg">Terms</TabsTrigger>
+              <TabsList className="flex justify-between items-center bg-amber-50 rounded-xl p-2 w-full mb-6 gap-2">
+                <TabsTrigger value="overview" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Overview</TabsTrigger>
+                <TabsTrigger value="hotels" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Hotels</TabsTrigger>
+                <TabsTrigger value="itinerary" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Itinerary</TabsTrigger>
+                <TabsTrigger value="activities" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Activities</TabsTrigger>
+                <TabsTrigger value="pricing" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Pricing</TabsTrigger>
+                <TabsTrigger value="terms" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Terms</TabsTrigger>
               </TabsList>
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-8">
@@ -160,32 +208,40 @@ const PackageDetailDynamic = () => {
               {/* Hotels Tab */}
               <TabsContent value="hotels">
                 <div className="grid md:grid-cols-2 gap-8">
-                  {pkg.makkah_hotel && (
+                  {hotelDetails.makkah && (
                     <Card className="overflow-hidden">
-                      <CardHeader><CardTitle className="flex items-center"><MapPin className="w-6 h-6 mr-2 text-emerald-600" />Makkah Accommodation ({pkg.makkah_hotel.nights} nights)</CardTitle></CardHeader>
+                      <CardHeader><CardTitle className="flex items-center"><MapPin className="w-6 h-6 mr-2 text-emerald-600" />Makkah Accommodation ({hotelDetails.makkah.nights} nights)</CardTitle></CardHeader>
                       <CardContent>
-                        <img src={pkg.makkah_hotel.image || '/placeholder.svg'} alt={pkg.makkah_hotel.name} className="w-full h-64 object-cover rounded-lg shadow-lg mb-4" />
-                        <div className="font-bold text-lg mb-2">{pkg.makkah_hotel.name}</div>
-                        <div className="flex items-center mt-2 mb-2">{[...Array(pkg.makkah_hotel.rating)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />)}</div>
-                        <div className="mb-2 text-gray-700">{pkg.makkah_hotel.distance}</div>
+                        <img src={hotelDetails.makkah.featured_image || (hotelDetails.makkah.images && hotelDetails.makkah.images[0]) || '/placeholder.svg'} alt={hotelDetails.makkah.name} className="w-full h-64 object-cover rounded-lg shadow-lg mb-4" />
+                        <div className="font-bold text-lg mb-2">{hotelDetails.makkah.name}</div>
+                        <div className="flex items-center mt-2 mb-2">{[...Array(hotelDetails.makkah.rating)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />)}</div>
+                        {(hotelDetails.makkah.distance_from_haram || hotelDetails.makkah.distance) && (
+                          <div className="mb-2 text-gray-700 font-medium">
+                            Distance: {hotelDetails.makkah.distance_from_haram || hotelDetails.makkah.distance} metres
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
-                          {pkg.makkah_hotel.amenities?.map((amenity: string, i: number) => (
+                          {hotelDetails.makkah.amenities?.map((amenity: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs justify-start">{amenity}</Badge>
                           ))}
                         </div>
                       </CardContent>
                     </Card>
                   )}
-                  {pkg.madinah_hotel && (
+                  {hotelDetails.madinah && (
                     <Card className="overflow-hidden">
-                      <CardHeader><CardTitle className="flex items-center"><MapPin className="w-6 h-6 mr-2 text-blue-600" />Madinah Accommodation ({pkg.madinah_hotel.nights} nights)</CardTitle></CardHeader>
+                      <CardHeader><CardTitle className="flex items-center"><MapPin className="w-6 h-6 mr-2 text-blue-600" />Madinah Accommodation ({hotelDetails.madinah.nights} nights)</CardTitle></CardHeader>
                       <CardContent>
-                        <img src={pkg.madinah_hotel.image || '/placeholder.svg'} alt={pkg.madinah_hotel.name} className="w-full h-64 object-cover rounded-lg shadow-lg mb-4" />
-                        <div className="font-bold text-lg mb-2">{pkg.madinah_hotel.name}</div>
-                        <div className="flex items-center mt-2 mb-2">{[...Array(pkg.madinah_hotel.rating)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />)}</div>
-                        <div className="mb-2 text-gray-700">{pkg.madinah_hotel.distance}</div>
+                        <img src={hotelDetails.madinah.featured_image || (hotelDetails.madinah.images && hotelDetails.madinah.images[0]) || '/placeholder.svg'} alt={hotelDetails.madinah.name} className="w-full h-64 object-cover rounded-lg shadow-lg mb-4" />
+                        <div className="font-bold text-lg mb-2">{hotelDetails.madinah.name}</div>
+                        <div className="flex items-center mt-2 mb-2">{[...Array(hotelDetails.madinah.rating)].map((_, i) => <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />)}</div>
+                        {(hotelDetails.madinah.distance_from_masjid_e_nabawi || hotelDetails.madinah.distance) && (
+                          <div className="mb-2 text-gray-700 font-medium">
+                            Distance: {hotelDetails.madinah.distance_from_masjid_e_nabawi || hotelDetails.madinah.distance} metres
+                          </div>
+                        )}
                         <div className="grid grid-cols-2 gap-2">
-                          {pkg.madinah_hotel.amenities?.map((amenity: string, i: number) => (
+                          {hotelDetails.madinah.amenities?.map((amenity: string, i: number) => (
                             <Badge key={i} variant="outline" className="text-xs justify-start">{amenity}</Badge>
                           ))}
                         </div>
@@ -205,7 +261,7 @@ const PackageDetailDynamic = () => {
                           <div key={idx} className="border rounded-lg p-4">
                             <div className="flex items-center gap-4 mb-2">
                               <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-semibold">{item.day || idx + 1}</div>
-                              <h4 className="font-semibold text-gray-900">{item.location || 'Location TBA'}</h4>
+                              <h4 className="font-semibold text-gray-900">{item.location || item.title || 'Location TBA'}</h4>
                             </div>
                             <div className="ml-12">
                               {Array.isArray(item.activities) ? (
@@ -215,7 +271,7 @@ const PackageDetailDynamic = () => {
                                   ))}
                                 </ul>
                               ) : (
-                                <p className="text-gray-600">{item.activities || 'Activities TBA'}</p>
+                                <p className="text-gray-600">{item.activities || item.description || 'Activities TBA'}</p>
                               )}
                             </div>
                           </div>
@@ -232,11 +288,39 @@ const PackageDetailDynamic = () => {
                 <Card>
                   <CardHeader><CardTitle className="flex items-center"><Info className="w-6 h-6 mr-2 text-purple-600" />Included Activities</CardTitle></CardHeader>
                   <CardContent>
-                    {pkg.activities && pkg.activities.length > 0 ? (
-                      <div className="grid gap-3">
-                        {pkg.activities.map((activity: string, idx: number) => (
-                          <div key={idx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"><CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0" /><span className="text-gray-700">{activity}</span></div>
-                        ))}
+                    {activityDetails && activityDetails.length > 0 ? (
+                      <div className="space-y-8">
+                        {activityDetails.map((activity: any, idx: number) => {
+                          const imgSrc = activity.featured_image || (Array.isArray(activity.images) && activity.images.length > 0 && activity.images[0]) || '/placeholder.svg';
+                          return (
+                            <div key={activity.id || idx} className="bg-white rounded-xl shadow-md border border-emerald-100 overflow-hidden hover:shadow-lg transition-shadow duration-200 p-6">
+                              <div className="clearfix">
+                                <img
+                                  src={imgSrc}
+                                  alt={activity.name}
+                                  className="float-left w-32 h-32 object-cover rounded-lg mr-6 mb-2 border border-emerald-100 shadow"
+                                  style={{ maxWidth: '8rem', maxHeight: '8rem' }}
+                                />
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-xl font-bold text-emerald-900">{activity.name}</span>
+                                  <div className="flex flex-wrap gap-2 mb-2">
+                                    {activity.city && <span className="text-xs text-white bg-emerald-500 rounded px-2 py-1">{activity.city}</span>}
+                                    {activity.duration && <span className="text-xs text-white bg-blue-500 rounded px-2 py-1">{activity.duration}</span>}
+                                  </div>
+                                </div>
+                                {activity.description && (
+                                  <div className="text-gray-700 text-base leading-relaxed mt-2" dangerouslySetInnerHTML={{ __html: activity.description }} />
+                                )}
+                              </div>
+                              {/* Debug output for image troubleshooting */}
+                              <div className="mt-2 p-2 bg-gray-50 border text-xs text-gray-500 rounded">
+                                <div><strong>featured_image:</strong> {String(activity.featured_image)}</div>
+                                <div><strong>images:</strong> {Array.isArray(activity.images) ? JSON.stringify(activity.images) : String(activity.images)}</div>
+                                <div><strong>imgSrc used:</strong> {imgSrc}</div>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-gray-500 text-center py-8">Activity details will be shared before departure.</p>
@@ -252,29 +336,30 @@ const PackageDetailDynamic = () => {
                     <div className="space-y-6">
                       {pkg.pricing && pkg.pricing[pkg.package_type || 'group'] && Object.entries(pkg.pricing[pkg.package_type || 'group']).map(([roomType, prices]: any) => (
                         <div key={roomType} className="bg-gradient-to-r from-gray-50 to-blue-50 p-6 rounded-lg border">
-                          <h4 className="font-bold text-xl mb-4 capitalize text-gray-900">{roomType} Room Sharing</h4>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div><span className="font-semibold">Adult:</span> {getCurrencySymbol(pkg.currency)}{prices.adult?.toLocaleString()}</div>
-                            <div><span className="font-semibold">Child (with bed):</span> {getCurrencySymbol(pkg.currency)}{prices.childWithBed?.toLocaleString()}</div>
-                            <div><span className="font-semibold">Child (no bed):</span> {getCurrencySymbol(pkg.currency)}{prices.childWithoutBed?.toLocaleString()}</div>
-                            <div><span className="font-semibold">Infant:</span> {getCurrencySymbol(pkg.currency)}{prices.infant?.toLocaleString()}</div>
-                          </div>
+                          <h4 className="font-bold text-xl mb-4 capitalize text-gray-900">{roomType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} Pricing</h4>
+                          <table className="min-w-full text-sm border rounded-lg overflow-hidden">
+                            <thead>
+                              <tr className="bg-emerald-50">
+                                <th className="px-3 py-2 border">Adult (Sharing)</th>
+                                <th className="px-3 py-2 border">Private Room</th>
+                                <th className="px-3 py-2 border">Child (with bed)</th>
+                                <th className="px-3 py-2 border">Child (no bed)</th>
+                                <th className="px-3 py-2 border">Infant</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr>
+                                <td className="px-3 py-2 border">{prices.adult ? getCurrencySymbol(pkg.currency) + prices.adult.toLocaleString() : '-'}</td>
+                                <td className="px-3 py-2 border">{prices.private ? getCurrencySymbol(pkg.currency) + prices.private.toLocaleString() : '-'}</td>
+                                <td className="px-3 py-2 border">{prices.childWithBed ? getCurrencySymbol(pkg.currency) + prices.childWithBed.toLocaleString() : '-'}</td>
+                                <td className="px-3 py-2 border">{prices.childWithoutBed ? getCurrencySymbol(pkg.currency) + prices.childWithoutBed.toLocaleString() : '-'}</td>
+                                <td className="px-3 py-2 border">{prices.infant ? getCurrencySymbol(pkg.currency) + prices.infant.toLocaleString() : '-'}</td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              {/* Inclusions Tab */}
-              <TabsContent value="inclusions">
-                <Card>
-                  <CardHeader><CardTitle className="flex items-center"><CheckCircle className="w-6 h-6 mr-2 text-emerald-600" />What's Included</CardTitle></CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2">
-                      {pkg.inclusions?.map((item: string, i: number) => (
-                        <li key={i} className="flex items-center gap-2 text-emerald-800"><CheckCircle className="w-4 h-4" />{item}</li>
-                      ))}
-                    </ul>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -283,29 +368,79 @@ const PackageDetailDynamic = () => {
                 <Card>
                   <CardHeader><CardTitle className="flex items-center"><Info className="w-6 h-6 mr-2 text-yellow-600" />Terms & Conditions</CardTitle></CardHeader>
                   <CardContent>
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Payment Terms</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        {pkg.terms?.payment?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                      </ul>
-                    </div>
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Cancellation Policy</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        {pkg.terms?.cancellation?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                      </ul>
-                    </div>
-                    <div className="mb-4">
-                      <h4 className="font-semibold mb-2">Responsibilities</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        {pkg.terms?.responsibilities?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Disclaimers</h4>
-                      <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                        {pkg.terms?.disclaimers?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                      </ul>
+                    <div className="space-y-8">
+                      {/* Payment Terms Section */}
+                      <section>
+                        <h3 className="text-xl font-bold flex items-center gap-2 mb-2">🧾 Payment Terms</h3>
+                        <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                          <li><strong>Booking Amount:</strong> A minimum of 50% of the total package value must be paid at the time of booking to secure seats and initiate visa, flight, and hotel arrangements.</li>
+                          <li><strong>Balance Payment:</strong> Full payment must be cleared at least 15 days before the departure date. For bookings made within 15 days of departure, 100% upfront payment is required.</li>
+                          <li><strong>Non-Refundable Charges:</strong> A flat amount of ₹5,000 per traveler is non-refundable under any circumstances (covers administrative, processing, and service charges).</li>
+                          <li><strong>Payment Methods & Surcharges:</strong> Payments can be made via bank transfer, UPI, payment gateways, or credit/debit cards. Payments made via card swipe or payment gateways will incur an additional 2% service charge.</li>
+                          <li><strong>Foreign Currency & Pricing Disclaimer:</strong> All package costs are quoted in Indian Rupees (INR). Prices may vary based on forex fluctuations, airline surcharges, or visa fee changes.</li>
+                        </ul>
+                      </section>
+                      <hr />
+                      {/* Cancellation Policy Section */}
+                      <section>
+                        <h3 className="text-xl font-bold flex items-center gap-2 mb-2">❌ Cancellation Policy</h3>
+                        <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                          <li><strong>Cancellation by Traveler:</strong></li>
+                          <ul className="list-disc pl-8">
+                            <li>30+ days before departure: ₹5,000 per traveler retained.</li>
+                            <li>15–29 days before departure: 25% of the package cost retained.</li>
+                            <li>8–14 days before departure: 50% of the package cost retained.</li>
+                            <li>0–7 days before departure: 100% of the package cost retained (no refund).</li>
+                          </ul>
+                          <li><strong>Cancellation by Agency:</strong> In the rare event that we cancel the tour for any reason other than the traveler's fault, a full refund or suitable travel credit will be offered.</li>
+                        </ul>
+                      </section>
+                      <hr />
+                      {/* Refund Policy Section */}
+                      <section>
+                        <h3 className="text-xl font-bold flex items-center gap-2 mb-2">💰 Refund Policy</h3>
+                        <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                          <li><strong>Refund Processing Time:</strong> All eligible refunds will be processed within 15 to 30 working days after deduction of applicable fees and actual costs already incurred.</li>
+                          <li><strong>Non-Refundable Components Include:</strong>
+                            <ul className="list-disc pl-8">
+                              <li>Visa fee (once applied)</li>
+                              <li>Airline ticket charges (if non-refundable or issued)</li>
+                              <li>Hotel cancellation fees (as per hotel policy)</li>
+                              <li>Service and processing charges (₹5,000 minimum)</li>
+                            </ul>
+                          </li>
+                          <li><strong>No Refund Will Be Issued For:</strong>
+                            <ul className="list-disc pl-8">
+                              <li>Voluntary withdrawal after visa issuance</li>
+                              <li>Missed departures or missed services due to personal delays</li>
+                              <li>Unused services (meals, transfers, hotel nights, etc.)</li>
+                            </ul>
+                          </li>
+                        </ul>
+                      </section>
+                      <hr />
+                      {/* Traveler Responsibilities Section */}
+                      <section>
+                        <h3 className="text-xl font-bold flex items-center gap-2 mb-2">🧍🏽 Traveler Responsibilities</h3>
+                        <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                          <li><strong>Valid Travel Documents:</strong> Travelers must hold a passport valid for at least 6 months beyond the travel date and must submit required documents (passport, photographs, vaccine certificate, etc.) on time.</li>
+                          <li><strong>Information Accuracy:</strong> It is the traveler's responsibility to provide correct and complete information for visa processing. Any errors may lead to visa rejection or delays.</li>
+                          <li><strong>Group Discipline & Conduct:</strong> All travelers must maintain respectful behavior, observe group timings, and follow tour leader instructions. Disruptive or disrespectful behavior may result in removal from the group with no refund.</li>
+                          <li><strong>Health Disclosure & Fitness:</strong> Please inform us in advance of any medical condition or physical limitation. Travelers must be fit for walking during Ziyarah and Umrah rituals.</li>
+                          <li><strong>Arrival Timeliness:</strong> Travelers must ensure they are punctual for airport check-ins, group departures, Ziyarah, and rituals. Delays may lead to missed components with no reimbursement.</li>
+                        </ul>
+                      </section>
+                      <hr />
+                      {/* Disclaimers Section */}
+                      <section>
+                        <h3 className="text-xl font-bold flex items-center gap-2 mb-2">⚠️ Disclaimers</h3>
+                        <ul className="list-disc pl-6 space-y-1 text-gray-700">
+                          <li><strong>Force Majeure:</strong> The agency is not liable for delays, disruptions, or cancellations caused by factors beyond our control — including but not limited to natural calamities, political unrest, pandemics, government restrictions, airline/visa rejections, or acts of God.</li>
+                          <li><strong>Itinerary Flexibility:</strong> While we strive to honor the planned itinerary, we reserve the right to modify hotels, flights, or travel dates based on operational or logistic necessities. Service quality will remain equivalent or better.</li>
+                          <li><strong>Minimum Group Size:</strong> Certain features (e.g. tour leader, shared transport) may require a minimum number of participants. If unmet, we may revise service inclusions or offer an adjusted itinerary.</li>
+                          <li><strong>Religious Disclaimer:</strong> The spiritual outcome of Umrah is solely with Allah. We serve as facilitators and cannot guarantee spiritual experiences or acceptance of worship.</li>
+                        </ul>
+                      </section>
                     </div>
                   </CardContent>
                 </Card>
@@ -323,49 +458,114 @@ const PackageDetailDynamic = () => {
                 <div>
                   <label className="text-sm font-semibold mb-3 block">Room Sharing Type</label>
                   <select className="w-full border rounded-lg p-2" value={selectedRoomType} onChange={e => setSelectedRoomType(e.target.value)}>
-                    {pkg.pricing && pkg.pricing[pkg.package_type || 'group'] && Object.keys(pkg.pricing[pkg.package_type || 'group']).map(roomType => (
-                      <option key={roomType} value={roomType}>{roomType.charAt(0).toUpperCase() + roomType.slice(1)} Room</option>
-                    ))}
+                    <option value="sharing">Sharing room</option>
+                    <option value="private">Private room</option>
                   </select>
                 </div>
-                {/* Guest Count Selection */}
-                <div>
-                  <label className="text-sm font-semibold mb-3 block">Select Number of Travelers</label>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
-                      <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Adults</span>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, adults: Math.max(1, g.adults - 1) }))}>-</Button>
-                        <span className="font-bold text-lg">{guestCount.adults}</span>
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, adults: g.adults + 1 }))}>+</Button>
+                {/* Guest Count Selection - only show if sharing */}
+                {selectedRoomType === 'sharing' && (
+                  <div>
+                    <label className="text-sm font-semibold mb-3 block">Select Number of Travelers</label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Adults</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, adults: Math.max(1, g.adults - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.adults}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, adults: g.adults + 1 }))}>+</Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-green-50 rounded-lg p-2">
-                      <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-green-600" />Child (with bed)</span>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithBed: Math.max(0, g.childWithBed - 1) }))}>-</Button>
-                        <span className="font-bold text-lg">{guestCount.childWithBed}</span>
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithBed: g.childWithBed + 1 }))}>+</Button>
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Child (with bed)</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithBed: Math.max(0, g.childWithBed - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.childWithBed}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithBed: g.childWithBed + 1 }))}>+</Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-yellow-50 rounded-lg p-2">
-                      <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-yellow-600" />Child (no bed)</span>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: Math.max(0, g.childWithoutBed - 1) }))}>-</Button>
-                        <span className="font-bold text-lg">{guestCount.childWithoutBed}</span>
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: g.childWithoutBed + 1 }))}>+</Button>
+                      <div className="flex items-center justify-between bg-yellow-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2 text-yellow-700"><Users className="w-5 h-5 text-yellow-500" />Child (no bed)</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: Math.max(0, g.childWithoutBed - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.childWithoutBed}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: g.childWithoutBed + 1 }))}>+</Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between bg-purple-50 rounded-lg p-2">
-                      <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-purple-600" />Infants</span>
-                      <div className="flex items-center gap-2">
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: Math.max(0, g.infants - 1) }))}>-</Button>
-                        <span className="font-bold text-lg">{guestCount.infants}</span>
-                        <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: g.infants + 1 }))}>+</Button>
+                      <div className="flex items-center justify-between bg-purple-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2 text-purple-700"><Users className="w-5 h-5 text-purple-500" />Infants</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: Math.max(0, g.infants - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.infants}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: g.infants + 1 }))}>+</Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                )}
+                {/* Guest Count Selection - only show if private */}
+                {selectedRoomType === 'private' && (
+                  <div>
+                    <label className="text-sm font-semibold mb-3 block">Select Number of Rooms</label>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Quint Bed</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, quint: Math.max(0, (g.quint || 0) - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.quint || 0}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, quint: (g.quint || 0) + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Quad Bed</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, quad: Math.max(0, (g.quad || 0) - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.quad || 0}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, quad: (g.quad || 0) + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Triple Bed</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, triple: Math.max(0, (g.triple || 0) - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.triple || 0}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, triple: (g.triple || 0) + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Double Bed</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, double: Math.max(0, (g.double || 0) - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.double || 0}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, double: (g.double || 0) + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-emerald-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2"><Users className="w-5 h-5 text-emerald-600" />Single Bed</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, single: Math.max(0, (g.single || 0) - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.single || 0}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, single: (g.single || 0) + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-yellow-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2 text-yellow-700"><Users className="w-5 h-5 text-yellow-500" />Child (no bed)</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: Math.max(0, g.childWithoutBed - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.childWithoutBed}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, childWithoutBed: g.childWithoutBed + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between bg-purple-50 rounded-lg p-2">
+                        <span className="font-medium flex items-center gap-2 text-purple-700"><Users className="w-5 h-5 text-purple-500" />Infants</span>
+                        <div className="flex items-center gap-2">
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: Math.max(0, g.infants - 1) }))}>-</Button>
+                          <span className="w-8 text-center font-bold">{guestCount.infants}</span>
+                          <Button size="icon" variant="outline" onClick={() => setGuestCount(g => ({ ...g, infants: g.infants + 1 }))}>+</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-4 bg-green-50 rounded-lg p-4">
                   <div className="flex justify-between"><span>Package Type:</span><span className="font-medium capitalize">{pkg.package_type}</span></div>
                   <div className="flex justify-between"><span>Room Type:</span><span className="font-medium capitalize">{selectedRoomType}</span></div>

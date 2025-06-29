@@ -111,8 +111,8 @@ const GroupPackageDetail = () => {
           <div className="absolute bottom-4 left-4 z-10">
             <Badge className="bg-white/80 text-emerald-700 border-emerald-200 flex items-center gap-1 shadow px-3 py-1 text-base font-semibold">
               <Clock className="w-5 h-5 text-emerald-500" />
-              {pkg.duration}
-            </Badge>
+                  {pkg.duration}
+                </Badge>
           </div>
         </div>
         {/* Title and highlights */}
@@ -130,7 +130,7 @@ const GroupPackageDetail = () => {
               </span>
               <span className="flex items-center gap-1">
                 <Landmark className="w-5 h-5 text-emerald-500" />
-                {pkg.makkah_hotel?.name && 'Makkah'}{pkg.makkah_hotel?.name && pkg.madinah_hotel?.name && ' & '}{pkg.madinah_hotel?.name && 'Madinah'}
+                  {pkg.makkah_hotel?.name && 'Makkah'}{pkg.makkah_hotel?.name && pkg.madinah_hotel?.name && ' & '}{pkg.madinah_hotel?.name && 'Madinah'}
               </span>
             </div>
           </div>
@@ -152,7 +152,7 @@ const GroupPackageDetail = () => {
 
       {/* Main Content with Tabs */}
       <section className="container mx-auto px-2 md:px-4 py-8 max-w-6xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6 bg-white/80 shadow rounded-xl p-1 flex gap-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="hotels">Hotels</TabsTrigger>
@@ -160,36 +160,36 @@ const GroupPackageDetail = () => {
             <TabsTrigger value="activities">Activities</TabsTrigger>
             <TabsTrigger value="pricing">Pricing</TabsTrigger>
             <TabsTrigger value="terms">Terms</TabsTrigger>
-          </TabsList>
+              </TabsList>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview">
+              {/* Overview Tab */}
+              <TabsContent value="overview">
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Package Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
+                    </CardHeader>
+                    <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                        <div>
                     <div className="mb-2">
                       <span className="font-semibold">Type:</span> {pkg.is_group_package ? 'Group' : 'Individual'}
-                    </div>
+                        </div>
                     <div className="mb-2">
                       <span className="font-semibold">Category:</span> {pkg.package_category}
-                    </div>
+                        </div>
                     <div className="mb-2">
                       <span className="font-semibold">Season:</span> {pkg.season_category}
-                    </div>
+                        </div>
                     <div className="mb-2">
                       <span className="font-semibold">Departure Date:</span> {pkg.departure_date ? format(new Date(pkg.departure_date), 'dd-MMM-yyyy') : '-'}
-                    </div>
+                        </div>
                     <div className="mb-2">
                       <span className="font-semibold">Booking Deadline:</span> {pkg.booking_deadline ? format(new Date(pkg.booking_deadline), 'dd-MMM-yyyy') : '-'}
-                    </div>
+                        </div>
                     <div className="mb-2">
                       <span className="font-semibold">Meal Plan:</span> {pkg.meal_plan}
-                    </div>
-                  </div>
+                        </div>
+                      </div>
                   <div>
                     <div className="mb-2">
                       <span className="font-semibold">Inclusions:</span>
@@ -198,7 +198,7 @@ const GroupPackageDetail = () => {
                           <li key={idx}>{inc}</li>
                         ))}
                       </ul>
-                    </div>
+                          </div>
                     <div className="mb-2">
                       <span className="font-semibold">Exclusions:</span>
                       <ul className="list-disc pl-5 text-sm space-y-1 mt-1">
@@ -206,15 +206,15 @@ const GroupPackageDetail = () => {
                           <li key={idx}>{exc}</li>
                         ))}
                       </ul>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+              </TabsContent>
 
           {/* Hotels Tab */}
-          <TabsContent value="hotels">
+              <TabsContent value="hotels">
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle>Hotels</CardTitle>
@@ -231,9 +231,9 @@ const GroupPackageDetail = () => {
                           {pkg.makkah_hotel.amenities.map((a: string, idx: number) => (
                             <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{a}</Badge>
                           ))}
-                        </div>
-                      )}
-                    </div>
+                                </div>
+                              )}
+                            </div>
                   )}
                   {pkg.madinah_hotel && (
                     <div>
@@ -245,23 +245,23 @@ const GroupPackageDetail = () => {
                           {pkg.madinah_hotel.amenities.map((a: string, idx: number) => (
                             <Badge key={idx} className="bg-emerald-100 text-emerald-700 border-emerald-200">{a}</Badge>
                           ))}
-                        </div>
-                      )}
-                    </div>
+                                </div>
+                              )}
+                            </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          {/* Itinerary Tab */}
-          <TabsContent value="itinerary">
+              {/* Itinerary Tab */}
+              <TabsContent value="itinerary">
             <Card className="mb-8">
-              <CardHeader>
+                  <CardHeader>
                 <CardTitle>Itinerary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pkg.itinerary && Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 ? (
+                  </CardHeader>
+                  <CardContent>
+                    {pkg.itinerary && Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm border">
                       <thead>
@@ -287,22 +287,22 @@ const GroupPackageDetail = () => {
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                ) : (
+                      </div>
+                    ) : (
                   <div className="text-gray-500">No itinerary available.</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-          {/* Activities Tab */}
-          <TabsContent value="activities">
+              {/* Activities Tab */}
+              <TabsContent value="activities">
             <Card className="mb-8">
-              <CardHeader>
+                  <CardHeader>
                 <CardTitle>Activities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pkg.activities && pkg.activities.length > 0 ? (
+                  </CardHeader>
+                  <CardContent>
+                    {pkg.activities && pkg.activities.length > 0 ? (
                   <ul className="list-disc pl-5 text-sm space-y-1">
                     {pkg.activities.map((act: string, idx: number) => (
                       <li key={idx}>{act}</li>
@@ -310,36 +310,36 @@ const GroupPackageDetail = () => {
                   </ul>
                 ) : (
                   <div className="text-gray-500">No activities listed.</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
           {/* Pricing Tab */}
           <TabsContent value="pricing">
             <Card className="mb-8">
-              <CardHeader>
+                    <CardHeader>
                 <CardTitle>Pricing</CardTitle>
-              </CardHeader>
-              <CardContent>
+                    </CardHeader>
+                    <CardContent>
                 <pre className="bg-gray-50 p-3 rounded text-xs overflow-x-auto">{JSON.stringify(pkg.pricing, null, 2)}</pre>
                 {/* You can replace this with a more beautiful table if you want */}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </CardContent>
+                  </Card>
+              </TabsContent>
 
-          {/* Terms Tab */}
-          <TabsContent value="terms">
+              {/* Terms Tab */}
+              <TabsContent value="terms">
             <Card className="mb-8">
-              <CardHeader>
-                <CardTitle>Terms & Conditions</CardTitle>
-              </CardHeader>
-              <CardContent>
+                  <CardHeader>
+                    <CardTitle>Terms & Conditions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                 <div className="text-sm whitespace-pre-line">{pkg.terms_conditions || 'No terms specified.'}</div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
       </section>
 
       <Footer />
@@ -347,4 +347,4 @@ const GroupPackageDetail = () => {
   );
 };
 
-export default GroupPackageDetail; 
+export default GroupPackageDetail;

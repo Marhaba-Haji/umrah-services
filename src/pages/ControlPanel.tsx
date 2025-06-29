@@ -651,7 +651,7 @@ const ControlPanel = () => {
                             <td className="p-2 border">{a.name}</td>
                             <td className="p-2 border">{a.city}</td>
                             <td className="p-2 border">{a.duration}</td>
-                            <td className="p-2 border">{a.price ? `$${a.price}` : '-'}</td>
+                            <td className="p-2 border">{a.price ? `₹${Number(a.price).toLocaleString()}` : '-'}</td>
                             <td className="p-2 border text-center">{a.is_featured ? 'Yes' : 'No'}</td>
                             <td className="p-2 border text-center">
                               <Button size="sm" variant="outline" className="mr-2" onClick={() => openEditActivity(a)}>Edit</Button>
