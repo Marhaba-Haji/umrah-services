@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,7 @@ import { Eye, Edit, Trash2, Plus, Star } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Hotel {
-  id: string;
+  id: number;
   name: string;
   location: string;
   rating: number;
@@ -23,7 +22,7 @@ interface Hotel {
   amenities: string[];
   city: string;
   distanceFromHaram?: string;
-  distanceFromMasjidENabawi?: number;
+  distanceFromMasjidENabawi?: string;
   images?: string[];
   latitude?: string;
   longitude?: string;
@@ -35,14 +34,20 @@ const FACILITIES = [
   'WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Laundry', 'Room Service', 'Air Conditioning', 'Breakfast', 'Conference Room', 'Pet Friendly'
 ];
 
-const HotelManager = ({ session }: { session: any }) => {
+const HotelManager = ({ session }) => {
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [viewingHotel, setViewingHotel] = useState<Hotel | null>(null);
 
+  const getSupabaseClient = () => {
+    return supabase;
+  };
+
   const fetchHotels = async () => {
-    const { data, error } = await supabase
+    const supabaseClient = getSupabaseClient();
+    const { data, error } = await supabaseClient
       .from('hotels')
       .select('*')
       .order('id', { ascending: true });
@@ -55,14 +60,14 @@ const HotelManager = ({ session }: { session: any }) => {
         name: hotel.name,
         location: hotel.location,
         rating: hotel.rating,
-        pricePerNight: hotel.price_per_night?.toString() || '0',
-        status: hotel.status || 'Active',
-        description: hotel.description || '',
-        amenities: hotel.amenities || [],
+        pricePerNight: hotel.price_per_night,
+        status: hotel.status,
+        description: hotel.description,
+        amenities: hotel.amenities,
         city: hotel.city,
-        distanceFromHaram: hotel.distance_from_haram?.toString(),
+        distanceFromHaram: hotel.distance_from_haram,
         distanceFromMasjidENabawi: hotel.distance_from_masjid_e_nabawi,
-        images: hotel.images || [],
+        images: hotel.images,
         latitude: hotel.latitude,
         longitude: hotel.longitude,
         isShuttle: hotel.is_shuttle,
@@ -97,6 +102,7 @@ const HotelManager = ({ session }: { session: any }) => {
   });
 
   const onSubmit = async (data: any) => {
+    const supabaseClient = getSupabaseClient();
     const hotelData = {
       name: data.name,
       location: data.location,
@@ -106,7 +112,7 @@ const HotelManager = ({ session }: { session: any }) => {
       description: data.description,
       amenities: data.amenities,
       city: data.city,
-      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? data.distanceFromHaram.toString() : null,
+      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? parseInt(data.distanceFromHaram, 10) : null,
       distance_from_masjid_e_nabawi: data.city === 'madinah' && data.distanceFromMasjidENabawi ? parseInt(data.distanceFromMasjidENabawi, 10) : null,
       images: data.images,
       latitude: data.latitude,
@@ -117,9 +123,9 @@ const HotelManager = ({ session }: { session: any }) => {
 
     let error;
     if (editingHotel) {
-      ({ error } = await supabase.from('hotels').update(hotelData).eq('id', editingHotel.id));
+      ({ error } = await supabaseClient.from('hotels').update(hotelData).eq('id', editingHotel.id));
     } else {
-      ({ error } = await supabase.from('hotels').insert([hotelData]));
+      ({ error } = await supabaseClient.from('hotels').insert([hotelData]));
     }
 
     if (error) {
@@ -148,7 +154,7 @@ const HotelManager = ({ session }: { session: any }) => {
       amenities: hotel.amenities,
       city: hotel.city,
       distanceFromHaram: hotel.distanceFromHaram,
-      distanceFromMasjidENabawi: hotel.distanceFromMasjidENabawi?.toString(),
+      distanceFromMasjidENabawi: hotel.distanceFromMasjidENabawi,
       images: hotel.images,
       latitude: hotel.latitude,
       longitude: hotel.longitude,
@@ -158,8 +164,9 @@ const HotelManager = ({ session }: { session: any }) => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from('hotels').delete().eq('id', id);
+  const handleDelete = async (id: number) => {
+    const supabaseClient = getSupabaseClient();
+    const { error } = await supabaseClient.from('hotels').delete().eq('id', id);
     if (error) {
       console.error('Error deleting hotel:', error);
     } else {
@@ -282,7 +289,7 @@ const HotelManager = ({ session }: { session: any }) => {
                       <FormItem>
                         <FormLabel>Distance from Haram (meters)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 500" {...field} />
+                          <Input placeholder="e.g. 500" type="number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -297,7 +304,7 @@ const HotelManager = ({ session }: { session: any }) => {
                       <FormItem>
                         <FormLabel>Distance from Masjid-e-Nabawi (meters)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 700" {...field} />
+                          <Input placeholder="e.g. 700" type="number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

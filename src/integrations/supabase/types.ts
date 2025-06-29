@@ -51,7 +51,6 @@ export type Database = {
       blog_posts: {
         Row: {
           author_id: string | null
-          author_name: string | null
           author_url: string | null
           canonical_url: string | null
           category_id: string | null
@@ -94,7 +93,6 @@ export type Database = {
         }
         Insert: {
           author_id?: string | null
-          author_name?: string | null
           author_url?: string | null
           canonical_url?: string | null
           category_id?: string | null
@@ -137,7 +135,6 @@ export type Database = {
         }
         Update: {
           author_id?: string | null
-          author_name?: string | null
           author_url?: string | null
           canonical_url?: string | null
           category_id?: string | null
@@ -888,7 +885,6 @@ export type Database = {
           city: string | null
           converted_at: string | null
           country: string | null
-          country_code: string | null
           created_at: string | null
           email: string | null
           first_name: string
@@ -912,7 +908,6 @@ export type Database = {
           city?: string | null
           converted_at?: string | null
           country?: string | null
-          country_code?: string | null
           created_at?: string | null
           email?: string | null
           first_name: string
@@ -936,7 +931,6 @@ export type Database = {
           city?: string | null
           converted_at?: string | null
           country?: string | null
-          country_code?: string | null
           created_at?: string | null
           email?: string | null
           first_name?: string
@@ -1099,7 +1093,6 @@ export type Database = {
       saudi_visas: {
         Row: {
           application_process: Json | null
-          approval_rate: number | null
           created_at: string | null
           description: string | null
           id: string
@@ -1116,7 +1109,6 @@ export type Database = {
         }
         Insert: {
           application_process?: Json | null
-          approval_rate?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -1133,7 +1125,6 @@ export type Database = {
         }
         Update: {
           application_process?: Json | null
-          approval_rate?: number | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -1365,15 +1356,14 @@ export type Database = {
           category_id: string | null
           cities_covered: string[] | null
           created_at: string | null
-          currency: string | null
           departure_date: string | null
           description: string | null
           duration: string
+          duration_category: string | null
           exclusions: string[] | null
           featured_image: string | null
           flight_details: Json | null
           flight_included: boolean | null
-          hotels: Json | null
           id: string
           images: string[] | null
           includes: string[] | null
@@ -1381,7 +1371,9 @@ export type Database = {
           is_group_package: boolean | null
           itinerary: Json | null
           madinah_hotel: Json | null
+          madinah_hotel_id: string | null
           makkah_hotel: Json | null
+          makkah_hotel_id: string | null
           max_capacity: number | null
           meal_plan: string | null
           mealPlan: string | null
@@ -1395,8 +1387,6 @@ export type Database = {
           pricing: Json | null
           return_date: string | null
           room_type_pricing: Json | null
-          season_category: string | null
-          seo: Json | null
           status: Database["public"]["Enums"]["package_status"] | null
           terms_conditions: string | null
           updated_at: string | null
@@ -1409,15 +1399,14 @@ export type Database = {
           category_id?: string | null
           cities_covered?: string[] | null
           created_at?: string | null
-          currency?: string | null
           departure_date?: string | null
           description?: string | null
           duration: string
+          duration_category?: string | null
           exclusions?: string[] | null
           featured_image?: string | null
           flight_details?: Json | null
           flight_included?: boolean | null
-          hotels?: Json | null
           id?: string
           images?: string[] | null
           includes?: string[] | null
@@ -1425,7 +1414,9 @@ export type Database = {
           is_group_package?: boolean | null
           itinerary?: Json | null
           madinah_hotel?: Json | null
+          madinah_hotel_id?: string | null
           makkah_hotel?: Json | null
+          makkah_hotel_id?: string | null
           max_capacity?: number | null
           meal_plan?: string | null
           mealPlan?: string | null
@@ -1439,8 +1430,6 @@ export type Database = {
           pricing?: Json | null
           return_date?: string | null
           room_type_pricing?: Json | null
-          season_category?: string | null
-          seo?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
           updated_at?: string | null
@@ -1453,15 +1442,14 @@ export type Database = {
           category_id?: string | null
           cities_covered?: string[] | null
           created_at?: string | null
-          currency?: string | null
           departure_date?: string | null
           description?: string | null
           duration?: string
+          duration_category?: string | null
           exclusions?: string[] | null
           featured_image?: string | null
           flight_details?: Json | null
           flight_included?: boolean | null
-          hotels?: Json | null
           id?: string
           images?: string[] | null
           includes?: string[] | null
@@ -1469,7 +1457,9 @@ export type Database = {
           is_group_package?: boolean | null
           itinerary?: Json | null
           madinah_hotel?: Json | null
+          madinah_hotel_id?: string | null
           makkah_hotel?: Json | null
+          makkah_hotel_id?: string | null
           max_capacity?: number | null
           meal_plan?: string | null
           mealPlan?: string | null
@@ -1483,8 +1473,6 @@ export type Database = {
           pricing?: Json | null
           return_date?: string | null
           room_type_pricing?: Json | null
-          season_category?: string | null
-          seo?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
           updated_at?: string | null
@@ -1495,6 +1483,20 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_packages_madinah_hotel_id_fkey"
+            columns: ["madinah_hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "umrah_packages_makkah_hotel_id_fkey"
+            columns: ["makkah_hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hotels"
             referencedColumns: ["id"]
           },
         ]
@@ -1578,7 +1580,6 @@ export type Database = {
           significance: string | null
           status: string | null
           title: string
-          vehicle_prices: Json | null
           ziarath_type: Database["public"]["Enums"]["ziarath_type"]
         }
         Insert: {
@@ -1597,7 +1598,6 @@ export type Database = {
           significance?: string | null
           status?: string | null
           title: string
-          vehicle_prices?: Json | null
           ziarath_type: Database["public"]["Enums"]["ziarath_type"]
         }
         Update: {
@@ -1616,7 +1616,6 @@ export type Database = {
           significance?: string | null
           status?: string | null
           title?: string
-          vehicle_prices?: Json | null
           ziarath_type?: Database["public"]["Enums"]["ziarath_type"]
         }
         Relationships: [
