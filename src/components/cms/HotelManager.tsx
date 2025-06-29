@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,20 +35,14 @@ const FACILITIES = [
   'WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Laundry', 'Room Service', 'Air Conditioning', 'Breakfast', 'Conference Room', 'Pet Friendly'
 ];
 
-const HotelManager = ({ session }) => {
+const HotelManager = ({ session }: { session: any }) => {
   const [hotels, setHotels] = useState<Hotel[]>([]);
-  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [viewingHotel, setViewingHotel] = useState<Hotel | null>(null);
 
-  const getSupabaseClient = () => {
-    return supabase;
-  };
-
   const fetchHotels = async () => {
-    const supabaseClient = getSupabaseClient();
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('hotels')
       .select('*')
       .order('id', { ascending: true });
@@ -61,8 +56,8 @@ const HotelManager = ({ session }) => {
         location: hotel.location,
         rating: hotel.rating,
         pricePerNight: hotel.price_per_night?.toString() || '0',
-        status: hotel.status,
-        description: hotel.description,
+        status: hotel.status || 'Active',
+        description: hotel.description || '',
         amenities: hotel.amenities || [],
         city: hotel.city,
         distanceFromHaram: hotel.distance_from_haram?.toString(),
@@ -102,7 +97,6 @@ const HotelManager = ({ session }) => {
   });
 
   const onSubmit = async (data: any) => {
-    const supabaseClient = getSupabaseClient();
     const hotelData = {
       name: data.name,
       location: data.location,
@@ -123,9 +117,9 @@ const HotelManager = ({ session }) => {
 
     let error;
     if (editingHotel) {
-      ({ error } = await supabaseClient.from('hotels').update(hotelData).eq('id', editingHotel.id));
+      ({ error } = await supabase.from('hotels').update(hotelData).eq('id', editingHotel.id));
     } else {
-      ({ error } = await supabaseClient.from('hotels').insert([hotelData]));
+      ({ error } = await supabase.from('hotels').insert([hotelData]));
     }
 
     if (error) {
@@ -165,8 +159,7 @@ const HotelManager = ({ session }) => {
   };
 
   const handleDelete = async (id: string) => {
-    const supabaseClient = getSupabaseClient();
-    const { error } = await supabaseClient.from('hotels').delete().eq('id', id);
+    const { error } = await supabase.from('hotels').delete().eq('id', id);
     if (error) {
       console.error('Error deleting hotel:', error);
     } else {
