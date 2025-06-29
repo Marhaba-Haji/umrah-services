@@ -218,14 +218,14 @@ const UmrahPackages = () => {
                   <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">99% Success Rate</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">97% Success Rate</h4>
                   <p className="text-gray-600 text-sm">Guaranteed visa approval and seamless travel experience</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">10,000+ Pilgrims</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">1,000+ Pilgrims</h4>
                   <p className="text-gray-600 text-sm">Successfully served pilgrims from around the world</p>
                 </div>
                 <div className="text-center">
