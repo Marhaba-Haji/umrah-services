@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, Plane, Calendar, Star, CheckCircle, CreditCard, Info, MapPin, Utensils, X, Bed } from 'lucide-react';
+import ResponsiveBanner from '../components/ResponsiveBanner';
 
 const PackageDetailDynamic = () => {
   const { slug } = useParams();
@@ -130,16 +131,43 @@ const PackageDetailDynamic = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
       <Header />
       <section className="relative h-[60vh] overflow-hidden flex items-end">
-        <img src={pkg.image_url || `/placeholder.svg`} alt={pkg.title} className="w-full h-full object-cover absolute inset-0" />
+        {/* Overlayed badges for package type and category */}
+        <div className="absolute top-4 left-4 flex gap-2 z-10">
+          {pkg.package_type && (
+            <Badge className="bg-emerald-600 text-white shadow font-bold px-3 py-1 text-base rounded-full">
+              {pkg.package_type === 'group' ? 'Group Package' : pkg.package_type === 'independent' ? 'Independent Package' : pkg.package_type}
+            </Badge>
+          )}
+          {pkg.package_category && (
+            <Badge className="bg-blue-700 text-white shadow font-bold px-3 py-1 text-base rounded-full">
+              {pkg.package_category}
+            </Badge>
+          )}
+        </div>
+        <ResponsiveBanner alt={pkg.title} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         <div className="container mx-auto px-4 pb-8 relative z-10">
           <div className="max-w-4xl">
-            <Badge className="bg-emerald-600 text-white px-4 py-2 mb-4 text-lg shadow-lg">{pkg.package_type === 'group' ? 'Group Package' : 'Independent Package'}</Badge>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-2 drop-shadow-lg">{pkg.title}</h1>
             <div className="flex flex-wrap gap-6 text-white/90 text-lg">
-              <div className="flex items-center"><Calendar className="w-5 h-5 mr-2" />{pkg.duration}</div>
-              <div className="flex items-center"><Star className="w-5 h-5 mr-2 fill-current text-yellow-400" />{pkg.rating} ({pkg.reviews} reviews)</div>
-              <div className="flex items-center"><MapPin className="w-5 h-5 mr-2" />{pkg.makkah_hotel?.name && 'Makkah'}{pkg.makkah_hotel?.name && pkg.madinah_hotel?.name && ' & '}{pkg.madinah_hotel?.name && 'Madinah'}</div>
+              <div className="flex items-center">
+                <Calendar className="w-5 h-5 mr-2" />
+                {pkg.duration || 'Duration not specified'}
+              </div>
+              <div className="flex items-center">
+                <Star className="w-5 h-5 mr-2 fill-current text-yellow-400" />
+                {pkg.rating ? `${pkg.rating} (${pkg.reviews} reviews)` : '(No reviews)'}
+              </div>
+              <div className="flex items-center">
+                <Plane className="w-5 h-5 mr-2" />
+                {pkg.flight_details?.departure_from_airport || 'Departure City not specified'}
+              </div>
+              <div className="flex items-center">
+                <MapPin className="w-5 h-5 mr-2" />
+                {Array.isArray(pkg.cities_covered) && pkg.cities_covered.length > 0
+                  ? pkg.cities_covered.join(' & ')
+                  : 'Cities not specified'}
+              </div>
             </div>
           </div>
         </div>
@@ -159,6 +187,11 @@ const PackageDetailDynamic = () => {
               </TabsList>
               {/* Overview Tab */}
               <TabsContent value="overview" className="space-y-8">
+                {/* Package Title and Description */}
+                <div className="mb-6">
+                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{pkg.title}</h2>
+                  {pkg.description && <p className="text-lg text-gray-700">{pkg.description}</p>}
+                </div>
                 {/* Flight Info */}
                 <Card>
                   <CardHeader>
