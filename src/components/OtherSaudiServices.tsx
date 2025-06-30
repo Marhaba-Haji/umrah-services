@@ -4,56 +4,37 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCurrency } from './Header';
 import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const OtherSaudiServices = () => {
   const { currency } = useCurrency();
+  const [visaServices, setVisaServices] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  // Currency conversion rates (base USD)
+  // Currency conversion rates (base INR)
   const exchangeRates = {
-    USD: 1,
-    INR: 83.5,
-    SAR: 3.75
+    USD: 1 / 83.5,
+    INR: 1,
+    SAR: 1 / 22.3
   };
-
-  // Currency symbols
-  const currencySymbols = {
-    USD: '$',
-    INR: '₹',
-    SAR: 'ر.س'
-  };
-
-  const currencySymbol = currencySymbols[currency] || '$';
+  const currencySymbols = { USD: '$', INR: '₹', SAR: 'ر.س' };
+  const currencySymbol = currencySymbols[currency] || '₹';
   const rate = exchangeRates[currency] || 1;
 
-  const visaServices = [
-    {
-      icon: '👨‍👩‍👧‍👦',
-      title: 'Family Visit Visa',
-      description: 'Visit your family members residing in Saudi Arabia',
-      duration: '90 days',
-      processing: '5-7 days',
-      basePrice: 199,
-      features: ['Multiple entry options', 'Extended validity', 'Family invitation required']
-    },
-    {
-      icon: '🏖️',
-      title: 'Tourist Visa',
-      description: 'Explore Saudi Arabia\'s heritage and modern attractions',
-      duration: '1 year',
-      processing: '3-5 days',
-      basePrice: 149,
-      features: ['Multiple entry', 'Online application', 'Tourism activities allowed']
-    },
-    {
-      icon: '💼',
-      title: 'Business Visa',
-      description: 'Conduct business meetings and commercial activities',
-      duration: '90 days',
-      processing: '3-5 days',
-      basePrice: 299,
-      features: ['Business activities', 'Company sponsorship', 'Meeting attendance']
+  React.useEffect(() => {
+    async function fetchVisas() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('saudi_visas')
+        .select('id, visa_category, description, visa_validity, stay_validity, processing_time, price, requirements')
+        // .in('visa_category', ['Family Visit Visa', 'Tourist Visa', 'Business Visa']) // TEMP: fetch all
+        .order('visa_category');
+      console.log('Visa fetch:', { data, error });
+      if (!error && data) setVisaServices(data);
+      setLoading(false);
     }
-  ];
+    fetchVisas();
+  }, []);
 
   return (
     <section className="py-20 bg-gray-50">
@@ -70,30 +51,44 @@ const OtherSaudiServices = () => {
             Professional processing with guaranteed approval.
           </p>
         </div>
-
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {visaServices.map((service, index) => {
-            const convertedPrice = Math.round(service.basePrice * rate);
+          {loading ? (
+            <div className="col-span-3 text-center py-8">Loading visa options...</div>
+          ) : visaServices.length === 0 ? (
+            <div className="col-span-3 text-center py-8 text-red-600 font-semibold">No visa data found. Check your database, filter, or permissions.</div>
+          ) : visaServices.filter(service => service.visa_type !== 'Umrah Visa').map((service, index) => {
+            const convertedPrice = Math.round((service.price || 0) * rate);
+            // Handle requirements as array or string (for features display)
+            let requirementsArr: string[] = [];
+            if (Array.isArray(service.requirements)) {
+              requirementsArr = service.requirements;
+            } else if (typeof service.requirements === 'string') {
+              try {
+                requirementsArr = JSON.parse(service.requirements);
+              } catch {
+                requirementsArr = service.requirements.split(',').map((f: string) => f.trim());
+              }
+            }
             return (
-              <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105">
+              <Card key={service.id || index} className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105">
                 <CardHeader className="text-center pb-4">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">{service.icon}</span>
+                    <span className="text-2xl">🛂</span>
                   </div>
                   <CardTitle className="text-xl font-bold text-gray-900 mb-2">
-                    {service.title}
+                    {service.visa_category}
                   </CardTitle>
                   <p className="text-gray-600 text-sm">{service.description}</p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3 mb-6">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">⏰ Duration:</span>
-                      <span className="font-medium">{service.duration}</span>
+                      <span className="text-gray-500">⏰ Validity:</span>
+                      <span className="font-medium">{service.visa_validity || service.stay_validity}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">🚀 Processing:</span>
-                      <span className="font-medium">{service.processing}</span>
+                      <span className="font-medium">{service.processing_time}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-500">💰 Price:</span>
@@ -102,16 +97,16 @@ const OtherSaudiServices = () => {
                       </span>
                     </div>
                   </div>
-
-                  <ul className="space-y-2 mb-6">
-                    {service.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center space-x-2">
-                        <span className="text-blue-500 text-sm">✓</span>
-                        <span className="text-sm text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
+                  {requirementsArr.length > 0 && (
+                    <ul className="space-y-2 mb-6">
+                      {requirementsArr.map((feature: string, featureIndex: number) => (
+                        <li key={featureIndex} className="flex items-center space-x-2">
+                          <span className="text-blue-500 text-sm">✓</span>
+                          <span className="text-sm text-gray-700">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <Link to="/other-visas" className="block w-full">
                     <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                       Apply Now
@@ -122,7 +117,6 @@ const OtherSaudiServices = () => {
             );
           })}
         </div>
-
         <div className="text-center mt-12">
           <p className="text-gray-600 mb-4">Need a different type of visa or have special requirements?</p>
           <Button 

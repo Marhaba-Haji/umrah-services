@@ -213,23 +213,26 @@ const OtherSaudiVisas = () => {
         .from('saudi_visas')
         .select('*')
         .eq('visa_type', 'Umrah Visa')
-        .in('visa_category', ['Standard', 'Premium', 'Express'])
         .eq('status', 'active');
       if (error) {
-        console.error('Supabase error:', error);
+        setUmrahVisas([]);
+        setUmrahLoading(false);
+        toast({
+          title: 'Error fetching Umrah visas',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
       }
-      if (!error && data) {
+      if (data) {
         setUmrahVisas(data);
-        console.log('Umrah Visas:', data);
       } else {
         setUmrahVisas([]);
-        console.log('No Umrah visas found or error occurred.');
       }
       setUmrahLoading(false);
     }
-    console.log('Fetching Umrah visas...');
     fetchUmrahVisas();
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     async function fetchOtherVisas() {
@@ -240,19 +243,24 @@ const OtherSaudiVisas = () => {
         .neq('visa_type', 'Umrah Visa')
         .eq('status', 'active');
       if (error) {
-        console.error('Supabase error (other visas):', error);
+        setOtherVisas([]);
+        setOtherVisasLoading(false);
+        toast({
+          title: 'Error fetching other visas',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return;
       }
-      if (!error && data) {
+      if (data) {
         setOtherVisas(data);
-        console.log('Other Visas:', data);
       } else {
         setOtherVisas([]);
-        console.log('No other visas found or error occurred.');
       }
       setOtherVisasLoading(false);
     }
     fetchOtherVisas();
-  }, []);
+  }, [toast]);
 
   const handleApplication = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -404,8 +412,29 @@ const OtherSaudiVisas = () => {
                         if (visa.visa_category === 'Tourist') color = 'blue';
                         if (visa.visa_category === 'Student') color = 'purple';
                         if (visa.visa_category === 'Job') color = 'orange';
+                        // Parse features and requirements as array or string
+                        let featuresArr: string[] = [];
+                        if (Array.isArray(visa.features)) {
+                          featuresArr = visa.features;
+                        } else if (typeof visa.features === 'string') {
+                          try {
+                            featuresArr = JSON.parse(visa.features);
+                          } catch {
+                            featuresArr = visa.features.split(',').map((f: string) => f.trim());
+                          }
+                        }
+                        let requirementsArr: string[] = [];
+                        if (Array.isArray(visa.requirements)) {
+                          requirementsArr = visa.requirements;
+                        } else if (typeof visa.requirements === 'string') {
+                          try {
+                            requirementsArr = JSON.parse(visa.requirements);
+                          } catch {
+                            requirementsArr = visa.requirements.split(',').map((f: string) => f.trim());
+                          }
+                        }
                         return (
-                          <Card key={visa.id} className="mb-8">
+                          <Card key={visa.id || visa.visa_category || visa.description} className="mb-8">
                             <CardContent className="p-8">
                               <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-4">
@@ -433,16 +462,16 @@ const OtherSaudiVisas = () => {
                               <div className="mb-4">
                                 <h4 className="font-semibold text-base mb-2">Key Features:</h4>
                                 <div className="flex flex-wrap gap-2">
-                                  {(visa.features || []).map((feature, idx) => (
-                                    <Badge key={idx} variant="outline" className="text-xs">{feature}</Badge>
+                                  {featuresArr.map((feature, idx) => (
+                                    <Badge key={visa.id + '-feature-' + idx} variant="outline" className="text-xs">{feature}</Badge>
                                   ))}
                                 </div>
                               </div>
                               <div>
                                 <h4 className="font-semibold text-base mb-2">Required Documents:</h4>
                                 <ul className="text-sm text-gray-600 space-y-1">
-                                  {(visa.requirements || []).map((req, idx) => (
-                                    <li key={idx} className="flex items-center space-x-2">
+                                  {requirementsArr.map((req, idx) => (
+                                    <li key={visa.id + '-req-' + idx} className="flex items-center space-x-2">
                                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                                       <span>{req}</span>
                                     </li>
