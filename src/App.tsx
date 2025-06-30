@@ -1,8 +1,10 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from 'react-helmet-async';
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import TransportBooking from "./pages/TransportBooking";
@@ -32,40 +34,42 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/transport" element={<TransportBooking />} />
-          <Route path="/hotel" element={<HotelBooking />} />
-          <Route path="/apply" element={<UmrahApplication />} />
-          <Route path="/apply-umrah-visa-online" element={<UmrahApplication />} />
-          <Route path="/group-flights" element={<GroupFlights />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/umrah-packages" element={<UmrahPackages />} />
-          <Route path="/group-packages" element={<GroupPackages />} />
-          <Route path="/group-packages/:slug" element={<PackageDetailDynamic />} />
-          <Route path="/custom-packages" element={<CustomPackages />} />
-          <Route path="/custom-packages/:slug" element={<PackageDetailDynamic />} />
-          <Route path="/package-details/:slug" element={<PackageDetailDynamic />} />
-          <Route path="/advanced-package/:slug" element={<PackageDetailDynamic />} />
-          <Route path="/blog-post" element={<Blogs />} />
-          <Route path="/blog-post/:slug" element={<BlogDetail />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/guide" element={<GuideBooking />} />
-          <Route path="/ziarath" element={<ZiarathBooking />} />
-          <Route path="/other-visas" element={<OtherSaudiVisas />} />
-          <Route path="/control-panel" element={<ControlPanel />} />
-          <Route path="/build-your-own-umrah" element={<BuildYourOwnUmrah />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <HelmetProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/transport" element={<TransportBooking />} />
+            <Route path="/hotel" element={<HotelBooking />} />
+            <Route path="/apply" element={<UmrahApplication />} />
+            <Route path="/apply-umrah-visa-online" element={<UmrahApplication />} />
+            <Route path="/group-flights" element={<GroupFlights />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/umrah-packages" element={<UmrahPackages />} />
+            <Route path="/group-packages" element={<GroupPackages />} />
+            <Route path="/group-packages/:slug" element={<PackageDetailDynamic />} />
+            <Route path="/custom-packages" element={<CustomPackages />} />
+            <Route path="/custom-packages/:slug" element={<PackageDetailDynamic />} />
+            <Route path="/package-details/:slug" element={<PackageDetailDynamic />} />
+            <Route path="/advanced-package/:slug" element={<PackageDetailDynamic />} />
+            <Route path="/blog-post" element={<Blogs />} />
+            <Route path="/blog-post/:slug" element={<BlogDetail />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/guide" element={<GuideBooking />} />
+            <Route path="/ziarath" element={<ZiarathBooking />} />
+            <Route path="/other-visas" element={<OtherSaudiVisas />} />
+            <Route path="/control-panel" element={<ControlPanel />} />
+            <Route path="/build-your-own-umrah" element={<BuildYourOwnUmrah />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </HelmetProvider>
   </QueryClientProvider>
 );
 

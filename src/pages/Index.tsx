@@ -13,6 +13,7 @@ import TestimonialsSection from '../components/TestimonialsSection';
 import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
 import WhatsAppWidget from '../components/WhatsAppWidget';
+import HomePageSEO from '../components/seo/HomePageSEO';
 
 const Index = () => {
   const [showPopup, setShowPopup] = useState(false);
@@ -29,6 +30,7 @@ const Index = () => {
 
   return (
     <CurrencyContext.Provider value={{ currency, setCurrency }}>
+      <HomePageSEO />
       <div className="min-h-screen bg-white">
         <Header />
         <main>
