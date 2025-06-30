@@ -1009,143 +1009,121 @@ const PackageManager = () => {
                   </div>
                 </section>
 
-                {/* Price */}
+                {/* Pricing */}
                 <section>
-                  <h3 className="font-semibold mb-2">Price</h3>
+                  <h3 className="font-semibold mb-2">Pricing</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Sharing Prices */}
+                    {/* Sharing Room */}
                     <div>
-                      <h4 className="font-semibold mb-2">Sharing</h4>
+                      <h4 className="font-semibold mb-2">Sharing Room</h4>
                       <div className="mb-2">
-                        <Label htmlFor="price_quint">Quint</Label>
+                        <Label htmlFor="price_sharing">Price per Traveler</Label>
                         <Input
-                          id="price_quint"
+                          id="price_sharing"
                           type="number"
                           min="0"
-                          value={safeNumberInputValue(formData.pricing?.quint)}
+                          value={safeNumberInputValue(formData.pricing?.sharing?.pricePerTraveler)}
                           onChange={e => {
                             const value = e.target.value;
                             const parsed = value ? parseFloat(value) : null;
                             setFormData(prev => ({
                               ...prev,
-                              pricing: { ...prev.pricing, quint: isNaN(parsed) ? null : parsed }
+                              pricing: {
+                                ...prev.pricing,
+                                sharing: { pricePerTraveler: isNaN(parsed) ? null : parsed },
+                                private: prev.pricing?.private || {},
+                                childWithoutBed: prev.pricing?.childWithoutBed || null,
+                                infant: prev.pricing?.infant || null
+                              }
                             }));
                           }}
-                          placeholder="Quint price"
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <Label htmlFor="price_quad">Quad</Label>
-                        <Input
-                          id="price_quad"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.quad)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, quad: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Quad price"
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <Label htmlFor="price_child_no_bed">Child Without Bed</Label>
-                        <Input
-                          id="price_child_no_bed"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.child_no_bed)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, child_no_bed: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Child without bed price"
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <Label htmlFor="price_infant">Infant</Label>
-                        <Input
-                          id="price_infant"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.infant)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, infant: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Infant price"
+                          placeholder="Price per traveler"
                         />
                       </div>
                     </div>
-                    {/* Private Prices */}
+                    {/* Private Room */}
                     <div>
-                      <h4 className="font-semibold mb-2">Private</h4>
-                      <div className="mb-2">
-                        <Label htmlFor="price_triple">Triple</Label>
-                        <Input
-                          id="price_triple"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.triple)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, triple: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Triple price"
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <Label htmlFor="price_double">Double</Label>
-                        <Input
-                          id="price_double"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.double)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, double: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Double price"
-                        />
-                      </div>
-                      <div className="mb-2">
-                        <Label htmlFor="price_single">Single</Label>
-                        <Input
-                          id="price_single"
-                          type="number"
-                          min="0"
-                          value={safeNumberInputValue(formData.pricing?.single)}
-                          onChange={e => {
-                            const value = e.target.value;
-                            const parsed = value ? parseFloat(value) : null;
-                            setFormData(prev => ({
-                              ...prev,
-                              pricing: { ...prev.pricing, single: isNaN(parsed) ? null : parsed }
-                            }));
-                          }}
-                          placeholder="Single price"
-                        />
-                      </div>
+                      <h4 className="font-semibold mb-2">Private Room (per room)</h4>
+                      {['quint', 'quad', 'triple', 'double', 'single'].map(type => (
+                        <div className="mb-2" key={type}>
+                          <Label htmlFor={`price_${type}`}>{type.charAt(0).toUpperCase() + type.slice(1)} Room Price</Label>
+                          <Input
+                            id={`price_${type}`}
+                            type="number"
+                            min="0"
+                            value={safeNumberInputValue(formData.pricing?.private?.[type])}
+                            onChange={e => {
+                              const value = e.target.value;
+                              const parsed = value ? parseFloat(value) : null;
+                              setFormData(prev => ({
+                                ...prev,
+                                pricing: {
+                                  ...prev.pricing,
+                                  sharing: prev.pricing?.sharing || {},
+                                  private: {
+                                    ...prev.pricing?.private,
+                                    [type]: isNaN(parsed) ? null : parsed
+                                  },
+                                  childWithoutBed: prev.pricing?.childWithoutBed || null,
+                                  infant: prev.pricing?.infant || null
+                                }
+                              }));
+                            }}
+                            placeholder={`${type.charAt(0).toUpperCase() + type.slice(1)} room price`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Child Without Bed & Infant */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                    <div>
+                      <Label htmlFor="price_childWithoutBed">Child Without Bed Price</Label>
+                      <Input
+                        id="price_childWithoutBed"
+                        type="number"
+                        min="0"
+                        value={safeNumberInputValue(formData.pricing?.childWithoutBed)}
+                        onChange={e => {
+                          const value = e.target.value;
+                          const parsed = value ? parseFloat(value) : null;
+                          setFormData(prev => ({
+                            ...prev,
+                            pricing: {
+                              ...prev.pricing,
+                              childWithoutBed: isNaN(parsed) ? null : parsed,
+                              sharing: prev.pricing?.sharing || {},
+                              private: prev.pricing?.private || {},
+                              infant: prev.pricing?.infant || null
+                            }
+                          }));
+                        }}
+                        placeholder="Child without bed price"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="price_infant">Infant Price</Label>
+                      <Input
+                        id="price_infant"
+                        type="number"
+                        min="0"
+                        value={safeNumberInputValue(formData.pricing?.infant)}
+                        onChange={e => {
+                          const value = e.target.value;
+                          const parsed = value ? parseFloat(value) : null;
+                          setFormData(prev => ({
+                            ...prev,
+                            pricing: {
+                              ...prev.pricing,
+                              infant: isNaN(parsed) ? null : parsed,
+                              sharing: prev.pricing?.sharing || {},
+                              private: prev.pricing?.private || {},
+                              childWithoutBed: prev.pricing?.childWithoutBed || null
+                            }
+                          }));
+                        }}
+                        placeholder="Infant price"
+                      />
                     </div>
                   </div>
                 </section>
