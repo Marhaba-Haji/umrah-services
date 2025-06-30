@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, Plane, Calendar, Star, CheckCircle, CreditCard, Info, MapPin, Utensils, X, Bed } from 'lucide-react';
+import { Users, Plane, Calendar, Star, CheckCircle, CreditCard, Info, MapPin, Utensils, X, Bed, Sparkles } from 'lucide-react';
 import ResponsiveBanner from '../components/ResponsiveBanner';
 
 const PackageDetailDynamic = () => {
@@ -95,7 +95,7 @@ const PackageDetailDynamic = () => {
     const fetchActivities = async () => {
       const { data, error } = await supabase
         .from('activities')
-        .select('id, name, description')
+        .select('id, name, description, featured_image')
         .in('id', pkg.activities);
       if (!error && data) setActivityDetails(data);
     };
@@ -185,67 +185,78 @@ const PackageDetailDynamic = () => {
                 <TabsTrigger value="pricing" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Pricing</TabsTrigger>
                 <TabsTrigger value="terms" className="flex-1 text-center data-[state=active]:bg-[#023f3a] data-[state=active]:text-white rounded-lg font-medium py-3">Terms</TabsTrigger>
               </TabsList>
-              {/* Overview Tab */}
+              {/* Enhanced Overview Tab Layout */}
               <TabsContent value="overview" className="space-y-8">
-                {/* Package Title and Description */}
-                <div className="mb-6">
-                  <h2 className="text-3xl font-bold text-gray-900 mb-2">{pkg.title}</h2>
-                  {pkg.description && <p className="text-lg text-gray-700">{pkg.description}</p>}
+                {/* Hero Card */}
+                <div className="mb-8 bg-gradient-to-br from-emerald-50 to-white rounded-2xl shadow-xl p-8 border border-emerald-200 animate-fade-in-up">
+                  <div className="flex flex-wrap gap-3 items-center mb-2">
+                    {pkg.package_type && (
+                      <span className="inline-flex items-center bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm shadow border border-blue-200">
+                        🕋 {pkg.package_type === 'group' ? 'Group Package' : pkg.package_type === 'independent' ? 'Independent Package' : pkg.package_type}
+                      </span>
+                    )}
+                    {pkg.package_category && (
+                      <span className="inline-flex items-center bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-sm shadow border border-emerald-200">
+                        {pkg.package_category}
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-4xl md:text-5xl font-extrabold text-emerald-900 leading-tight drop-shadow mb-2">{pkg.name}</h1>
+                  {pkg.description && (
+                    <p className="text-lg md:text-xl text-gray-700 leading-relaxed mb-4 prose max-w-none">{pkg.description}</p>
+                  )}
+                  {/* Quick Facts Row */}
+                  <div className="flex flex-wrap gap-3 items-center mt-4">
+                    <span className="inline-flex items-center bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full text-sm font-medium gap-1"><Calendar className="w-4 h-4" />{pkg.duration}</span>
+                    {pkg.departure_date && (
+                      <span className="inline-flex items-center bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-sm font-medium gap-1"><Plane className="w-4 h-4" />{new Date(pkg.departure_date).toLocaleDateString()}</span>
+                    )}
+                    {pkg.cities_covered && pkg.cities_covered.length > 0 && (
+                      <span className="inline-flex items-center bg-yellow-50 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium gap-1"><MapPin className="w-4 h-4" />{pkg.cities_covered.join(' & ')}</span>
+                    )}
+                    <span className="inline-flex items-center bg-emerald-100 text-emerald-900 px-3 py-1 rounded-full text-sm font-bold gap-1"><CreditCard className="w-4 h-4" />{getCurrencySymbol(pkg.currency)}{pkg.price?.toLocaleString()}</span>
+                  </div>
                 </div>
-                {/* Flight Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center"><Plane className="w-6 h-6 mr-2 text-blue-600" />Flight Information</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-3 gap-6">
-                      <div><span className="font-semibold text-gray-700">Route:</span><p className="text-gray-600">{pkg.flight_details?.departure} → {pkg.flight_details?.arrival}</p></div>
-                      <div><span className="font-semibold text-gray-700">Duration:</span><p className="text-gray-600">{pkg.flight_details?.duration}</p></div>
-                      <div><span className="font-semibold text-gray-700">Aircraft:</span><p className="text-gray-600">{pkg.flight_details?.aircraft}</p></div>
-                      <div><span className="font-semibold text-gray-700">Airline:</span><p className="text-gray-600">{pkg.flight_details?.airline}</p></div>
-                      <div><span className="font-semibold text-gray-700">Type:</span><p className="text-gray-600">{pkg.flight_details?.type}</p></div>
-                      <div><span className="font-semibold text-gray-700">Baggage:</span><p className="text-gray-600">{pkg.flight_details?.baggage}</p></div>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Meal Plan */}
-                {pkg.meal_plan && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center"><Utensils className="w-6 h-6 mr-2 text-orange-600" />Meal Plan - {pkg.meal_plan?.type}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="mb-2 text-orange-900 font-semibold">{pkg.meal_plan?.description}</div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {pkg.meal_plan?.details?.map((item: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg"><CheckCircle className="w-4 h-4 text-orange-600" />{item}</div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-                {/* Inclusions/Exclusions */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader><CardTitle className="text-emerald-600 flex items-center gap-2"><CheckCircle className="w-5 h-5" />What's Included</CardTitle></CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {pkg.inclusions?.map((item: string, i: number) => (
-                          <li key={i} className="flex items-center gap-2 text-emerald-800"><CheckCircle className="w-4 h-4" />{item}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader><CardTitle className="text-red-600 flex items-center gap-2"><X className="w-5 h-5" />What's Not Included</CardTitle></CardHeader>
-                    <CardContent>
-                      <ul className="space-y-2">
-                        {pkg.exclusions?.map((item: string, i: number) => (
-                          <li key={i} className="flex items-center gap-2 text-red-700"><X className="w-4 h-4" />{item}</li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
+                {/* Info Cards Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+                  {/* Flight Info Card */}
+                  <div className="bg-blue-50 rounded-xl shadow p-6 border border-blue-200 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 mb-2"><Plane className="w-5 h-5 text-blue-500" /><span className="font-bold text-blue-900">Flight Info</span></div>
+                    <div className="text-blue-900 font-medium">Airline: <span className="font-normal">{pkg.flight_details?.airline_name || '-'}</span></div>
+                    <div className="text-blue-900 font-medium">Type: <span className="font-normal">{pkg.flight_details?.flight_type || '-'}</span></div>
+                  </div>
+                  {/* Meal Plan Card */}
+                  <div className="bg-yellow-50 rounded-xl shadow p-6 border border-yellow-200 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 mb-2"><Utensils className="w-5 h-5 text-yellow-600" /><span className="font-bold text-yellow-900">Meal Plan</span></div>
+                    <div className="text-yellow-900 font-medium">{pkg.meal_plan || '-'}</div>
+                  </div>
+                </div>
+                {/* Inclusions/Exclusions Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+                  {/* Inclusions Card */}
+                  <div className="bg-emerald-50 rounded-xl shadow p-6 border border-emerald-200">
+                    <div className="flex items-center gap-2 mb-2"><CheckCircle className="w-5 h-5 text-emerald-600" /><span className="font-bold text-emerald-900">Inclusions</span></div>
+                    <ul className="list-disc pl-5 text-emerald-900 space-y-1">
+                      {(pkg.inclusions || []).slice(0, 5).map((item: string, i: number) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                      {pkg.inclusions && pkg.inclusions.length > 5 && (
+                        <li className="text-xs text-emerald-700 font-semibold">+{pkg.inclusions.length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
+                  {/* Exclusions Card */}
+                  <div className="bg-rose-50 rounded-xl shadow p-6 border border-rose-200">
+                    <div className="flex items-center gap-2 mb-2"><X className="w-5 h-5 text-rose-600" /><span className="font-bold text-rose-900">Exclusions</span></div>
+                    <ul className="list-disc pl-5 text-rose-900 space-y-1">
+                      {(pkg.exclusions || []).slice(0, 5).map((item: string, i: number) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                      {pkg.exclusions && pkg.exclusions.length > 5 && (
+                        <li className="text-xs text-rose-700 font-semibold">+{pkg.exclusions.length - 5} more</li>
+                      )}
+                    </ul>
+                  </div>
                 </div>
               </TabsContent>
               {/* Hotels Tab */}
@@ -299,26 +310,50 @@ const PackageDetailDynamic = () => {
                   <CardHeader><CardTitle className="flex items-center"><Calendar className="w-6 h-6 mr-2 text-purple-600" />Day-by-Day Itinerary</CardTitle></CardHeader>
                   <CardContent>
                     {pkg.itinerary && Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 ? (
-                      <div className="space-y-4">
-                        {pkg.itinerary.map((item: any, idx: number) => (
-                          <div key={idx} className="border rounded-lg p-4">
-                            <div className="flex items-center gap-4 mb-2">
-                              <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center font-semibold">{item.day || idx + 1}</div>
-                              <h4 className="font-semibold text-gray-900">{item.location || item.title || 'Location TBA'}</h4>
+                      <div className="relative pl-8">
+                        <div className="absolute left-2 top-0 bottom-0 w-1 bg-emerald-100 rounded" />
+                        {pkg.itinerary.map((item: any, idx: number) => {
+                          // Determine day type and icon
+                          const dayTitle = (item.location || item.title || '').toLowerCase();
+                          let dotColor = 'bg-emerald-500';
+                          let borderColor = 'border-emerald-100';
+                          let Icon = MapPin;
+                          if (dayTitle.includes('arrival') || dayTitle.includes('depart')) {
+                            dotColor = 'bg-blue-500';
+                            borderColor = 'border-blue-100';
+                            Icon = Plane;
+                          } else if (dayTitle.includes('ziyarah') || dayTitle.includes('special')) {
+                            dotColor = 'bg-yellow-500';
+                            borderColor = 'border-yellow-100';
+                            Icon = Star;
+                          } else if (dayTitle.includes('free')) {
+                            dotColor = 'bg-purple-500';
+                            borderColor = 'border-purple-100';
+                            Icon = Sparkles;
+                          }
+                          return (
+                            <div key={idx} className="relative mb-8 animate-fade-in-up" style={{ animationDelay: `${idx * 80}ms` }}>
+                              <div className={`absolute -left-4 top-2 w-8 h-8 ${dotColor} text-white rounded-full flex items-center justify-center font-bold shadow transition-colors duration-300`}>
+                                {item.day || idx + 1}
+                              </div>
+                              <div className={`ml-8 bg-white rounded-xl shadow p-6 border ${borderColor} transition-colors duration-300 flex flex-col gap-2`}>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Icon className="w-5 h-5" />
+                                  <span className="font-semibold text-lg">{item.location || item.title || 'Location TBA'}</span>
+                                </div>
+                                <div className="text-gray-700">
+                                  {Array.isArray(item.activities) ? (
+                                    <ul className="list-disc pl-5">
+                                      {item.activities.map((activity: string, i: number) => <li key={i}>{activity}</li>)}
+                                    </ul>
+                                  ) : (
+                                    <p>{item.activities || item.description || 'Activities TBA'}</p>
+                                  )}
+                                </div>
+                              </div>
                             </div>
-                            <div className="ml-12">
-                              {Array.isArray(item.activities) ? (
-                                <ul className="list-disc pl-4 space-y-1">
-                                  {item.activities.map((activity: string, i: number) => (
-                                    <li key={i} className="text-gray-600">{activity}</li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-gray-600">{item.activities || item.description || 'Activities TBA'}</p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-gray-500 text-center py-8">Detailed itinerary will be provided upon booking confirmation.</p>
@@ -334,15 +369,15 @@ const PackageDetailDynamic = () => {
                     {activityDetails && activityDetails.length > 0 ? (
                       <div className="space-y-8">
                         {activityDetails.map((activity: any, idx: number) => {
-                          const imgSrc = activity.featured_image || (Array.isArray(activity.images) && activity.images.length > 0 && activity.images[0]) || '/placeholder.svg';
                           return (
                             <div key={activity.id || idx} className="bg-white rounded-xl shadow-md border border-emerald-100 overflow-hidden hover:shadow-lg transition-shadow duration-200 p-6">
                               <div className="clearfix">
                                 <img
-                                  src={imgSrc}
+                                  src={activity.featured_image || '/placeholder.svg'}
                                   alt={activity.name}
                                   className="float-left w-32 h-32 object-cover rounded-lg mr-6 mb-2 border border-emerald-100 shadow"
                                   style={{ maxWidth: '8rem', maxHeight: '8rem' }}
+                                  onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/placeholder.svg'; }}
                                 />
                                 <div className="flex flex-col gap-1">
                                   <span className="text-xl font-bold text-emerald-900">{activity.name}</span>
@@ -354,12 +389,6 @@ const PackageDetailDynamic = () => {
                                 {activity.description && (
                                   <div className="text-gray-700 text-base leading-relaxed mt-2" dangerouslySetInnerHTML={{ __html: activity.description }} />
                                 )}
-                              </div>
-                              {/* Debug output for image troubleshooting */}
-                              <div className="mt-2 p-2 bg-gray-50 border text-xs text-gray-500 rounded">
-                                <div><strong>featured_image:</strong> {String(activity.featured_image)}</div>
-                                <div><strong>images:</strong> {Array.isArray(activity.images) ? JSON.stringify(activity.images) : String(activity.images)}</div>
-                                <div><strong>imgSrc used:</strong> {imgSrc}</div>
                               </div>
                             </div>
                           );
@@ -724,6 +753,25 @@ const PackageDetailDynamic = () => {
                 <div className="space-y-3">
                   <Button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-lg py-6 shadow-lg">Book This Package Now</Button>
                   <Button variant="outline" className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50">Request Custom Quote</Button>
+                </div>
+                {/* Need Assistance Section */}
+                <hr className="my-6" />
+                <div className="space-y-4">
+                  <div className="font-semibold text-lg">Need Assistance?</div>
+                  <div className="bg-emerald-50 rounded-lg p-4 flex items-center gap-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a2 2 0 011.94 1.515l.516 2.064a2 2 0 01-.45 1.958l-1.27 1.27a16.001 16.001 0 006.586 6.586l1.27-1.27a2 2 0 011.958-.45l2.064.516A2 2 0 0121 18.72V21a2 2 0 01-2 2h-1C9.163 23 1 14.837 1 5V4a2 2 0 012-2z" /></svg>
+                    <div>
+                      <div className="font-semibold">Call Us</div>
+                      <div className="text-gray-700">+91-78920-09800</div>
+                    </div>
+                  </div>
+                  <div className="bg-emerald-50 rounded-lg p-4 flex items-center gap-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12H8m8 0a4 4 0 10-8 0 4 4 0 008 0zm-8 0V8a4 4 0 018 0v4" /></svg>
+                    <div>
+                      <div className="font-semibold">Email Us</div>
+                      <div className="text-gray-700">support@marhabahaji.com</div>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
