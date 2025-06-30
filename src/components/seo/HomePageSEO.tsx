@@ -221,9 +221,9 @@ const HomePageSEO = () => {
   return (
     <Helmet>
       {/* Primary Meta Tags */}
-      <title>Umrah Visa Online | 99% Approval Rate | Apply in 2-4 Days | Marhaba Haji</title>
-      <meta name="title" content="Umrah Visa Online | 99% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
-      <meta name="description" content="Apply for Umrah visa online with 99% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval. Start your sacred journey to Mecca & Medina with Marhaba Haji - trusted by 50,000+ pilgrims." />
+      <title>Umrah Visa Online | 97% Approval Rate | Apply in 2-4 Days | Marhaba Haji</title>
+      <meta name="title" content="Umrah Visa Online | 97% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
+      <meta name="description" content="Apply for Umrah visa online with 99% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval. Start your sacred journey to Mecca & Medina with Marhaba Haji - trusted by 1,000+ pilgrims." />
       <meta name="keywords" content="umrah visa online, umrah visa application, saudi umrah visa, mecca visa, medina visa, hajj visa, islamic pilgrimage visa, umrah visa processing, umrah visa approval, fast umrah visa, umrah visa guaranteed, umrah visa documents, umrah visa requirements, umrah visa cost, umrah visa fee, apply umrah visa, umrah visa service, umrah visa consultant, umrah visa agent, umrah visa help, umrah visa support, umrah visa expert, umrah visa specialist, umrah visa fast track, umrah visa express, umrah visa premium, umrah visa basic, umrah visa India, umrah visa USA, umrah visa UK, umrah visa Pakistan, umrah visa Bangladesh, marhaba haji, umrah packages, umrah travel, umrah booking, umrah services, umrah guidance, umrah assistance, umrah facilitation" />
       <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
       <meta name="language" content="en" />
