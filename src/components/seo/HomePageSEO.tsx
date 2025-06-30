@@ -11,12 +11,12 @@ const HomePageSEO = () => {
     "@type": "Organization",
     "name": "Marhaba Haji",
     "alternateName": "Marhaba Haji Umrah Services",
-    "description": "Leading Umrah visa processing and pilgrimage services provider with 99% approval rate. Complete Umrah packages, hotel booking, transport, and spiritual guidance for your sacred journey to Mecca and Medina.",
+    "description": "Leading Umrah visa processing and pilgrimage services provider with 97% approval rate. Complete Umrah packages, hotel booking, transport, and spiritual guidance for your sacred journey to Mecca and Medina.",
     "url": "https://marhabahaji.com",
-    "logo": "https://marhabahaji.com/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png",
-    "image": "https://marhabahaji.com/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png",
+    "logo": "https://rjyhoikoqhephrkjgebo.supabase.co/storage/v1/object/public/lovable-uploads//Marhaba%20Haji%20Logo%20ICon%20PNG.png",
+    "image": "https://rjyhoikoqhephrkjgebo.supabase.co/storage/v1/object/public/lovable-uploads//Marhaba%20Haji%20Logo%20ICon%20PNG.png",
     "telephone": "+91-9008447887",
-    "email": "info@marhabahaji.com",
+    "email": "support@marhabahaji.com",
     "foundingDate": "2020",
     "founders": [
       {
@@ -238,9 +238,9 @@ const HomePageSEO = () => {
       {/* Open Graph / Facebook */}
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://marhabahaji.com/" />
-      <meta property="og:title" content="Umrah Visa Online | 99% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
-      <meta property="og:description" content="Apply for Umrah visa online with 99% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval. Start your sacred journey to Mecca & Medina with Marhaba Haji." />
-      <meta property="og:image" content="https://marhabahaji.com/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png" />
+      <meta property="og:title" content="Umrah Visa Online | 97% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
+      <meta property="og:description" content="Apply for Umrah visa online with 97% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval. Start your sacred journey to Mecca & Medina with Marhaba Haji." />
+      <meta property="og:image" content="https://rjyhoikoqhephrkjgebo.supabase.co/storage/v1/object/public/lovable-uploads//Marhaba%20Haji%20Logo%20ICon%20PNG.png" />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:image:alt" content="Marhaba Haji - Umrah Visa Processing Services" />
@@ -250,9 +250,9 @@ const HomePageSEO = () => {
       {/* Twitter */}
       <meta property="twitter:card" content="summary_large_image" />
       <meta property="twitter:url" content="https://marhabahaji.com/" />
-      <meta property="twitter:title" content="Umrah Visa Online | 99% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
-      <meta property="twitter:description" content="Apply for Umrah visa online with 99% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval." />
-      <meta property="twitter:image" content="https://marhabahaji.com/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png" />
+      <meta property="twitter:title" content="Umrah Visa Online | 97% Approval Rate | Apply in 2-4 Days | Marhaba Haji" />
+      <meta property="twitter:description" content="Apply for Umrah visa online with 97% approval rate. Fast processing in 2-4 days, complete documentation support, and guaranteed approval." />
+      <meta property="twitter:image" content="https://rjyhoikoqhephrkjgebo.supabase.co/storage/v1/object/public/lovable-uploads//Marhaba%20Haji%20Logo%20ICon%20PNG.png" />
       <meta property="twitter:image:alt" content="Marhaba Haji - Umrah Visa Processing Services" />
       <meta property="twitter:site" content="@marhabahaji" />
       <meta property="twitter:creator" content="@marhabahaji" />
