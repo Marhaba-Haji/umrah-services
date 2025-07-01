@@ -1,0 +1,52 @@
+{
+  "name": "Marhaba Haji",
+  "short_name": "MarhabaHaji",
+  "start_url": ".",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "description": "Umrah Visa Services and Support",
+  "icons": [
+    {
+      "src": "/public/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/public/umrah-package-banner.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/public/umrah-package-banner.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/public/umrah-package-banner.jpg",
+      "sizes": "800x600",
+      "type": "image/jpeg",
+      "label": "Sample screenshot of Marhaba Haji app"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Contact Support",
+      "short_name": "Support",
+      "description": "Quickly contact support",
+      "url": "/contact",
+      "icons": [{ "src": "/public/favicon.ico", "sizes": "48x48" }]
+    },
+    {
+      "name": "Apply for Visa",
+      "short_name": "Apply Visa",
+      "description": "Start your Umrah visa application",
+      "url": "/apply-umrah-visa-online",
+      "icons": [{ "src": "/public/favicon.ico", "sizes": "48x48" }]
+    }
+  ]
+} 

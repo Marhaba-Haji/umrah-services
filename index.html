@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
   <head>
@@ -17,19 +16,27 @@
     <link rel="icon" type="image/png" sizes="16x16" href="https://rjyhoikoqhephrkjgebo.supabase.co/storage/v1/object/public/lovable-uploads//Marhaba%20Haji%20Logo%20ICon%20PNG.png">
     
     <!-- Manifest -->
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Microsoft Tiles -->
     <meta name="msapplication-TileColor" content="#10b981">
     <meta name="msapplication-config" content="/browserconfig.xml">
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="/src/index.css" as="style">
     
     <title>Umrah Visa Online | 97% Approval Rate | Apply in 2-4 Days | Marhaba Haji</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>

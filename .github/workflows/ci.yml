@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v6
+        with:
+          start: npm run dev
+          wait-on: 'http://localhost:5173'
+          wait-on-timeout: 120
+
+      - name: Run Lighthouse CI
+        run: npm run lhci
+
+      # Optional: Deploy Supabase Edge Functions (requires SUPABASE_ACCESS_TOKEN secret)
+      - name: Deploy Supabase Edge Functions
+        if: github.ref == 'refs/heads/main'
+        run: npx supabase functions deploy send-group-flight-inquiry --project-ref ${{ secrets.SUPABASE_PROJECT_REF }} --use-api
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }} 

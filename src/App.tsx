@@ -1,36 +1,43 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { HelmetProvider } from 'react-helmet-async';
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import TransportBooking from "./pages/TransportBooking";
-import HotelBooking from "./pages/HotelBooking";
-import UmrahApplication from "./pages/UmrahApplication";
-import GroupFlights from "./pages/GroupFlights";
-import Services from "./pages/Services";
-import UmrahPackages from "./pages/UmrahPackages";
-import GroupPackages from "./pages/GroupPackages";
-import GroupPackageDetail from "./pages/GroupPackageDetail";
-import CustomPackages from "./pages/CustomPackages";
-import PackageDetails from "./pages/PackageDetails";
-import AdvancedPackageDetails from "./pages/AdvancedPackageDetails";
-import Blogs from "./pages/Blogs";
-import BlogDetail from "./pages/BlogDetail";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import AboutUs from "./pages/AboutUs";
-import ControlPanel from "./pages/ControlPanel";
-import GuideBooking from "./pages/GuideBooking";
-import ZiarathBooking from "./pages/ZiarathBooking";
-import OtherSaudiVisas from "./pages/OtherSaudiVisas";
-import BuildYourOwnUmrah from './pages/BuildYourOwnUmrah';
-import PackageDetailDynamic from "./pages/PackageDetailDynamic";
+import { HelmetProvider } from "react-helmet-async";
+import React, { Suspense, lazy } from "react";
 
 const queryClient = new QueryClient();
+
+const Index = lazy(() => import("./pages/Index"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const TransportBooking = lazy(() => import("./pages/TransportBooking"));
+const HotelBooking = lazy(() => import("./pages/HotelBooking"));
+const UmrahApplication = lazy(() => import("./pages/UmrahApplication"));
+const GroupFlights = lazy(() => import("./pages/GroupFlights"));
+const Services = lazy(() => import("./pages/Services"));
+const UmrahPackages = lazy(() => import("./pages/UmrahPackages"));
+const GroupPackages = lazy(() => import("./pages/GroupPackages"));
+const GroupPackageDetail = lazy(() => import("./pages/GroupPackageDetail"));
+const CustomPackages = lazy(() => import("./pages/CustomPackages"));
+const PackageDetails = lazy(() => import("./pages/PackageDetails"));
+const AdvancedPackageDetails = lazy(
+  () => import("./pages/AdvancedPackageDetails"),
+);
+const Blogs = lazy(() => import("./pages/Blogs"));
+const BlogDetail = lazy(() => import("./pages/BlogDetail"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const ControlPanel = lazy(() => import("./pages/ControlPanel"));
+const GuideBooking = lazy(() => import("./pages/GuideBooking"));
+const ZiarathBooking = lazy(() => import("./pages/ZiarathBooking"));
+const OtherSaudiVisas = lazy(() => import("./pages/OtherSaudiVisas"));
+const BuildYourOwnUmrah = lazy(() => import("./pages/BuildYourOwnUmrah"));
+const PackageDetailDynamic = lazy(() => import("./pages/PackageDetailDynamic"));
+
+const Loader = () => (
+  <div style={{ textAlign: "center", marginTop: "3rem" }}>Loading...</div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -39,34 +46,54 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/transport" element={<TransportBooking />} />
-            <Route path="/hotel" element={<HotelBooking />} />
-            <Route path="/apply" element={<UmrahApplication />} />
-            <Route path="/apply-umrah-visa-online" element={<UmrahApplication />} />
-            <Route path="/group-flights" element={<GroupFlights />} />
-            <Route path="/services" element={<Services />} />
-            <Route path="/umrah-packages" element={<UmrahPackages />} />
-            <Route path="/group-packages" element={<GroupPackages />} />
-            <Route path="/group-packages/:slug" element={<PackageDetailDynamic />} />
-            <Route path="/custom-packages" element={<CustomPackages />} />
-            <Route path="/custom-packages/:slug" element={<PackageDetailDynamic />} />
-            <Route path="/package-details/:slug" element={<PackageDetailDynamic />} />
-            <Route path="/advanced-package/:slug" element={<PackageDetailDynamic />} />
-            <Route path="/blog-post" element={<Blogs />} />
-            <Route path="/blog-post/:slug" element={<BlogDetail />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/guide" element={<GuideBooking />} />
-            <Route path="/ziarath" element={<ZiarathBooking />} />
-            <Route path="/other-visas" element={<OtherSaudiVisas />} />
-            <Route path="/control-panel" element={<ControlPanel />} />
-            <Route path="/build-your-own-umrah" element={<BuildYourOwnUmrah />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<Loader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/transport" element={<TransportBooking />} />
+              <Route path="/hotel" element={<HotelBooking />} />
+              <Route path="/apply" element={<UmrahApplication />} />
+              <Route
+                path="/apply-umrah-visa-online"
+                element={<UmrahApplication />}
+              />
+              <Route path="/group-flights" element={<GroupFlights />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/umrah-packages" element={<UmrahPackages />} />
+              <Route path="/group-packages" element={<GroupPackages />} />
+              <Route
+                path="/group-packages/:slug"
+                element={<PackageDetailDynamic />}
+              />
+              <Route path="/custom-packages" element={<CustomPackages />} />
+              <Route
+                path="/custom-packages/:slug"
+                element={<PackageDetailDynamic />}
+              />
+              <Route
+                path="/package-details/:slug"
+                element={<PackageDetailDynamic />}
+              />
+              <Route
+                path="/advanced-package/:slug"
+                element={<PackageDetailDynamic />}
+              />
+              <Route path="/blog-post" element={<Blogs />} />
+              <Route path="/blog-post/:slug" element={<BlogDetail />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/guide" element={<GuideBooking />} />
+              <Route path="/ziarath" element={<ZiarathBooking />} />
+              <Route path="/other-visas" element={<OtherSaudiVisas />} />
+              <Route path="/control-panel" element={<ControlPanel />} />
+              <Route
+                path="/build-your-own-umrah"
+                element={<BuildYourOwnUmrah />}
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </HelmetProvider>
