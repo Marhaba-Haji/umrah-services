@@ -87,7 +87,7 @@ const Header = () => {
                   <span>✈️ Fast Processing | 🛡️ Secure Payment | 🎯 99% Success Rate</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  
+                  <span className="text-xs">Currency:</span>
                   <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger className="w-20 h-6 text-xs bg-[#023f3a]/80 border-[#023f3a]/60 text-white">
                       <SelectValue />
