@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import FlightStep from "@/components/FlightStep";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import type { FlightCartDetails } from "../components/FlightStep";
 
 interface CartItem {
   id: string;
@@ -152,10 +153,21 @@ const BuildYourOwnUmrah = () => {
   };
 
   const getTotalPrice = () => {
-    return cart.reduce(
-      (total, item) => total + item.price * (item.quantity || 1),
-      0,
-    );
+    return cart.reduce((total, item) => {
+      if (item.type === "flight" && item.details) {
+        const d = item.details as FlightCartDetails;
+        const adults = d.adults || 0;
+        const children = d.children || 0;
+        const infants = d.infants || 0;
+        const adultPrice = d.adultPrice || 0;
+        const childPrice = d.childPrice || 0;
+        const infantPrice = d.infantPrice || 0;
+        const flightTotal =
+          adults * adultPrice + children * childPrice + infants * infantPrice;
+        return total + flightTotal;
+      }
+      return total + item.price * (item.quantity || 1);
+    }, 0);
   };
 
   const getTotalItems = () => {
@@ -1141,8 +1153,63 @@ const BuildYourOwnUmrah = () => {
                         <p className="text-sm text-gray-600 capitalize mb-2">
                           {item.type}
                         </p>
+                        {item.type === "flight" && item.details ? (
+                          <div className="mb-2 text-sm text-gray-700 space-y-1">
+                            <div>
+                              <span className="font-medium">Travelers:</span>{" "}
+                              <span>Adults: {item.details.adults || 0}</span>
+                              {item.details.children ? (
+                                <span>, Children: {item.details.children}</span>
+                              ) : null}
+                              {item.details.infants ? (
+                                <span>, Infants: {item.details.infants}</span>
+                              ) : null}
+                            </div>
+                            <div>
+                              <span className="font-medium">Travel Dates:</span>{" "}
+                              <span>
+                                {item.details.departure?.at
+                                  ? new Date(
+                                      item.details.departure.at,
+                                    ).toLocaleDateString()
+                                  : "-"}
+                                {item.details.arrival?.at &&
+                                item.details.departure?.at &&
+                                item.details.arrival.at !==
+                                  item.details.departure.at
+                                  ? ` - ${new Date(item.details.arrival.at).toLocaleDateString()}`
+                                  : ""}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="font-medium">
+                                Fare Breakdown:
+                              </span>{" "}
+                              <span>
+                                {item.details.adults
+                                  ? `₹${(item.details.adultPrice || 0).toLocaleString()} x ${item.details.adults} adult(s)`
+                                  : null}
+                                {item.details.children
+                                  ? `, ₹${(item.details.childPrice || 0).toLocaleString()} x ${item.details.children} child(ren)`
+                                  : null}
+                                {item.details.infants
+                                  ? `, ₹${(item.details.infantPrice || 0).toLocaleString()} x ${item.details.infants} infant(s)`
+                                  : null}
+                              </span>
+                            </div>
+                          </div>
+                        ) : null}
                         <p className="font-bold text-primary text-lg">
-                          ₹{item.price.toLocaleString()}
+                          {item.type === "flight" && item.details
+                            ? `₹${(
+                                (item.details.adults || 0) *
+                                  (item.details.adultPrice || 0) +
+                                (item.details.children || 0) *
+                                  (item.details.childPrice || 0) +
+                                (item.details.infants || 0) *
+                                  (item.details.infantPrice || 0)
+                              ).toLocaleString()}`
+                            : `₹${(item.price * (item.quantity || 1)).toLocaleString()}`}
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
