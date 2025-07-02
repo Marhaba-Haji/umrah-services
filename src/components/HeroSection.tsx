@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,7 +41,7 @@ const HeroSection = () => {
         .limit(1)
         .single();
       if (!error && data && typeof data.price === 'number') {
-        setBasePriceUSD(data.price);
+        setBasePriceUSD(data.price); // This is actually INR
       } else {
         setBasePriceUSD(null);
       }
@@ -52,11 +51,13 @@ const HeroSection = () => {
   }, []);
 
   const currencySymbol = currencySymbols[currency] || '$';
+  // If INR, show as is. If USD or SAR, convert from INR.
   let convertedPrice: number | null = null;
   if (basePriceUSD !== null) {
     if (currency === 'INR') {
       convertedPrice = basePriceUSD;
     } else {
+      // Convert from INR to selected currency
       const inrToTarget = exchangeRates[currency] ? 1 / exchangeRates['INR'] * exchangeRates[currency] : 1;
       convertedPrice = Math.round(basePriceUSD * inrToTarget);
     }
@@ -77,9 +78,9 @@ Please provide me with detailed information. JazakAllah Khair!`;
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-6 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
-      {/* Background Islamic patterns - hidden on mobile to reduce clutter */}
-      <div className="absolute inset-0 opacity-5 hidden md:block">
+    <section className="relative bg-gradient-to-br from-emerald-50 via-white to-amber-50 py-8 md:py-20 lg:-mt-16 overflow-hidden min-h-screen flex items-center">
+      {/* Background Islamic patterns */}
+      <div className="absolute inset-0 opacity-5">
         <div className="absolute top-10 left-10 w-32 h-32 border-2 border-emerald-600 rounded-full transform rotate-45"></div>
         <div className="absolute top-40 right-20 w-24 h-24 border-2 border-amber-600 rounded-lg transform rotate-12"></div>
         <div className="absolute bottom-20 left-1/4 w-16 h-16 border-2 border-emerald-600 rounded-full"></div>
@@ -92,19 +93,17 @@ Please provide me with detailed information. JazakAllah Khair!`;
         </div>
       </div>
 
-      <div className="container mx-auto px-3 md:px-4 relative z-10 lg:pt-8 w-full max-w-full">
-        <div className="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
+      <div className="container mx-auto px-4 relative z-10 lg:pt-8">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left Section - Content */}
           <div className="order-2 lg:order-1">
             {/* Trust Badge */}
-            <div className="flex justify-center lg:justify-start mb-4 md:mb-6">
-              <Badge className="bg-emerald-100 text-emerald-800 px-3 md:px-4 py-1 md:py-2 text-xs md:text-sm font-medium animate-pulse text-center">
-                🕋 99% Visa Approval Rate | ⚡ 2-4 Days Processing
-              </Badge>
+            <div className="flex justify-center lg:justify-start mb-6">
+              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">🕋 99% Visa Approval Rate | ⚡ 2-4 Days Processing</Badge>
             </div>
 
             {/* Main Headline */}
-            <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 md:mb-6 leading-tight text-center lg:text-left">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight text-center lg:text-left">
               Apply for Your{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">
                 Umrah Visa
@@ -112,75 +111,68 @@ Please provide me with detailed information. JazakAllah Khair!`;
               Online
             </h1>
 
-            <p className="text-base md:text-lg lg:text-xl text-gray-600 mb-6 md:mb-8 leading-relaxed text-center lg:text-left px-2 md:px-0">
+            <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed text-center lg:text-left">
               🕋 Start your sacred journey to Mecca and Medina. Fast, secure, and hassle-free Umrah visa processing 
               with guaranteed approval and expert support.
             </p>
 
             {/* Animated Trust Statistics */}
-            <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6 md:mb-8 px-2 md:px-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="text-center lg:text-left">
-                <div className="text-xl md:text-2xl lg:text-3xl mb-1 font-bold text-emerald-600">
+                <div className="text-2xl md:text-3xl mb-1">
                   <AnimatedCounter end={50000} suffix="+" />
                 </div>
-                <div className="text-xs md:text-sm text-gray-600">Visas Processed</div>
+                <div className="text-sm text-gray-600">Visas Processed</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-xl md:text-2xl lg:text-3xl mb-1 font-bold text-emerald-600">
+                <div className="text-2xl md:text-3xl mb-1">
                   <AnimatedCounter end={99} suffix="%" />
                 </div>
-                <div className="text-xs md:text-sm text-gray-600">Success Rate</div>
+                <div className="text-sm text-gray-600">Success Rate</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-xl md:text-2xl lg:text-3xl mb-1 text-emerald-600 font-bold">7 Days</div>
-                <div className="text-xs md:text-sm text-gray-600">Support Available</div>
+                <div className="text-2xl md:text-3xl mb-1 text-emerald-600 font-bold">7 Days</div>
+                <div className="text-sm text-gray-600">Support Available</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-xl md:text-2xl lg:text-3xl mb-1 font-bold text-emerald-600">
+                <div className="text-2xl md:text-3xl mb-1">
                   <AnimatedCounter end={4} prefix="2-" />
                 </div>
-                <div className="text-xs md:text-sm text-gray-600">Days Processing</div>
+                <div className="text-sm text-gray-600">Days Processing</div>
               </div>
             </div>
           </div>
 
           {/* Right Section - CTA Form */}
-          <div className="order-1 lg:order-2 w-full">
+          <div className="order-1 lg:order-2">
             {/* Quick Application Form */}
-            <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm mx-2 md:mx-0">
-              <CardContent className="p-4 md:p-6 lg:p-8">
-                <h3 className="text-lg md:text-xl lg:text-2xl font-semibold mb-3 md:mb-4 text-gray-900 text-center">
+            <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
+              <CardContent className="p-6 md:p-8">
+                <h3 className="text-xl md:text-2xl font-semibold mb-4 text-gray-900 text-center">
                   🎯 Apply for Umrah Visa
                 </h3>
-                <p className="text-gray-600 mb-4 md:mb-6 text-center text-sm">
+                <p className="text-gray-600 mb-6 text-center text-sm md:text-base">
                   Check eligibility and get instant pricing
                 </p>
                 
-                <div className="space-y-3 md:space-y-4">
+                <div className="space-y-4">
                   <div>
                     <label htmlFor="nationality" className="block text-sm font-medium text-gray-700 mb-2">
                       🌍 Your Nationality
                     </label>
-                    <select 
-                      id="nationality" 
-                      value={nationality} 
-                      onChange={e => setNationality(e.target.value)} 
-                      className="w-full p-2 md:p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm md:text-base"
-                    >
+                    <select id="nationality" value={nationality} onChange={e => setNationality(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
                       <option value="">Select your country</option>
-                      {popularCountries.map(country => 
-                        <option key={country} value={country}>
+                      {popularCountries.map(country => <option key={country} value={country}>
                           {country}
-                        </option>
-                      )}
+                        </option>)}
                     </select>
                   </div>
 
                   {/* Dynamic Pricing Display */}
-                  <div className="bg-emerald-50 p-3 md:p-4 rounded-lg">
+                  <div className="bg-emerald-50 p-4 rounded-lg">
                     <div className="text-center">
                       <p className="text-sm text-emerald-700 mb-1">Starting from</p>
-                      <p className="text-2xl md:text-3xl font-bold text-emerald-800">
+                      <p className="text-3xl font-bold text-emerald-800">
                         {loading ? (
                           <span className="animate-pulse text-gray-400">Loading...</span>
                         ) : convertedPrice !== null ? (
@@ -193,8 +185,8 @@ Please provide me with detailed information. JazakAllah Khair!`;
                     </div>
                   </div>
 
-                  <Link to="/apply-umrah-visa-online" className="block">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 md:py-3 text-sm md:text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
+                  <Link to="/apply-umrah-visa-online">
+                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
                       🚀 Apply Now - {loading ? (
                         <span className="animate-pulse text-gray-200">Loading...</span>
                       ) : convertedPrice !== null ? (
@@ -207,7 +199,7 @@ Please provide me with detailed information. JazakAllah Khair!`;
 
                   <Button 
                     variant="outline" 
-                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-2 md:py-3 text-sm md:text-base" 
+                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" 
                     size="lg"
                     onClick={handleWhatsAppClick}
                   >
@@ -215,7 +207,7 @@ Please provide me with detailed information. JazakAllah Khair!`;
                   </Button>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4 mt-4 md:mt-6 text-xs text-gray-500">
+                <div className="flex items-center justify-center space-x-4 mt-6 text-xs text-gray-500">
                   <span className="flex items-center">
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                     🔒 Secure SSL

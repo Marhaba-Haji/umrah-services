@@ -12,7 +12,7 @@ import FAQSection from '../components/FAQSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import Footer from '../components/Footer';
 import LeadCapturePopup from '../components/LeadCapturePopup';
-import ActionHub from '../components/ActionHub';
+import WhatsAppWidget from '../components/WhatsAppWidget';
 import HomePageSEO from '../components/seo/HomePageSEO';
 
 const Index = () => {
@@ -52,8 +52,8 @@ const Index = () => {
           onClose={() => setShowPopup(false)} 
         />
         
-        {/* Action Hub Widget */}
-        <ActionHub />
+        {/* WhatsApp Widget */}
+        <WhatsAppWidget />
       </div>
     </CurrencyContext.Provider>
   );

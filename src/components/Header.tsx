@@ -41,6 +41,7 @@ const Header = () => {
     }, 100);
     setIsMenuOpen(false);
   };
+
   useEffect(() => {
     const handleScroll = () => {
       if (ticking.current) return;
@@ -62,11 +63,10 @@ const Header = () => {
         ticking.current = false;
       });
     };
-    window.addEventListener('scroll', handleScroll, {
-      passive: true
-    });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isMenuOpen]);
+
   return <CurrencyContext.Provider value={{
     currency,
     setCurrency
@@ -79,7 +79,7 @@ const Header = () => {
               <div className="flex items-center space-x-4">
                 <span className="flex items-center space-x-1">
                   <Phone className="w-3 h-3" />
-                  <span>+91-78920-09800</span>
+                  <span>Support: +91-78920-09800</span>
                 </span>
               </div>
               <div className="flex items-center space-x-4">
