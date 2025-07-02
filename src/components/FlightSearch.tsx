@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Search, Plane, Clock, Plus, Minus, ArrowRightLeft, User, MapPin, Briefcase } from 'lucide-react';
+import { CalendarIcon, Search, Plane, Clock, Plus, Minus, ArrowRightLeft, User, MapPin, Briefcase, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +57,11 @@ export interface FlightOffer {
 interface FlightSearchProps {
   onFlightSelect: (flight: FlightOffer, searchParams: FlightSearchParams) => void;
   className?: string;
+  initialGroupSize?: {
+    adults: number;
+    children: number;
+    infants: number;
+  };
 }
 
 function SearchForm({
@@ -74,221 +79,258 @@ function SearchForm({
   fromPopoverOpen,
   setFromPopoverOpen,
   getTotalPassengers,
+  loading,
   ...rest
 }: any) {
+  const [departurePopoverOpen, setDeparturePopoverOpen] = useState(false);
+  const [returnPopoverOpen, setReturnPopoverOpen] = useState(false);
+  const fromInputRef = useRef<HTMLInputElement>(null);
+
   return (
-    <form className="flex flex-col gap-6 px-2 py-2 md:px-4 md:py-4">
-      {/* Row 1: Trip Type, Passengers, Class */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Trip Type</label>
-          <Select value={searchParams.tripType} onValueChange={(value) => setSearchParams(prev => ({ ...prev, tripType: value }))}>
-            <SelectTrigger className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-              <ArrowRightLeft className="w-5 h-5 mr-1 text-gray-500" />
-              <SelectValue placeholder="Trip Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ROUND_TRIP">Round trip</SelectItem>
-              <SelectItem value="ONE_WAY">One way</SelectItem>
-              <SelectItem value="MULTI_CITY">Multi city</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Passengers</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center gap-1 h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-                <User className="w-5 h-5 mr-1 text-gray-500" />
-                {getTotalPassengers()}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-4">
-                <span className="w-16">Adults</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.max(1, prev.adults - 1) }))} disabled={searchParams.adults <= 1}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.adults}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.min(9, prev.adults + 1) }))} disabled={searchParams.adults >= 9}><Plus /></Button>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="w-16">Children</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))} disabled={searchParams.children <= 0}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.children}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.min(9, prev.children + 1) }))} disabled={searchParams.children >= 9}><Plus /></Button>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="w-16">Infants</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.max(0, prev.infants - 1) }))} disabled={searchParams.infants <= 0}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.infants}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.min(prev.adults, prev.infants + 1) }))} disabled={searchParams.infants >= searchParams.adults}><Plus /></Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Class</label>
-          <Select value={searchParams.travelClass} onValueChange={(value) => setSearchParams(prev => ({ ...prev, travelClass: value }))}>
-            <SelectTrigger className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-              <Briefcase className="w-5 h-5 mr-1 text-gray-500" />
-              <SelectValue placeholder="Class" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ECONOMY">Economy</SelectItem>
-              <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
-              <SelectItem value="BUSINESS">Business</SelectItem>
-              <SelectItem value="FIRST">First Class</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* Row 2: From, Swap, To */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">From</label>
-          <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Input
-                type="text"
-                value={fromQuery}
-                onChange={e => setFromQuery(e.target.value)}
-                placeholder="From"
-                className="h-12 rounded-xl px-4 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
-                autoComplete="off"
-                tabIndex={0}
-              />
-            </PopoverTrigger>
-            {(fromLoading || fromError || (fromSuggestions.length > 0 && fromQuery.length >= 2)) && (
-              <PopoverContent className="w-[320px] p-0 max-h-72 overflow-auto">
-                {fromLoading ? (
-                  <div className="p-4 text-center text-gray-500">Loading...</div>
-                ) : fromError ? (
-                  <div className="p-4 text-center text-red-500">{fromError}</div>
-                ) : fromSuggestions.length === 0 && fromQuery.length >= 2 ? (
-                  <div className="p-4 text-center text-gray-500">No airports found</div>
-                ) : (
-                  fromSuggestions.map((a, idx) => (
-                    <button
-                      key={a.code + idx}
-                      className="w-full text-left px-4 py-2 hover:bg-emerald-50 focus:bg-emerald-100 focus:outline-none"
-                      onClick={() => {
-                        setSearchParams(prev => ({ ...prev, originLocationCode: a.code }));
-                        setFromQuery(`${a.city} (${a.code})`);
-                        setFromPopoverOpen(false);
-                      }}
-                      type="button"
-                      aria-label={`Select ${a.city} (${a.code})`}
-                    >
-                      <span className="font-semibold">{a.code}</span> - {a.city}, {a.country} <span className="block text-gray-500 text-[10px]">{a.name}</span>
-                    </button>
-                  ))
-                )}
-              </PopoverContent>
-            )}
-          </Popover>
-        </div>
-        <div className="flex justify-center md:justify-center mb-2 md:mb-0">
-          <Button type="button" variant="ghost" size="icon" onClick={rest.swapLocations} className="h-12 w-12 p-0 rounded-full mx-1 mt-6 md:mt-0" aria-label="Swap locations">
-            <ArrowRightLeft className="w-6 h-6 text-gray-400" />
-          </Button>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">To</label>
-          <Select
-            value={searchParams.destinationLocationCode}
-            onValueChange={val => {
-              setSearchParams(prev => ({ ...prev, destinationLocationCode: val }));
-              let label = '';
-              switch(val) {
-                case 'JED': label = 'Jeddah (JED)'; break;
-                case 'MED': label = 'Madinah (MED)'; break;
-                case 'RUH': label = 'Riyadh (RUH)'; break;
-                case 'DMM': label = 'Dammam (DMM)'; break;
-                case 'TIF': label = 'Taif (TIF)'; break;
-                default: label = val;
-              }
-              setToQuery(label);
-            }}
-          >
-            <SelectTrigger className="w-full h-12 rounded-xl px-4 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500">
-              <SelectValue placeholder="To" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JED">Jeddah (JED)</SelectItem>
-              <SelectItem value="MED">Madinah (MED)</SelectItem>
-              <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
-              <SelectItem value="DMM">Dammam (DMM)</SelectItem>
-              <SelectItem value="TIF">Taif (TIF)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* Row 3: Dates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Departure Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn("h-12 w-full justify-start text-left font-normal text-base px-4", !searchParams.departureDate && "text-muted-foreground")}
-              >
-                <CalendarIcon className="mr-2 h-5 w-5" />
-                {searchParams.departureDate ? format(searchParams.departureDate, 'EEE, MMM d') : 'Select date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={searchParams.departureDate}
-                onSelect={date => {
-                  setSearchParams(prev => ({ ...prev, departureDate: date }));
-                }}
-                disabled={date => date < new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        {searchParams.tripType === 'ROUND_TRIP' && (
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-3 py-4 md:px-6 md:py-6">
+      <form className="flex flex-col gap-4">
+        {/* Row 1: Trip Type, Passengers, Class */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Return Date</label>
+            <label className="text-xs font-medium text-gray-700 mb-2 block">Trip Type</label>
+            <Select value={searchParams.tripType} onValueChange={(value) => setSearchParams(prev => ({ ...prev, tripType: value }))}>
+              <SelectTrigger className="w-full h-11 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium">
+                <ArrowRightLeft className="w-4 h-4 mr-2 text-gray-500" />
+                <SelectValue placeholder="Trip Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ROUND_TRIP">Round trip</SelectItem>
+                <SelectItem value="ONE_WAY">One way</SelectItem>
+                <SelectItem value="MULTI_CITY">Multi city</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-2 block">Passengers</label>
             <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" className="w-full flex items-center gap-2 h-11 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium justify-start">
+                  <User className="w-4 h-4 text-gray-500" />
+                  {getTotalPassengers()} passenger{getTotalPassengers() !== 1 ? 's' : ''}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium w-16">Adults</span>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.max(1, prev.adults - 1) }))} disabled={searchParams.adults <= 1}><Minus className="w-4 h-4" /></Button>
+                    <span className="w-8 text-center text-sm font-medium">{searchParams.adults}</span>
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.min(9, prev.adults + 1) }))} disabled={searchParams.adults >= 9}><Plus className="w-4 h-4" /></Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium w-16">Children</span>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))} disabled={searchParams.children <= 0}><Minus className="w-4 h-4" /></Button>
+                    <span className="w-8 text-center text-sm font-medium">{searchParams.children}</span>
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.min(9, prev.children + 1) }))} disabled={searchParams.children >= 9}><Plus className="w-4 h-4" /></Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium w-16">Infants</span>
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.max(0, prev.infants - 1) }))} disabled={searchParams.infants <= 0}><Minus className="w-4 h-4" /></Button>
+                    <span className="w-8 text-center text-sm font-medium">{searchParams.infants}</span>
+                    <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.min(prev.adults, prev.infants + 1) }))} disabled={searchParams.infants >= searchParams.adults}><Plus className="w-4 h-4" /></Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-2 block">Class</label>
+            <Select value={searchParams.travelClass} onValueChange={(value) => setSearchParams(prev => ({ ...prev, travelClass: value }))}>
+              <SelectTrigger className="w-full h-11 rounded-xl border border-gray-200 bg-gray-50 text-sm font-medium">
+                <Briefcase className="w-4 h-4 mr-2 text-gray-500" />
+                <SelectValue placeholder="Class" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ECONOMY">Economy</SelectItem>
+                <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
+                <SelectItem value="BUSINESS">Business</SelectItem>
+                <SelectItem value="FIRST">First Class</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 2: From and To with minimal gap */}
+        <div className="grid grid-cols-5 gap-2 items-end">
+          <div className="col-span-2">
+            <label className="text-xs font-medium text-gray-700 mb-2 block">From</label>
+            <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
+              <PopoverTrigger asChild>
+                <div className="relative">
+                  <Input
+                    ref={fromInputRef}
+                    type="text"
+                    value={fromQuery}
+                    onChange={e => setFromQuery(e.target.value)}
+                    placeholder="From"
+                    className="h-11 rounded-xl px-4 pl-10 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm"
+                    autoComplete="off"
+                    tabIndex={0}
+                  />
+                  <MapPin className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
+              </PopoverTrigger>
+              {(fromLoading || fromError || (fromSuggestions.length > 0 && fromQuery.length >= 2)) && (
+                <PopoverContent className="w-[320px] p-0 max-h-72 overflow-auto">
+                  {fromLoading ? (
+                    <div className="p-4 text-center text-gray-500">Loading...</div>
+                  ) : fromError ? (
+                    <div className="p-4 text-center text-red-500">{fromError}</div>
+                  ) : fromSuggestions.length === 0 && fromQuery.length >= 2 ? (
+                    <div className="p-4 text-center text-gray-500">No airports found</div>
+                  ) : (
+                    fromSuggestions.map((a, idx) => (
+                      <button
+                        key={a.code + idx}
+                        className="w-full text-left px-4 py-3 hover:bg-emerald-50 focus:bg-emerald-100 focus:outline-none"
+                        onClick={() => {
+                          setSearchParams(prev => ({ ...prev, originLocationCode: a.code }));
+                          setFromQuery(`${a.city} (${a.code})`);
+                          setFromPopoverOpen(false);
+                        }}
+                        type="button"
+                        aria-label={`Select ${a.city} (${a.code})`}
+                      >
+                        <div className="font-semibold text-sm">{a.code}</div>
+                        <div className="text-xs text-gray-600">{a.city}, {a.country}</div>
+                        <div className="text-xs text-gray-400">{a.name}</div>
+                      </button>
+                    ))
+                  )}
+                </PopoverContent>
+              )}
+            </Popover>
+          </div>
+          
+          <div className="flex justify-center mb-2">
+            <Button type="button" variant="ghost" size="icon" onClick={rest.swapLocations} className="h-10 w-10 rounded-full bg-emerald-50 hover:bg-emerald-100" aria-label="Swap locations">
+              <ArrowRightLeft className="w-5 h-5 text-emerald-600" />
+            </Button>
+          </div>
+          
+          <div className="col-span-2">
+            <label className="text-xs font-medium text-gray-700 mb-2 block">To</label>
+            <Select
+              value={searchParams.destinationLocationCode}
+              onValueChange={val => {
+                setSearchParams(prev => ({ ...prev, destinationLocationCode: val }));
+                let label = '';
+                switch(val) {
+                  case 'JED': label = 'Jeddah (JED)'; break;
+                  case 'MED': label = 'Madinah (MED)'; break;
+                  case 'RUH': label = 'Riyadh (RUH)'; break;
+                  case 'DMM': label = 'Dammam (DMM)'; break;
+                  case 'TIF': label = 'Taif (TIF)'; break;
+                  default: label = val;
+                }
+                setToQuery(label);
+              }}
+            >
+              <SelectTrigger className="w-full h-11 rounded-xl px-4 pl-10 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm relative">
+                <MapPin className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <SelectValue placeholder="To" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="JED">Jeddah (JED)</SelectItem>
+                <SelectItem value="MED">Madinah (MED)</SelectItem>
+                <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
+                <SelectItem value="DMM">Dammam (DMM)</SelectItem>
+                <SelectItem value="TIF">Taif (TIF)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Row 3: Dates */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-gray-700 mb-2 block">Departure Date</label>
+            <Popover open={departurePopoverOpen} onOpenChange={setDeparturePopoverOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className={cn("h-12 w-full justify-start text-left font-normal text-base px-4", !searchParams.returnDate && "text-muted-foreground")}
+                  className={cn("h-11 w-full justify-start text-left font-normal text-sm px-4", !searchParams.departureDate && "text-muted-foreground")}
                 >
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  {searchParams.returnDate ? format(searchParams.returnDate, 'EEE, MMM d') : 'Select date'}
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {searchParams.departureDate ? format(searchParams.departureDate, 'EEE, MMM d') : 'Select date'}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={searchParams.returnDate}
+                  selected={searchParams.departureDate}
                   onSelect={date => {
-                    setSearchParams(prev => ({ ...prev, returnDate: date }));
+                    setSearchParams(prev => ({ ...prev, departureDate: date }));
+                    setDeparturePopoverOpen(false);
                   }}
-                  disabled={date => date < new Date() || (searchParams.departureDate && date <= searchParams.departureDate)}
+                  disabled={date => date < new Date()}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
           </div>
-        )}
-      </div>
-      {/* Row 4: Search Button */}
-      <div className="flex flex-col md:flex-row md:justify-end mt-2">
-        <Button
-          type="button"
-          onClick={handleSearch}
-          className="h-14 w-full md:w-auto px-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg flex items-center gap-2 shadow-md"
-        >
-          <Search className="w-5 h-5" />
-          <span>Search Flights</span>
-        </Button>
-      </div>
-    </form>
+          {searchParams.tripType === 'ROUND_TRIP' && (
+            <div>
+              <label className="text-xs font-medium text-gray-700 mb-2 block">Return Date</label>
+              <Popover open={returnPopoverOpen} onOpenChange={setReturnPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn("h-11 w-full justify-start text-left font-normal text-sm px-4", !searchParams.returnDate && "text-muted-foreground")}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {searchParams.returnDate ? format(searchParams.returnDate, 'EEE, MMM d') : 'Select date'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={searchParams.returnDate}
+                    onSelect={date => {
+                      setSearchParams(prev => ({ ...prev, returnDate: date }));
+                      setReturnPopoverOpen(false);
+                    }}
+                    disabled={date => date < new Date() || (searchParams.departureDate && date <= searchParams.departureDate)}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: Search Button */}
+        <div className="flex flex-col md:flex-row md:justify-end mt-4">
+          <Button
+            type="button"
+            onClick={handleSearch}
+            disabled={loading}
+            className="h-12 w-full md:w-auto px-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-base flex items-center gap-2 shadow-lg disabled:opacity-50"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Searching...</span>
+              </>
+            ) : (
+              <>
+                <Search className="w-5 h-5" />
+                <span>Search Flights</span>
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -303,15 +345,15 @@ const currencyToInr = (amount: string, currency: string) => {
   }
 };
 
-const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }) => {
+const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className, initialGroupSize }) => {
   const [searchParams, setSearchParams] = useState<FlightSearchParams>({
     originLocationCode: '',
-    destinationLocationCode: '',
+    destinationLocationCode: 'JED',
     departureDate: undefined,
     returnDate: undefined,
-    adults: 1,
-    children: 0,
-    infants: 0,
+    adults: initialGroupSize?.adults || 1,
+    children: initialGroupSize?.children || 0,
+    infants: initialGroupSize?.infants || 0,
     travelClass: 'ECONOMY',
     tripType: 'ROUND_TRIP',
     nonStop: false
@@ -324,27 +366,13 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
 
   const [airports, setAirports] = useState([]);
   const [fromQuery, setFromQuery] = useState('');
-  const [toQuery, setToQuery] = useState('');
+  const [toQuery, setToQuery] = useState('Jeddah (JED)');
   const [fromSuggestions, setFromSuggestions] = useState([]);
-  const [toSuggestions, setToSuggestions] = useState([]);
-  const [showFromSuggestions, setShowFromSuggestions] = useState(false);
-  const [showToSuggestions, setShowToSuggestions] = useState(false);
-
-  // Add state for calendar popovers
-  const [departurePopoverOpen, setDeparturePopoverOpen] = useState(false);
-  const [returnPopoverOpen, setReturnPopoverOpen] = useState(false);
-
   const [expandedFlightId, setExpandedFlightId] = useState<string | null>(null);
-
   const [fromLoading, setFromLoading] = useState(false);
   const [fromError, setFromError] = useState<string | null>(null);
-
   const [sortOption, setSortOption] = useState<'best' | 'cheapest' | 'fastest'>('best');
-
   const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-
-  const [minLoaderVisible, setMinLoaderVisible] = useState(false);
-
   const [fromPopoverOpen, setFromPopoverOpen] = useState(false);
 
   const amadeus = new AmadeusAPI(import.meta.env.VITE_AMADEUS_API_KEY, import.meta.env.VITE_AMADEUS_API_SECRET);
@@ -369,56 +397,32 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
               name: a.name || ''
             }))
           );
-          setShowFromSuggestions(true);
         })
         .catch(err => {
           if (!active) return;
           setFromError('Error loading airports');
           setFromSuggestions([]);
-          setShowFromSuggestions(false);
         })
         .finally(() => {
           if (active) setFromLoading(false);
         });
     } else {
       setFromSuggestions([]);
-      setShowFromSuggestions(false);
       setFromError(null);
     }
     return () => { active = false; };
   }, [fromQuery]);
 
   useEffect(() => {
-    if (toQuery.length >= 2) {
-      const q = toQuery.toLowerCase();
-      setToSuggestions(
-        airports.filter(a =>
-          a.code.toLowerCase().includes(q) ||
-          a.city.toLowerCase().includes(q) ||
-          a.name.toLowerCase().includes(q)
-        ).slice(0, 8)
-      );
-      setShowToSuggestions(true);
-    } else {
-      setToSuggestions([]);
-      setShowToSuggestions(false);
+    if (initialGroupSize) {
+      setSearchParams(prev => ({
+        ...prev,
+        adults: initialGroupSize.adults,
+        children: initialGroupSize.children,
+        infants: initialGroupSize.infants
+      }));
     }
-  }, [toQuery, airports]);
-
-  useEffect(() => {
-    if (fromQuery.length >= 2) {
-      setFromPopoverOpen(true);
-    } else {
-      setFromPopoverOpen(false);
-    }
-  }, [fromQuery]);
-
-  useEffect(() => {
-    if (!searchParams.destinationLocationCode) {
-      setSearchParams(prev => ({ ...prev, destinationLocationCode: 'JED' }));
-      setToQuery('Jeddah (JED)');
-    }
-  }, []);
+  }, [initialGroupSize]);
 
   const transformAmadeusToFlightOffer = (amadeusOffer: AmadeusFlightOffer, carriers: Record<string, string>, aircraft: Record<string, string>): FlightOffer => {
     const firstSegment = amadeusOffer.itineraries[0].segments[0];
@@ -472,8 +476,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
     }
 
     setLoading(true);
-    setMinLoaderVisible(true);
-    setTimeout(() => setMinLoaderVisible(false), 500);
     setSearchPerformed(true);
     
     try {
@@ -487,7 +489,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
         infants: searchParams.infants > 0 ? searchParams.infants : undefined,
         travelClass: searchParams.travelClass,
         nonStop: searchParams.nonStop,
-        max: 10 // Limit results to 10 for better performance
+        max: 10
       };
 
       console.log('Searching flights with request:', searchRequest);
@@ -550,13 +552,9 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
       originLocationCode: prev.destinationLocationCode,
       destinationLocationCode: prev.originLocationCode
     }));
-  };
-
-  const updatePassengerCount = (type: 'adults' | 'children' | 'infants', change: number) => {
-    setSearchParams(prev => ({
-      ...prev,
-      [type]: Math.max(0, prev[type] + change)
-    }));
+    const tempQuery = fromQuery;
+    setFromQuery(toQuery);
+    setToQuery(tempQuery);
   };
 
   const getTotalPassengers = () => {
@@ -609,12 +607,14 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
     <div className={cn('w-full', className)}>
       {searchPerformed && flightResults.length > 0 ? (
         <>
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-6">
             <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="rounded-full px-6 py-2 font-semibold">Modify Search</Button>
+                <Button variant="outline" className="rounded-full px-6 py-2 font-semibold border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                  Modify Search
+                </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl w-full">
+              <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="mb-4 text-lg font-semibold">Modify Search</div>
                 <SearchForm
                   searchParams={searchParams}
@@ -635,14 +635,15 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
                   setFromPopoverOpen={setFromPopoverOpen}
                   getTotalPassengers={getTotalPassengers}
                   swapLocations={swapLocations}
+                  loading={loading}
                 />
               </DialogContent>
             </Dialog>
             {/* Sorting dropdown */}
-            <div className="flex items-center">
-              <label className="mr-2 text-sm font-medium text-gray-700">Sort by:</label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Sort:</span>
               <Select value={sortOption} onValueChange={v => setSortOption(v as any)}>
-                <SelectTrigger className="w-[140px] h-10 rounded-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500">
+                <SelectTrigger className="w-[120px] h-9 rounded-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -653,124 +654,159 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
               </Select>
             </div>
           </div>
+          
           {/* Flight Results Section */}
-          {(loading || minLoaderVisible) ? (
-            <div className="flex flex-col items-center justify-center py-16">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
               <div className="relative flex flex-col items-center">
-                <span className="animate-bounce-slow">
-                  <Plane className="w-16 h-16 text-emerald-600 drop-shadow-lg" />
-                </span>
-                <div className="w-32 h-2 bg-gradient-to-r from-emerald-300 via-white to-emerald-300 rounded-full mt-2 opacity-70 animate-pulse" />
-                <span className="mt-4 text-emerald-700 font-semibold text-lg animate-pulse">Searching for the best flights...</span>
+                <div className="animate-bounce">
+                  <Plane className="w-16 h-16 text-emerald-600" />
+                </div>
+                <div className="w-32 h-1 bg-gradient-to-r from-emerald-300 via-emerald-500 to-emerald-300 rounded-full mt-4 animate-pulse" />
+                <span className="mt-6 text-emerald-700 font-semibold text-lg">Searching for flights...</span>
+                <span className="mt-2 text-sm text-gray-500">This may take a few moments</span>
               </div>
             </div>
           ) : flightResults.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Plane className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No flights found for your search criteria</p>
-              <p className="text-sm text-gray-400 mt-1">Try adjusting your search parameters</p>
+            <div className="text-center py-12 bg-gray-50 rounded-2xl">
+              <Plane className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-600 mb-2">No flights found</p>
+              <p className="text-sm text-gray-400">Try adjusting your search parameters</p>
             </div>
           ) : (
             <div className="space-y-4">
               {sortedFlights.map((flight) => {
                 const isExpanded = expandedFlightId === flight.id;
+                const priceInr = currencyToInr(flight.price.total, flight.price.currency);
                 return (
-                  <div
+                  <Card
                     key={flight.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-gray-50"
-                    tabIndex={0}
-                    role="region"
-                    aria-expanded={isExpanded}
+                    className="overflow-hidden hover:shadow-lg transition-all duration-300 border-gray-200"
                   >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <Plane className="w-6 h-6 text-emerald-600" />
+                    <CardContent className="p-4">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center">
+                              <Plane className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg text-gray-900">{flight.airline}</h4>
+                              <p className="text-sm text-gray-600">{flight.flightNumber}</p>
+                              {flight.aircraft && (
+                                <p className="text-xs text-gray-500">{flight.aircraft}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-emerald-600">₹{priceInr.toLocaleString()}</div>
+                            <div className="text-xs text-gray-500">per person</div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-lg">{flight.airline}</h4>
-                          <p className="text-gray-600">{flight.flightNumber}</p>
-                          {flight.aircraft && (
-                            <p className="text-sm text-gray-500">{flight.aircraft}</p>
+
+                        <div className="flex items-center justify-between py-4 px-2">
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-gray-900">{formatTime(flight.departure.at)}</div>
+                            <div className="text-sm font-medium text-gray-600">{flight.departure.iataCode}</div>
+                            {flight.departure.terminal && (
+                              <div className="text-xs text-gray-400">Terminal {flight.departure.terminal}</div>
+                            )}
+                          </div>
+                          <div className="flex-1 mx-4">
+                            <div className="text-center mb-2">
+                              <div className="text-sm font-medium text-gray-600">{formatDuration(flight.duration)}</div>
+                              <div className="text-xs text-gray-400">
+                                {flight.stops === 0 ? 'Direct flight' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}
+                              </div>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="h-1 bg-emerald-300 flex-1 rounded-l-full"></div>
+                              <div className="w-3 h-3 bg-emerald-500 rounded-full mx-1"></div>
+                              <div className="h-1 bg-emerald-300 flex-1 rounded-r-full"></div>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xl font-bold text-gray-900">{formatTime(flight.arrival.at)}</div>
+                            <div className="text-sm font-medium text-gray-600">{flight.arrival.iataCode}</div>
+                            {flight.arrival.terminal && (
+                              <div className="text-xs text-gray-400">Terminal {flight.arrival.terminal}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pt-2 border-t border-gray-100">
+                          <div className="flex gap-2">
+                            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700">
+                              {flight.cabin}
+                            </Badge>
+                            {flight.stops === 0 && (
+                              <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                Direct
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => setExpandedFlightId(isExpanded ? null : flight.id)}
+                              className="text-xs"
+                            >
+                              {isExpanded ? 'Hide Details' : 'View Details'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => onFlightSelect(flight, searchParams)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6"
+                            >
+                              Select Flight
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Collapsible details */}
+                        <div
+                          className={cn(
+                            'transition-all duration-300 overflow-hidden',
+                            isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'
+                          )}
+                        >
+                          {isExpanded && (
+                            <div className="pt-4 border-t border-gray-100">
+                              <FlightDetails offer={flight.rawOffer} />
+                            </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex-1 flex flex-col md:flex-row md:items-center md:justify-center gap-4">
-                        <div className="text-center">
-                          <div className="font-semibold">{formatTime(flight.departure.at)}</div>
-                          <div className="text-sm text-gray-500">{flight.departure.iataCode}</div>
-                        </div>
-                        <div className="flex-1 text-center">
-                          <div className="text-sm text-gray-500">{formatDuration(flight.duration)}</div>
-                          <div className="flex items-center justify-center mt-1">
-                            <div className="h-px bg-gray-300 flex-1"></div>
-                            <Clock className="w-3 h-3 mx-2 text-gray-400" />
-                            <div className="h-px bg-gray-300 flex-1"></div>
-                          </div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {flight.stops === 0 ? 'Direct' : `${flight.stops} stop${flight.stops > 1 ? 's' : ''}`}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="font-semibold">{formatTime(flight.arrival.at)}</div>
-                          <div className="text-sm text-gray-500">{flight.arrival.iataCode}</div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <div className="text-xl font-bold text-emerald-600">₹ {currencyToInr(flight.price.total, flight.price.currency).toLocaleString()}</div>
-                        <div className="mt-2 flex gap-2">
-                          <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); onFlightSelect(flight, searchParams); }}>Add to Package</Button>
-                        </div>
-                        <button
-                          className="text-xs text-emerald-700 underline mt-2 focus:outline-none"
-                          onClick={e => { e.stopPropagation(); setExpandedFlightId(isExpanded ? null : flight.id); }}
-                          aria-expanded={isExpanded}
-                        >
-                          {isExpanded ? 'Hide Details' : 'View Details'}
-                        </button>
-                      </div>
-                    </div>
-                    {/* Collapsible details */}
-                    <div
-                      className={cn(
-                        'transition-all duration-300 overflow-hidden',
-                        isExpanded ? 'max-h-[1000px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                      )}
-                      style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
-                    >
-                    {isExpanded && (
-                        <FlightDetails offer={flight.rawOffer} />
-                      )}
-                      </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               })}
             </div>
           )}
         </>
       ) : (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-4 flex flex-col gap-4">
-          <SearchForm
-            searchParams={searchParams}
-            setSearchParams={setSearchParams}
-            handleSearch={handleSearch}
-            fromQuery={fromQuery}
-            setFromQuery={setFromQuery}
-            fromSuggestions={fromSuggestions}
-            fromLoading={fromLoading}
-            fromError={fromError}
-            onFromSelect={(code: string, label: string) => {
-              setSearchParams((prev: any) => ({ ...prev, originLocationCode: code }));
-              setFromQuery(label);
-            }}
-            toQuery={toQuery}
-            setToQuery={setToQuery}
-            fromPopoverOpen={fromPopoverOpen}
-            setFromPopoverOpen={setFromPopoverOpen}
-            getTotalPassengers={getTotalPassengers}
-            swapLocations={swapLocations}
-          />
-        </div>
+        <SearchForm
+          searchParams={searchParams}
+          setSearchParams={setSearchParams}
+          handleSearch={handleSearch}
+          fromQuery={fromQuery}
+          setFromQuery={setFromQuery}
+          fromSuggestions={fromSuggestions}
+          fromLoading={fromLoading}
+          fromError={fromError}
+          onFromSelect={(code: string, label: string) => {
+            setSearchParams((prev: any) => ({ ...prev, originLocationCode: code }));
+            setFromQuery(label);
+          }}
+          toQuery={toQuery}
+          setToQuery={setToQuery}
+          fromPopoverOpen={fromPopoverOpen}
+          setFromPopoverOpen={setFromPopoverOpen}
+          getTotalPassengers={getTotalPassengers}
+          swapLocations={swapLocations}
+          loading={loading}
+        />
       )}
     </div>
   );
