@@ -84,7 +84,7 @@ const Header = () => {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="hidden md:block">
-                  <span>✈️ Fast Processing | 🛡️ Secure Payment | 🎯 99% Success Rate</span>
+                  <span>✈️ Fast Processing | 🛡️ Secure Payment | 🎯 97% Success Rate</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   
