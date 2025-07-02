@@ -153,7 +153,7 @@ const TransportBooking = () => {
     const [vehicleCount, setVehicleCount] = useState(1);
 
     // Parse vehicle details JSON if present - fix type inference
-    let vehicleDetailsObj: Record<string, any> | null = null;
+    let vehicleDetailsObj: Record<string, unknown> | null = null;
     if (vehicle.vehicle_details) {
       if (typeof vehicle.vehicle_details === 'string') {
         try { 

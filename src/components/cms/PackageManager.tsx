@@ -23,14 +23,14 @@ interface DatabasePackage {
   exclusions: string[] | null;
   images: string[] | null;
   featured_image: string | null;
-  makkah_hotel: any;
+  makkah_hotel: unknown;
   makkah_hotel_id: string | null;
-  madinah_hotel: any;
+  madinah_hotel: unknown;
   madinah_hotel_id: string | null;
-  flight_details: any;
-  itinerary: any;
-  pricing: any;
-  room_type_pricing: any;
+  flight_details: unknown;
+  itinerary: unknown;
+  pricing: unknown;
+  room_type_pricing: unknown;
   max_capacity: number | null;
   available_spots: number | null;
   departure_date: string | null;
@@ -305,7 +305,7 @@ const PackageManager = () => {
     setActivitiesLoading(false);
   };
 
-  const handleInputChange = (field: keyof FormPackage, value: any) => {
+  const handleInputChange = (field: keyof FormPackage, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -733,7 +733,7 @@ const PackageManager = () => {
   };
 
   // Helper to safely display number input values
-  const safeNumberInputValue = (val: any) => {
+  const safeNumberInputValue = (val: unknown) => {
     if (val === undefined || val === null || val === '' || isNaN(Number(val))) {
       return '';
     }

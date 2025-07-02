@@ -54,9 +54,143 @@ export interface FlightOffer {
   rawOffer: AmadeusFlightOffer;
 }
 
+export interface AirportSuggestion {
+  code: string;
+  city: string;
+  country: string;
+  name: string;
+  aliases?: string[];
+  score?: number;
+}
+
 interface FlightSearchProps {
   onFlightSelect: (flight: FlightOffer, searchParams: FlightSearchParams) => void;
   className?: string;
+  initialAdults?: number;
+  initialChildren?: number;
+  initialInfants?: number;
+}
+
+interface SearchFormProps {
+  searchParams: FlightSearchParams;
+  setSearchParams: React.Dispatch<React.SetStateAction<FlightSearchParams>>;
+  handleSearch: (e?: React.MouseEvent) => void;
+  fromQuery: string;
+  setFromQuery: React.Dispatch<React.SetStateAction<string>>;
+  fromSuggestions: AirportSuggestion[];
+  fromLoading: boolean;
+  fromError: string | null;
+  onFromSelect?: (code: string, label: string) => void;
+  toQuery: string;
+  setToQuery: React.Dispatch<React.SetStateAction<string>>;
+  fromPopoverOpen: boolean;
+  setFromPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  getTotalPassengers: () => number;
+  toPopoverOpen: boolean;
+  setToPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  toLoading: boolean;
+  toError: string | null;
+  toSuggestions: AirportSuggestion[];
+  missingFields?: Record<string, boolean>;
+  searchAttempted?: boolean;
+  departurePopoverOpen: boolean;
+  setDeparturePopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  returnPopoverOpen: boolean;
+  setReturnPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  loading?: boolean;
+}
+
+// Amadeus API airport/location type
+interface AmadeusAirportData {
+  iataCode: string;
+  name?: string;
+  address?: {
+    cityName?: string;
+    countryName?: string;
+  };
+}
+
+// Amadeus traveler pricing type
+interface TravelerPricing {
+  travelerId: string;
+  fareOption: string;
+  travelerType: string;
+  price: {
+    currency: string;
+    total: string;
+    base: string;
+  };
+  fareDetailsBySegment: Array<{
+    segmentId: string;
+    cabin: string;
+    fareBasis: string;
+    class: string;
+    includedCheckedBags: {
+      quantity: number;
+    };
+  }>;
+}
+
+// Amadeus API segment type
+interface AmadeusSegment {
+  departure: { iataCode: string; terminal?: string; at: string; };
+  arrival: { iataCode: string; terminal?: string; at: string; };
+  carrierCode: string;
+  number: string;
+  aircraft: { code: string; };
+  operating?: { carrierCode: string; };
+  duration: string;
+  id: string;
+  numberOfStops: number;
+  blacklistedInEU: boolean;
+}
+
+interface AmadeusItinerary {
+  duration: string;
+  segments: AmadeusSegment[];
+}
+
+interface AmadeusPrice {
+  currency: string;
+  total: string;
+  base: string;
+  fees: Array<{ amount: string; type: string }>;
+  grandTotal: string;
+}
+
+interface AmadeusFlightOfferFull {
+  id: string;
+  oneWay: boolean;
+  lastTicketingDate: string;
+  numberOfBookableSeats: number;
+  itineraries: AmadeusItinerary[];
+  price: AmadeusPrice;
+  pricingOptions: { fareType: string[]; includedCheckedBagsOnly: boolean };
+  validatingAirlineCodes: string[];
+  travelerPricings: TravelerPricing[];
+}
+
+// Add types for Amadeus API dictionaries and render helpers
+interface AmadeusDictionaries {
+  locations: Record<string, { cityCode: string; countryCode: string }>;
+  aircraft: Record<string, string>;
+  currencies: Record<string, string>;
+  carriers: Record<string, string>;
+}
+
+// For flight details rendering
+interface FlightDetailsProps {
+  offer: FlightOffer;
+}
+
+// Add types for Amadeus API baggage, layover, and other helpers
+interface AmadeusBaggage {
+  quantity?: number;
+}
+
+// For layover calculation
+interface AmadeusSegmentWithArrival extends AmadeusSegment {
+  arrival: { iataCode: string; terminal?: string; at: string; };
 }
 
 function SearchForm({
@@ -74,103 +208,82 @@ function SearchForm({
   fromPopoverOpen,
   setFromPopoverOpen,
   getTotalPassengers,
+  toPopoverOpen,
+  setToPopoverOpen,
+  toLoading,
+  toError,
+  toSuggestions,
+  missingFields = {},
+  searchAttempted = false,
+  departurePopoverOpen,
+  setDeparturePopoverOpen,
+  returnPopoverOpen,
+  setReturnPopoverOpen,
+  loading = false,
   ...rest
-}: any) {
+}: SearchFormProps) {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const [travelerPopoverOpen, setTravelerPopoverOpen] = React.useState(false);
+
   return (
-    <form className="flex flex-col gap-6 px-2 py-2 md:px-4 md:py-4">
-      {/* Row 1: Trip Type, Passengers, Class */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Trip Type</label>
-          <Select value={searchParams.tripType} onValueChange={(value) => setSearchParams(prev => ({ ...prev, tripType: value }))}>
-            <SelectTrigger className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-              <ArrowRightLeft className="w-5 h-5 mr-1 text-gray-500" />
-              <SelectValue placeholder="Trip Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ROUND_TRIP">Round trip</SelectItem>
-              <SelectItem value="ONE_WAY">One way</SelectItem>
-              <SelectItem value="MULTI_CITY">Multi city</SelectItem>
-            </SelectContent>
-          </Select>
+    <form className="w-full max-w-md mx-auto flex flex-col gap-4 relative" autoComplete="off">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm" aria-busy="true" aria-live="polite">
+          <svg className="animate-spin h-12 w-12 text-emerald-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+          <div className="text-emerald-700 font-semibold text-lg">Searching flights...</div>
         </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Passengers</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" className="w-full flex items-center gap-1 h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-                <User className="w-5 h-5 mr-1 text-gray-500" />
-                {getTotalPassengers()}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-4">
-                <span className="w-16">Adults</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.max(1, prev.adults - 1) }))} disabled={searchParams.adults <= 1}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.adults}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, adults: Math.min(9, prev.adults + 1) }))} disabled={searchParams.adults >= 9}><Plus /></Button>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="w-16">Children</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.max(0, prev.children - 1) }))} disabled={searchParams.children <= 0}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.children}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, children: Math.min(9, prev.children + 1) }))} disabled={searchParams.children >= 9}><Plus /></Button>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="w-16">Infants</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.max(0, prev.infants - 1) }))} disabled={searchParams.infants <= 0}><Minus /></Button>
-                <span className="w-6 text-center">{searchParams.infants}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setSearchParams(prev => ({ ...prev, infants: Math.min(prev.adults, prev.infants + 1) }))} disabled={searchParams.infants >= searchParams.adults}><Plus /></Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Class</label>
-          <Select value={searchParams.travelClass} onValueChange={(value) => setSearchParams(prev => ({ ...prev, travelClass: value }))}>
-            <SelectTrigger className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 text-base font-medium">
-              <Briefcase className="w-5 h-5 mr-1 text-gray-500" />
-              <SelectValue placeholder="Class" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ECONOMY">Economy</SelectItem>
-              <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
-              <SelectItem value="BUSINESS">Business</SelectItem>
-              <SelectItem value="FIRST">First Class</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* Row 2: From, Swap, To */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">From</label>
-          <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Input
+      )}
+      {/* Trip Type Dropdown */}
+      <select
+        className="bg-emerald-100 text-emerald-900 rounded-lg px-4 py-2 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-400 border border-gray-200"
+        value={searchParams.tripType}
+        onChange={e => setSearchParams(prev => ({ ...prev, tripType: e.target.value }))}
+      >
+        <option value="ROUND_TRIP">Return</option>
+        <option value="ONE_WAY">One way</option>
+      </select>
+      {/* From input */}
+      <input
                 type="text"
                 value={fromQuery}
-                onChange={e => setFromQuery(e.target.value)}
+        onChange={e => {
+          setFromQuery(e.target.value);
+          if (e.target.value.length >= 2) setFromPopoverOpen(true);
+          else setFromPopoverOpen(false);
+        }}
                 placeholder="From"
-                className="h-12 rounded-xl px-4 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500"
+        className={`h-12 w-full rounded-full pl-4 pr-4 border ${missingFields.origin && searchAttempted ? 'border-red-500' : 'border-gray-200'} bg-gray-50 text-base font-medium shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-all`}
                 autoComplete="off"
                 tabIndex={0}
-              />
-            </PopoverTrigger>
-            {(fromLoading || fromError || (fromSuggestions.length > 0 && fromQuery.length >= 2)) && (
-              <PopoverContent className="w-[320px] p-0 max-h-72 overflow-auto">
+        onFocus={() => {
+          if (fromQuery.length >= 2) setFromPopoverOpen(true);
+        }}
+        onBlur={() => setFromPopoverOpen(false)}
+        data-testid="from-input"
+        style={{ boxSizing: 'border-box' }}
+      />
+      {searchAttempted && missingFields.origin && (
+        <div className="text-xs text-red-500 ml-2 -mt-3 mb-1">Please select a departure city</div>
+      )}
+      {fromPopoverOpen && fromQuery.length >= 2 && (
+        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-72 overflow-auto from-popover">
                 {fromLoading ? (
                   <div className="p-4 text-center text-gray-500">Loading...</div>
                 ) : fromError ? (
                   <div className="p-4 text-center text-red-500">{fromError}</div>
-                ) : fromSuggestions.length === 0 && fromQuery.length >= 2 ? (
+          ) : fromSuggestions.length === 0 ? (
                   <div className="p-4 text-center text-gray-500">No airports found</div>
                 ) : (
                   fromSuggestions.map((a, idx) => (
                     <button
                       key={a.code + idx}
                       className="w-full text-left px-4 py-2 hover:bg-emerald-50 focus:bg-emerald-100 focus:outline-none"
-                      onClick={() => {
+                onMouseDown={e => {
                         setSearchParams(prev => ({ ...prev, originLocationCode: a.code }));
                         setFromQuery(`${a.city} (${a.code})`);
                         setFromPopoverOpen(false);
@@ -182,112 +295,228 @@ function SearchForm({
                     </button>
                   ))
                 )}
-              </PopoverContent>
-            )}
-          </Popover>
         </div>
-        <div className="flex justify-center md:justify-center mb-2 md:mb-0">
-          <Button type="button" variant="ghost" size="icon" onClick={rest.swapLocations} className="h-12 w-12 p-0 rounded-full mx-1 mt-6 md:mt-0" aria-label="Swap locations">
-            <ArrowRightLeft className="w-6 h-6 text-gray-400" />
-          </Button>
-        </div>
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">To</label>
-          <Select
-            value={searchParams.destinationLocationCode}
-            onValueChange={val => {
-              setSearchParams(prev => ({ ...prev, destinationLocationCode: val }));
-              let label = '';
-              switch(val) {
-                case 'JED': label = 'Jeddah (JED)'; break;
-                case 'MED': label = 'Madinah (MED)'; break;
-                case 'RUH': label = 'Riyadh (RUH)'; break;
-                case 'DMM': label = 'Dammam (DMM)'; break;
-                case 'TIF': label = 'Taif (TIF)'; break;
-                default: label = val;
-              }
-              setToQuery(label);
-            }}
-          >
-            <SelectTrigger className="w-full h-12 rounded-xl px-4 border-gray-300 focus:border-emerald-500 focus:ring-emerald-500">
-              <SelectValue placeholder="To" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JED">Jeddah (JED)</SelectItem>
-              <SelectItem value="MED">Madinah (MED)</SelectItem>
-              <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
-              <SelectItem value="DMM">Dammam (DMM)</SelectItem>
-              <SelectItem value="TIF">Taif (TIF)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* Row 3: Dates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Departure Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn("h-12 w-full justify-start text-left font-normal text-base px-4", !searchParams.departureDate && "text-muted-foreground")}
+      )}
+      {/* To input */}
+      <input
+        type="text"
+        value={toQuery}
+        onChange={e => {
+          setToQuery(e.target.value);
+          if (e.target.value.length >= 2) setToPopoverOpen(true);
+          else setToPopoverOpen(false);
+        }}
+        placeholder="To"
+        className={`h-12 w-full rounded-full pl-4 pr-4 border ${missingFields.destination && searchAttempted ? 'border-red-500' : 'border-gray-200'} bg-gray-50 text-base font-medium shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 hover:bg-emerald-50 transition-all`}
+        autoComplete="off"
+        tabIndex={0}
+        onFocus={() => {
+          if (toQuery.length >= 2) setToPopoverOpen(true);
+        }}
+        onBlur={() => setToPopoverOpen(false)}
+        data-testid="to-input"
+        style={{ boxSizing: 'border-box' }}
+      />
+      {searchAttempted && missingFields.destination && (
+        <div className="text-xs text-red-500 ml-2 -mt-3 mb-1">Please select a destination city</div>
+      )}
+      {/* To popover */}
+      {toPopoverOpen && toQuery.length >= 2 && (
+        <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-72 overflow-auto to-popover">
+          {toLoading ? (
+            <div className="p-4 text-center text-gray-500">Loading...</div>
+          ) : toError ? (
+            <div className="p-4 text-center text-red-500">{toError}</div>
+          ) : toSuggestions.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">No airports found</div>
+          ) : (
+            toSuggestions.map((a, idx) => (
+              <button
+                key={a.code + idx}
+                className="w-full text-left px-4 py-2 hover:bg-emerald-50 focus:bg-emerald-100 focus:outline-none"
+                onMouseDown={e => {
+                  setSearchParams(prev => ({ ...prev, destinationLocationCode: a.code }));
+                  setToQuery(`${a.city} (${a.code})`);
+                  setToPopoverOpen(false);
+                }}
+                type="button"
+                aria-label={`Select ${a.city} (${a.code})`}
               >
-                <CalendarIcon className="mr-2 h-5 w-5" />
-                {searchParams.departureDate ? format(searchParams.departureDate, 'EEE, MMM d') : 'Select date'}
-              </Button>
+                <span className="font-semibold">{a.code}</span> - {a.city}, {a.country} <span className="block text-gray-500 text-[10px]">{a.name}</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+      {/* Date pickers */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-emerald-400" />
+          <Popover open={departurePopoverOpen} onOpenChange={setDeparturePopoverOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={`px-3 py-2 rounded-lg font-medium bg-white border border-gray-200 shadow-sm hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${missingFields.date && searchAttempted ? 'border-red-500' : ''}`}
+                aria-label="Select departure date"
+              >
+                {searchParams.departureDate ? format(searchParams.departureDate, 'd MMM yyyy') : 'Select departure date'}
+              </button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="p-0 z-50" align="start">
               <Calendar
                 mode="single"
                 selected={searchParams.departureDate}
                 onSelect={date => {
-                  setSearchParams(prev => ({ ...prev, departureDate: date }));
+                  if (date && date >= today) {
+                    setSearchParams(prev => ({ ...prev, departureDate: date, returnDate: prev.returnDate && prev.returnDate > date ? prev.returnDate : undefined }));
+                    setDeparturePopoverOpen(false);
+                  }
                 }}
-                disabled={date => date < new Date()}
                 initialFocus
+                disabled={date => date < today}
               />
             </PopoverContent>
           </Popover>
         </div>
         {searchParams.tripType === 'ROUND_TRIP' && (
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Return Date</label>
-            <Popover>
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-5 h-5 text-emerald-400" />
+            <Popover open={returnPopoverOpen} onOpenChange={setReturnPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn("h-12 w-full justify-start text-left font-normal text-base px-4", !searchParams.returnDate && "text-muted-foreground")}
+                <button
+                  type="button"
+                  className={`px-3 py-2 rounded-lg font-medium bg-white border border-gray-200 shadow-sm hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${missingFields.returnDate && searchAttempted ? 'border-red-500' : ''}`}
+                  aria-label="Select return date"
                 >
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  {searchParams.returnDate ? format(searchParams.returnDate, 'EEE, MMM d') : 'Select date'}
-                </Button>
+                  {searchParams.returnDate ? format(searchParams.returnDate, 'd MMM yyyy') : 'Select return date'}
+                </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="p-0 z-50" align="start">
                 <Calendar
                   mode="single"
                   selected={searchParams.returnDate}
                   onSelect={date => {
+                    if (date && searchParams.departureDate && date > searchParams.departureDate) {
                     setSearchParams(prev => ({ ...prev, returnDate: date }));
+                      setReturnPopoverOpen(false);
+                    }
                   }}
-                  disabled={date => date < new Date() || (searchParams.departureDate && date <= searchParams.departureDate)}
                   initialFocus
+                  disabled={date => !searchParams.departureDate || date <= searchParams.departureDate}
                 />
               </PopoverContent>
             </Popover>
           </div>
         )}
       </div>
-      {/* Row 4: Search Button */}
-      <div className="flex flex-col md:flex-row md:justify-end mt-2">
-        <Button
+      {/* Passenger selector */}
+      <div className="flex items-center gap-2">
+        <User className="w-5 h-5 text-emerald-400" />
+        <Popover open={travelerPopoverOpen} onOpenChange={setTravelerPopoverOpen}>
+          <PopoverTrigger asChild>
+            <button
           type="button"
-          onClick={handleSearch}
-          className="h-14 w-full md:w-auto px-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-lg flex items-center gap-2 shadow-md"
-        >
-          <Search className="w-5 h-5" />
-          <span>Search Flights</span>
-        </Button>
+              className="font-medium bg-white rounded-full px-4 py-2 border border-gray-200 shadow-sm hover:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              aria-label="Select number of travellers"
+            >
+              {getTotalPassengers()} Traveller{getTotalPassengers() > 1 ? 's' : ''}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-4 z-50" align="start">
+            <div className="space-y-4">
+              {/* Adult row */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">Adults</div>
+                  <div className="text-xs text-gray-500">Aged 12+</div>
       </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold disabled:opacity-50"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, adults: Math.max(1, prev.adults - 1) }))}
+                    disabled={searchParams.adults <= 1}
+                    aria-label="Decrease adults"
+                  >-</button>
+                  <span className="w-6 text-center">{searchParams.adults}</span>
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, adults: prev.adults + 1 }))}
+                    aria-label="Increase adults"
+                  >+</button>
+                </div>
+              </div>
+              {/* Child row */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">Children</div>
+                  <div className="text-xs text-gray-500">Aged 2-11</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold disabled:opacity-50"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, children: Math.max(0, prev.children - 1) }))}
+                    disabled={searchParams.children <= 0}
+                    aria-label="Decrease children"
+                  >-</button>
+                  <span className="w-6 text-center">{searchParams.children}</span>
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, children: prev.children + 1 }))}
+                    aria-label="Increase children"
+                  >+</button>
+                </div>
+              </div>
+              {/* Infant row */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">Infants</div>
+                  <div className="text-xs text-gray-500">Under 2</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold disabled:opacity-50"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, infants: Math.max(0, prev.infants - 1) }))}
+                    disabled={searchParams.infants <= 0}
+                    aria-label="Decrease infants"
+                  >-</button>
+                  <span className="w-6 text-center">{searchParams.infants}</span>
+                  <button
+                    type="button"
+                    className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-lg font-bold"
+                    onClick={() => setSearchParams((prev: any) => ({ ...prev, infants: prev.infants + 1 }))}
+                    aria-label="Increase infants"
+                  >+</button>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mt-4 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg"
+                onClick={() => setTravelerPopoverOpen(false)}
+              >
+                Done
+              </button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+      {/* Direct flights checkbox */}
+      <div className="flex items-center gap-2 mt-2">
+        <input type="checkbox" id="direct" className="accent-emerald-500" checked={searchParams.nonStop} onChange={e => setSearchParams(prev => ({ ...prev, nonStop: e.target.checked }))} />
+        <label htmlFor="direct" className="text-emerald-900 font-medium">Direct flights</label>
+      </div>
+      {/* Search Button */}
+      <button
+        className="w-full mt-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-lg font-bold py-3 rounded-xl shadow hover:opacity-90 transition"
+        type="button"
+        onClick={e => { console.log('Search button clicked'); handleSearch(e); }}
+      >
+        Search
+      </button>
     </form>
   );
 }
@@ -303,15 +532,82 @@ const currencyToInr = (amount: string, currency: string) => {
   }
 };
 
-const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }) => {
+// Alias map for old/new city names (can be updated or loaded from an external source)
+const cityAliasMap: Record<string, string[]> = {
+  'Mumbai': ['Bombay'],
+  'Bombay': ['Mumbai'],
+  'Chennai': ['Madras'],
+  'Madras': ['Chennai'],
+  'Beijing': ['Peking'],
+  'Peking': ['Beijing'],
+  'Kolkata': ['Calcutta'],
+  'Calcutta': ['Kolkata'],
+  'Istanbul': ['Constantinople'],
+  'Constantinople': ['Istanbul'],
+  'Ho Chi Minh City': ['Saigon'],
+  'Saigon': ['Ho Chi Minh City'],
+  'Jakarta': ['Batavia'],
+  'Batavia': ['Jakarta'],
+  'Saint Petersburg': ['Leningrad', 'Petrograd'],
+  'Leningrad': ['Saint Petersburg'],
+  'Petrograd': ['Saint Petersburg'],
+  'Nur-Sultan': ['Astana'],
+  'Astana': ['Nur-Sultan'],
+  'Harare': ['Salisbury'],
+  'Salisbury': ['Harare'],
+  'Maputo': ['Lourenco Marques'],
+  'Lourenco Marques': ['Maputo'],
+  'Dhaka': ['Dacca'],
+  'Dacca': ['Dhaka'],
+  'Yangon': ['Rangoon'],
+  'Rangoon': ['Yangon'],
+  'Almaty': ['Alma-Ata'],
+  'Alma-Ata': ['Almaty'],
+  'Zhengzhou': ['Changsha'], // Example, add more as needed
+  // ...add more as needed or load from a maintained JSON/API
+};
+// To automate updates, fetch a maintained alias JSON from a remote source and merge here.
+function getAliasesForCity(city: string) {
+  if (!city) return [];
+  return cityAliasMap[city] || [];
+}
+
+// Add Levenshtein distance function for fuzzy matching
+function levenshtein(a: string, b: string) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1).toLowerCase() === a.charAt(j - 1).toLowerCase()) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1, // substitution
+          matrix[i][j - 1] + 1,     // insertion
+          matrix[i - 1][j] + 1      // deletion
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
+const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className, initialAdults = 1, initialChildren = 0, initialInfants = 0 }) => {
   const [searchParams, setSearchParams] = useState<FlightSearchParams>({
     originLocationCode: '',
     destinationLocationCode: '',
     departureDate: undefined,
     returnDate: undefined,
-    adults: 1,
-    children: 0,
-    infants: 0,
+    adults: initialAdults,
+    children: initialChildren,
+    infants: initialInfants,
     travelClass: 'ECONOMY',
     tripType: 'ROUND_TRIP',
     nonStop: false
@@ -346,8 +642,16 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
   const [minLoaderVisible, setMinLoaderVisible] = useState(false);
 
   const [fromPopoverOpen, setFromPopoverOpen] = useState(false);
+  const [toPopoverOpen, setToPopoverOpen] = useState(false);
+  const [toLoading, setToLoading] = useState(false);
+  const [toError, setToError] = useState<string | null>(null);
 
-  const amadeus = new AmadeusAPI(import.meta.env.VITE_AMADEUS_API_KEY, import.meta.env.VITE_AMADEUS_API_SECRET);
+  const [searchAttempted, setSearchAttempted] = useState(false);
+
+  const amadeus = useMemo(() => new AmadeusAPI(
+    import.meta.env.VITE_AMADEUS_API_KEY,
+    import.meta.env.VITE_AMADEUS_API_SECRET
+  ), []);
 
   useEffect(() => {
     setAirports(airportsData);
@@ -359,19 +663,31 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
       setFromLoading(true);
       setFromError(null);
       amadeus.getAirportInfo(fromQuery)
-        .then(data => {
+        .then((data: { data: AmadeusAirportData[] }) => {
           if (!active) return;
-          setFromSuggestions(
-            (data.data || []).map((a: any) => ({
-              code: a.iataCode,
-              city: a.address?.cityName || '',
-              country: a.address?.countryName || '',
-              name: a.name || ''
-            }))
-          );
+          const q = fromQuery.toLowerCase();
+          const airports = (data.data || []).map((a: AmadeusAirportData) => ({
+            code: a.iataCode,
+            city: a.address?.cityName || '',
+            country: a.address?.countryName || '',
+            name: a.name || '',
+            aliases: getAliasesForCity(a.address?.cityName)
+          }));
+          // Fuzzy match: score by min distance to code, city, or any alias
+          const scored = airports.map((a: AirportSuggestion) => {
+            const codeDist = levenshtein(q, a.code.toLowerCase());
+            const cityDist = levenshtein(q, a.city.toLowerCase());
+            const aliasDist = a.aliases && a.aliases.length > 0
+              ? Math.min(...a.aliases.map((alias: string) => levenshtein(q, alias.toLowerCase())))
+              : Infinity;
+            return { ...a, score: Math.min(codeDist, cityDist, aliasDist) };
+          });
+          // Sort by score, then by city name
+          scored.sort((a, b) => (a.score ?? 0) - (b.score ?? 0) || a.city.localeCompare(b.city));
+          setFromSuggestions(scored.slice(0, 8));
           setShowFromSuggestions(true);
         })
-        .catch(err => {
+        .catch((err: unknown) => {
           if (!active) return;
           setFromError('Error loading airports');
           setFromSuggestions([]);
@@ -386,13 +702,13 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
       setFromError(null);
     }
     return () => { active = false; };
-  }, [fromQuery]);
+  }, [fromQuery, amadeus]);
 
   useEffect(() => {
     if (toQuery.length >= 2) {
       const q = toQuery.toLowerCase();
       setToSuggestions(
-        airports.filter(a =>
+        airports.filter((a: AirportSuggestion) =>
           a.code.toLowerCase().includes(q) ||
           a.city.toLowerCase().includes(q) ||
           a.name.toLowerCase().includes(q)
@@ -406,66 +722,114 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
   }, [toQuery, airports]);
 
   useEffect(() => {
-    if (fromQuery.length >= 2) {
-      setFromPopoverOpen(true);
-    } else {
-      setFromPopoverOpen(false);
-    }
-  }, [fromQuery]);
-
-  useEffect(() => {
     if (!searchParams.destinationLocationCode) {
       setSearchParams(prev => ({ ...prev, destinationLocationCode: 'JED' }));
       setToQuery('Jeddah (JED)');
     }
-  }, []);
+  }, [searchParams.destinationLocationCode, setSearchParams]);
 
-  const transformAmadeusToFlightOffer = (amadeusOffer: AmadeusFlightOffer, carriers: Record<string, string>, aircraft: Record<string, string>): FlightOffer => {
-    const firstSegment = amadeusOffer.itineraries[0].segments[0];
-    const lastSegment = amadeusOffer.itineraries[0].segments[amadeusOffer.itineraries[0].segments.length - 1];
-    
-    const carrierCode = firstSegment.carrierCode;
-    const airlineName = carriers[carrierCode] || carrierCode;
-    
-    const aircraftCode = firstSegment.aircraft.code;
-    const aircraftName = aircraft[aircraftCode] || aircraftCode;
-    
-    const stops = amadeusOffer.itineraries[0].segments.length - 1;
-    
-    // Get cabin class from traveler pricing
-    const cabin = amadeusOffer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin || 'ECONOMY';
+  useEffect(() => {
+    let active = true;
+    if (toQuery.length >= 2) {
+      setToLoading(true);
+      setToError(null);
+      amadeus.getAirportInfo(toQuery)
+        .then((data: { data: AmadeusAirportData[] }) => {
+          if (!active) return;
+          setToSuggestions(
+            (data.data || []).map((a: AmadeusAirportData) => ({
+              code: a.iataCode,
+              city: a.address?.cityName || '',
+              country: a.address?.countryName || '',
+              name: a.name || ''
+            }))
+          );
+          setShowToSuggestions(true);
+        })
+        .catch((err: unknown) => {
+          if (!active) return;
+          setToError('Error loading airports');
+          setToSuggestions([]);
+          setShowToSuggestions(false);
+        })
+        .finally(() => {
+          if (active) setToLoading(false);
+        });
+    } else {
+      setToSuggestions([]);
+      setShowToSuggestions(false);
+      setToError(null);
+    }
+    return () => { active = false; };
+  }, [toQuery, amadeus]);
 
-    return {
-      id: amadeusOffer.id,
-      airline: airlineName,
-      flightNumber: `${carrierCode} ${firstSegment.number}`,
-      departure: {
-        iataCode: firstSegment.departure.iataCode,
-        terminal: firstSegment.departure.terminal,
-        at: firstSegment.departure.at
-      },
-      arrival: {
-        iataCode: lastSegment.arrival.iataCode,
-        terminal: lastSegment.arrival.terminal,
-        at: lastSegment.arrival.at
-      },
-      duration: amadeusOffer.itineraries[0].duration,
-      stops: stops,
-      price: {
-        total: amadeusOffer.price.total,
-        currency: amadeusOffer.price.currency
-      },
-      cabin: cabin,
-      aircraft: aircraftName,
-      rawOffer: amadeusOffer
-    };
-  };
+  const transformAmadeusToFlightOffer = useCallback(
+    (
+      amadeusOffer: AmadeusFlightOfferFull,
+      carriers: Record<string, string>,
+      aircraft: Record<string, string>
+    ): FlightOffer => {
+      const firstSegment = amadeusOffer.itineraries[0].segments[0];
+      const lastSegment = amadeusOffer.itineraries[0].segments[amadeusOffer.itineraries[0].segments.length - 1];
+      
+      const carrierCode = firstSegment.carrierCode;
+      const airlineName = carriers[carrierCode] || carrierCode;
+      
+      const aircraftCode = firstSegment.aircraft.code;
+      const aircraftName = aircraft[aircraftCode] || aircraftCode;
+      
+      const stops = amadeusOffer.itineraries[0].segments.length - 1;
+      
+      // Get cabin class from traveler pricing
+      const cabin = amadeusOffer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin || 'ECONOMY';
 
-  const handleSearch = async () => {
-    if (!searchParams.originLocationCode || !searchParams.destinationLocationCode || !searchParams.departureDate) {
+      return {
+        id: amadeusOffer.id,
+        airline: airlineName,
+        flightNumber: `${carrierCode} ${firstSegment.number}`,
+        departure: {
+          iataCode: firstSegment.departure.iataCode,
+          terminal: firstSegment.departure.terminal,
+          at: firstSegment.departure.at
+        },
+        arrival: {
+          iataCode: lastSegment.arrival.iataCode,
+          terminal: lastSegment.arrival.terminal,
+          at: lastSegment.arrival.at
+        },
+        duration: amadeusOffer.itineraries[0].duration,
+        stops: stops,
+        price: {
+          total: amadeusOffer.price.total,
+          currency: amadeusOffer.price.currency
+        },
+        cabin: cabin,
+        aircraft: aircraftName,
+        rawOffer: amadeusOffer
+      };
+    },
+    []
+  );
+
+  // Helper to check missing fields
+  const getMissingFields = () => ({
+    origin: !searchParams.originLocationCode,
+    destination: !searchParams.destinationLocationCode,
+    date: !searchParams.departureDate,
+    returnDate: searchParams.tripType === 'ROUND_TRIP' && !searchParams.returnDate,
+  });
+  const missingFields = getMissingFields();
+
+  const handleSearch = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setSearchAttempted(true);
+    console.log('handleSearch called');
+    console.log('searchParams:', searchParams);
+    console.log('missingFields:', missingFields);
+    if (missingFields.origin || missingFields.destination || missingFields.date || missingFields.returnDate) {
       toast({
         title: "Missing Information",
-        description: "Please fill in departure city, destination city, and departure date.",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
@@ -495,7 +859,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
       console.log('Flight search response:', response);
 
       if (response.data && response.data.length > 0) {
-        const transformedFlights = response.data.map(offer => 
+        const transformedFlights = response.data.map((offer: AmadeusFlightOfferFull) => 
           transformAmadeusToFlightOffer(offer, response.dictionaries.carriers, response.dictionaries.aircraft)
         );
         
@@ -524,7 +888,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchParams, missingFields, toast, setLoading, setMinLoaderVisible, setSearchPerformed, transformAmadeusToFlightOffer]);
 
   const formatDuration = (duration: string) => {
     // Convert PT6H30M to "6h 30m"
@@ -635,6 +999,18 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
                   setFromPopoverOpen={setFromPopoverOpen}
                   getTotalPassengers={getTotalPassengers}
                   swapLocations={swapLocations}
+                  toPopoverOpen={toPopoverOpen}
+                  setToPopoverOpen={setToPopoverOpen}
+                  toLoading={toLoading}
+                  toError={toError}
+                  toSuggestions={toSuggestions}
+                  missingFields={missingFields}
+                  searchAttempted={searchAttempted}
+                  departurePopoverOpen={departurePopoverOpen}
+                  setDeparturePopoverOpen={setDeparturePopoverOpen}
+                  returnPopoverOpen={returnPopoverOpen}
+                  setReturnPopoverOpen={setReturnPopoverOpen}
+                  loading={loading}
                 />
               </DialogContent>
             </Dialog>
@@ -749,7 +1125,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
           )}
         </>
       ) : (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-4 flex flex-col gap-4">
           <SearchForm
             searchParams={searchParams}
             setSearchParams={setSearchParams}
@@ -769,14 +1144,25 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect, className }
             setFromPopoverOpen={setFromPopoverOpen}
             getTotalPassengers={getTotalPassengers}
             swapLocations={swapLocations}
-          />
-        </div>
+          toPopoverOpen={toPopoverOpen}
+          setToPopoverOpen={setToPopoverOpen}
+          toLoading={toLoading}
+          toError={toError}
+          toSuggestions={toSuggestions}
+          missingFields={missingFields}
+          searchAttempted={searchAttempted}
+          departurePopoverOpen={departurePopoverOpen}
+          setDeparturePopoverOpen={setDeparturePopoverOpen}
+          returnPopoverOpen={returnPopoverOpen}
+          setReturnPopoverOpen={setReturnPopoverOpen}
+          loading={loading}
+        />
       )}
     </div>
   );
 };
 
-const FlightDetails = ({ offer }: { offer: any }) => {
+const FlightDetails = ({ offer }: FlightDetailsProps) => {
   if (!offer) return <div className="text-gray-500">Details not available.</div>;
 
   // Pricing by traveler type
@@ -786,13 +1172,13 @@ const FlightDetails = ({ offer }: { offer: any }) => {
   };
 
   // Baggage info for all segments
-  const getBaggage = (segments: any[]) => {
-    return segments.map((seg, idx) => {
-      const bag = seg.includedCheckedBags?.quantity;
+  const getBaggage = (segments: AmadeusSegment[]) => {
+    return segments.map((seg: AmadeusSegment, idx: number) => {
+      const bag = (seg as unknown as { includedCheckedBags?: AmadeusBaggage }).includedCheckedBags?.quantity;
       return (
-        <div key={idx} className="mb-2">
-          <span className="font-semibold">{seg.departure.iataCode} → {seg.arrival.iataCode}:</span> {bag ? `${bag} checked bag${bag > 1 ? 's' : ''}` : 'N/A'}
-        </div>
+        <span key={idx} className="inline-block mr-2">
+          {bag ? `${bag} bag${bag > 1 ? 's' : ''}` : 'No checked bag'}
+        </span>
       );
     });
   };
@@ -802,15 +1188,11 @@ const FlightDetails = ({ offer }: { offer: any }) => {
   const returnSegments = offer.itineraries[1]?.segments || [];
 
   // Layover calculation
-  const getLayover = (prev: any, next: any) => {
-    if (!prev || !next) return null;
+  const getLayover = (prev: AmadeusSegmentWithArrival, next: AmadeusSegment) => {
     const prevArrival = new Date(prev.arrival.at);
     const nextDeparture = new Date(next.departure.at);
-    const diffMs = nextDeparture.getTime() - prevArrival.getTime();
-    if (diffMs <= 0) return null;
-    const hours = Math.floor(diffMs / 3600000);
-    const mins = Math.floor((diffMs % 3600000) / 60000);
-    return `${hours ? hours + 'h ' : ''}${mins}m layover`;
+    const diff = (nextDeparture.getTime() - prevArrival.getTime()) / (1000 * 60); // minutes
+    return `${Math.floor(diff / 60)}h ${diff % 60}m`;
   };
 
   return (

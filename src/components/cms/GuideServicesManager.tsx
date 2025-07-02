@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ interface GuideService {
   rating: number;
   status: string;
   description: string;
-  availability_schedule?: any; // Changed from string to any to match Json type
+  availability_schedule?: unknown; // Changed from string to unknown to match Json type
   qualifications?: string[];
   specializations?: string[];
 }
@@ -74,7 +73,7 @@ const GuideServicesManager = () => {
   const [viewingGuide, setViewingGuide] = useState<GuideService | null>(null);
   const [cropDialogOpen, setCropDialogOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<unknown>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [faceLoading, setFaceLoading] = useState(false);
@@ -129,7 +128,7 @@ const GuideServicesManager = () => {
   };
 
   // Helper to get cropped image blob
-  async function getCroppedImg(imageSrc: string, cropPixels: any) {
+  async function getCroppedImg(imageSrc: string, cropPixels: unknown) {
     const image = new window.Image();
     image.src = imageSrc;
     await new Promise(resolve => { image.onload = resolve; });
@@ -223,7 +222,7 @@ const GuideServicesManager = () => {
   };
 
   // Add or update guide
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: unknown) => {
     console.log('Form data on submit:', data); // Debug log
     // serviceType is already an array of labels
     const serviceTypes = (Array.isArray(data.serviceType) ? data.serviceType : []).map(label => SERVICE_TYPE_ENUM_MAP[label] || label);

@@ -36,7 +36,7 @@ const ZiarathManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingZiarath, setEditingZiarath] = useState<ZiarathService | null>(null);
   const [viewingZiarath, setViewingZiarath] = useState<ZiarathService | null>(null);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<unknown[]>([]);
   const [vehiclePrices, setVehiclePrices] = useState<{ [vehicleId: string]: number }>({});
 
   const form = useForm({

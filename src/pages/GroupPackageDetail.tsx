@@ -12,7 +12,7 @@ import { format } from 'date-fns';
 
 const GroupPackageDetail = () => {
   const { slug } = useParams();
-  const [pkg, setPkg] = useState<any>(null);
+  const [pkg, setPkg] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -272,7 +272,7 @@ const GroupPackageDetail = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {pkg.itinerary.map((item: any, idx: number) => (
+                        {Array.isArray(pkg?.itinerary) && pkg.itinerary.map((item: unknown, idx: number) => (
                           <tr key={idx} className="even:bg-gray-50">
                             <td className="px-3 py-2 border">{item.day || idx + 1}</td>
                             <td className="px-3 py-2 border">{item.location || '-'}</td>

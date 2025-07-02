@@ -15,7 +15,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function HotelEnquiriesManager() {
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 

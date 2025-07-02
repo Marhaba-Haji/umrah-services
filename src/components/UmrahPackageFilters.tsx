@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Star, Filter } from 'lucide-react';
 
 interface UmrahPackageFiltersProps {
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: unknown) => void;
 }
 
 const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {

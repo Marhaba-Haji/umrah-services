@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const OtherSaudiServices = () => {
   const { currency } = useCurrency();
-  const [visaServices, setVisaServices] = React.useState<any[]>([]);
+  const [visaServices, setVisaServices] = React.useState<unknown[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   // Currency conversion rates (base INR)

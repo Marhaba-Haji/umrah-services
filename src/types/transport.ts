@@ -1,4 +1,3 @@
-
 export interface TransportService {
   id: string;
   vehicle_type: string;
@@ -7,7 +6,7 @@ export interface TransportService {
   capacity: number;
   luggage_capacity?: string;
   features?: string[];
-  vehicle_details?: Record<string, any>;
+  vehicle_details?: Record<string, unknown>;
   route: string;
   price: number;
   trip_duration?: string;
@@ -23,6 +22,6 @@ export interface VehicleType {
   capacity: number;
   luggage_capacity?: string;
   features?: string[];
-  vehicle_details?: Record<string, any>;
+  vehicle_details?: Record<string, unknown>;
   routes: TransportService[];
 }

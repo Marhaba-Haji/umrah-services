@@ -80,7 +80,7 @@ const UmrahApplication = () => {
   });
   const [sameAsFirst, setSameAsFirst] = useState(false);
   const [visaType, setVisaType] = useState('express');
-  const [visaOptions, setVisaOptions] = useState<any[]>([]);
+  const [visaOptions, setVisaOptions] = useState<unknown[]>([]);
   const [loadingVisas, setLoadingVisas] = useState(true);
 
   const steps = [

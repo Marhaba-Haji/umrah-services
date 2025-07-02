@@ -13,15 +13,15 @@ import ResponsiveBanner from '../components/ResponsiveBanner';
 const PackageDetailDynamic = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [pkg, setPkg] = useState<any>(null);
+  const [pkg, setPkg] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedRoomType, setSelectedRoomType] = useState('');
   const [guestCount, setGuestCount] = useState({ adults: 2, childWithBed: 0, childWithoutBed: 0, infants: 0 });
   const [totalCost, setTotalCost] = useState(0);
-  const [activityDetails, setActivityDetails] = useState<any[]>([]);
-  const [hotelDetails, setHotelDetails] = useState<{ makkah?: any; madinah?: any }>({});
+  const [activityDetails, setActivityDetails] = useState<unknown[]>([]);
+  const [hotelDetails, setHotelDetails] = useState<{ makkah?: unknown; madinah?: unknown }>({});
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -58,7 +58,7 @@ const PackageDetailDynamic = () => {
   useEffect(() => {
     if (!pkg) return;
     const fetchHotels = async () => {
-      let newHotelDetails: any = {};
+      let newHotelDetails: Record<string, unknown> = {};
       // Fetch Makkah hotel if needed
       if (pkg.makkah_hotel && (typeof pkg.makkah_hotel === 'string' || !pkg.makkah_hotel.featured_image)) {
         const makkahId = typeof pkg.makkah_hotel === 'string' ? pkg.makkah_hotel : pkg.makkah_hotel.id;
@@ -312,7 +312,7 @@ const PackageDetailDynamic = () => {
                     {pkg.itinerary && Array.isArray(pkg.itinerary) && pkg.itinerary.length > 0 ? (
                       <div className="relative pl-8">
                         <div className="absolute left-2 top-0 bottom-0 w-1 bg-emerald-100 rounded" />
-                        {pkg.itinerary.map((item: any, idx: number) => {
+                        {pkg.itinerary.map((item: unknown, idx: number) => {
                           // Determine day type and icon
                           const dayTitle = (item.location || item.title || '').toLowerCase();
                           let dotColor = 'bg-emerald-500';
@@ -368,7 +368,7 @@ const PackageDetailDynamic = () => {
                   <CardContent>
                     {activityDetails && activityDetails.length > 0 ? (
                       <div className="space-y-8">
-                        {activityDetails.map((activity: any, idx: number) => {
+                        {activityDetails.map((activity: unknown, idx: number) => {
                           return (
                             <div key={activity.id || idx} className="bg-white rounded-xl shadow-md border border-emerald-100 overflow-hidden hover:shadow-lg transition-shadow duration-200 p-6">
                               <div className="clearfix">

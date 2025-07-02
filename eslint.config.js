@@ -24,6 +24,20 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/ban-types": [
+        "error",
+        {
+          "types": {
+            "{}": false,
+            "Object": false,
+            "object": false,
+            "Function": false,
+            "Record<string, any>": true
+          },
+          "extendDefaults": true
+        }
+      ]
     },
   }
 );

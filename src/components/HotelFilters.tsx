@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Star } from 'lucide-react';
 
 interface HotelFiltersProps {
-  onFilterChange: (filters: any) => void;
+  onFilterChange: (filters: unknown) => void;
 }
 
 const HotelFilters = ({ onFilterChange }: HotelFiltersProps) => {

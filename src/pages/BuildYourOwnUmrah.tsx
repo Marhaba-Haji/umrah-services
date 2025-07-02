@@ -55,7 +55,7 @@ const BuildYourOwnUmrah = () => {
     },
     selectedFlight: null,
     selectedVisa: null,
-    selectedTransport: null,
+    selectedTransports: [],
     selectedGuide: null,
     selectedActivities: [],
     mealPlan: 'breakfast',
@@ -114,7 +114,7 @@ const BuildYourOwnUmrah = () => {
     if (packageData.selectedHotels.madinah) baseCost += 1000;
     if (packageData.selectedFlight) baseCost += parseFloat(packageData.selectedFlight.price?.total || 0);
     if (packageData.selectedVisa) baseCost += parseFloat(packageData.selectedVisa.price || 0);
-    if (packageData.selectedTransport) baseCost += parseFloat(packageData.selectedTransport.price || 0);
+    if (packageData.selectedTransports && packageData.selectedTransports.length > 0) baseCost += packageData.selectedTransports.reduce((sum, t) => sum + parseFloat(t.price || 0), 0);
     if (packageData.selectedGuide) baseCost += 500; // Base guide cost
     baseCost += packageData.selectedActivities.length * 200;
     return baseCost;
@@ -134,36 +134,28 @@ const BuildYourOwnUmrah = () => {
     }
   };
 
-  const StepIndicator = () => (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 mb-4">
-      <div className="flex items-center justify-between max-w-sm mx-auto overflow-x-auto">
-        {steps.map((step, index) => (
-          <div key={step.id} className="flex items-center flex-shrink-0">
-            <div className={`
-              flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all duration-300
-              ${currentStep === step.id 
-                ? 'bg-emerald-500 text-white shadow-lg scale-110' 
-                : currentStep > step.id 
-                  ? 'bg-emerald-100 text-emerald-600' 
-                  : 'bg-gray-100 text-gray-400'
-              }
-            `}>
-              {currentStep > step.id ? <Check className="w-4 h-4" /> : step.id}
-            </div>
-            {index < steps.length - 1 && (
-              <div className={`w-6 h-0.5 mx-1 transition-colors duration-300 ${
-                currentStep > step.id ? 'bg-emerald-200' : 'bg-gray-200'
-              }`} />
-            )}
+  const StepIndicator = () => {
+    const step = steps[currentStep - 1];
+    const progress = ((currentStep - 1) / (steps.length - 1)) * 100;
+    const StepIcon = step.icon;
+    return (
+      <div className="sticky top-0 z-10 px-4 py-4 mb-4">
+        <div className="bg-white rounded-2xl shadow border border-gray-100 p-5 max-w-md mx-auto">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xl font-bold text-gray-900">Build Your Umrah</span>
+            <span className="bg-emerald-100 text-emerald-700 font-semibold px-3 py-1 rounded-full text-sm">Step {currentStep} of {steps.length}</span>
           </div>
-        ))}
+          <div className="w-full h-2 bg-gray-200 rounded-full mb-4">
+            <div className="h-2 bg-emerald-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
+          </div>
+          <div className="flex items-center gap-3 mt-2">
+            <StepIcon className="w-7 h-7 text-emerald-600" />
+            <span className="text-lg font-semibold text-gray-900">{step.title}</span>
+          </div>
+        </div>
       </div>
-      <div className="text-center mt-2">
-        <h3 className="font-semibold text-emerald-900">{steps[currentStep - 1].title}</h3>
-        <p className="text-xs text-gray-600">{steps[currentStep - 1].desc}</p>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const DurationStep = () => (
     <div className="px-4 space-y-6">
@@ -363,21 +355,8 @@ const BuildYourOwnUmrah = () => {
   const FlightSearchStep = () => (
     <div className="px-4 space-y-6">
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-emerald-900 mb-2">Find Your Flights</h2>
-        <p className="text-gray-600">Search and select the best flights for your journey</p>
-      </div>
-
-      {/* Skip Option */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button
-          onClick={nextStep}
-          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-100 transition-colors"
-        >
-          <div className="text-center">
-            <div className="font-medium">Skip Flight Selection</div>
-            <div className="text-sm">I'll arrange flights separately</div>
-          </div>
-        </button>
+        <h2 className="text-2xl font-bold text-emerald-900 mb-2">Flights</h2>
+        <p className="text-gray-600">Search and select your flights</p>
       </div>
 
       <FlightStep 
@@ -385,6 +364,9 @@ const BuildYourOwnUmrah = () => {
           setPackageData({ ...packageData, selectedFlight: flight });
           nextStep();
         }}
+        initialAdults={packageData.travelers.adults}
+        initialChildren={packageData.travelers.children}
+        initialInfants={packageData.travelers.infants}
       />
     </div>
   );
@@ -394,25 +376,6 @@ const BuildYourOwnUmrah = () => {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-emerald-900 mb-2">{title}</h2>
         <p className="text-gray-600">{description}</p>
-      </div>
-
-      {/* Skip Option */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button
-          onClick={() => {
-            setPackageData({
-              ...packageData,
-              selectedHotels: { ...packageData.selectedHotels, [city]: 'skip' }
-            });
-            nextStep();
-          }}
-          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-100 transition-colors"
-        >
-          <div className="text-center">
-            <div className="font-medium">Skip {city} Hotel</div>
-            <div className="text-sm">I'll arrange accommodation separately</div>
-          </div>
-        </button>
       </div>
 
       {/* Room and Date Configuration */}
@@ -599,19 +562,6 @@ const BuildYourOwnUmrah = () => {
         <p className="text-gray-600">Choose the appropriate visa for your journey</p>
       </div>
 
-      {/* Skip Option */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button
-          onClick={nextStep}
-          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-100 transition-colors"
-        >
-          <div className="text-center">
-            <div className="font-medium">Skip Visa Selection</div>
-            <div className="text-sm">I already have a visa or will arrange separately</div>
-          </div>
-        </button>
-      </div>
-
       <div className="space-y-3">
         {visas.map(visa => (
           <button
@@ -653,58 +603,55 @@ const BuildYourOwnUmrah = () => {
         <p className="text-gray-600">Choose your transportation options</p>
       </div>
 
-      {/* Skip Option */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button
-          onClick={nextStep}
-          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-100 transition-colors"
-        >
-          <div className="text-center">
-            <div className="font-medium">Skip Transport Selection</div>
-            <div className="text-sm">I'll arrange transportation separately</div>
-          </div>
-        </button>
-      </div>
-
       <div className="space-y-3">
-        {transports.map(transport => (
-          <button
-            key={transport.id}
-            onClick={() => setPackageData({ ...packageData, selectedTransport: transport })}
-            className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
-              packageData.selectedTransport?.id === transport.id
-                ? 'border-emerald-500 bg-emerald-50 shadow-md'
-                : 'border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm'
-            }`}
-          >
-            <div className="flex items-start space-x-3">
-              <img
-                src={transport.vehicle_image || '/placeholder.svg'}
-                alt={transport.vehicle_name}
-                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-                onError={(e) => { e.target.src = '/placeholder.svg'; }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-semibold text-emerald-900">{transport.vehicle_name}</h4>
-                    <p className="text-sm text-gray-600">{transport.route}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">{transport.vehicle_type}</Badge>
-                      <span className="text-xs text-gray-500">👥 {transport.capacity} people</span>
+        {transports.map(transport => {
+          const isSelected = packageData.selectedTransports.some(t => t.id === transport.id);
+          return (
+            <button
+              key={transport.id}
+              onClick={() => {
+                setPackageData({
+                  ...packageData,
+                  selectedTransports: isSelected
+                    ? packageData.selectedTransports.filter(t => t.id !== transport.id)
+                    : [...packageData.selectedTransports, transport]
+                });
+              }}
+              className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                isSelected
+                  ? 'border-emerald-500 bg-emerald-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-emerald-300 hover:shadow-sm'
+              }`}
+            >
+              <div className="flex items-start space-x-3">
+                <img
+                  src={transport.vehicle_image || '/placeholder.svg'}
+                  alt={transport.vehicle_name}
+                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                  onError={(e) => { e.target.src = '/placeholder.svg'; }}
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-semibold text-emerald-900">{transport.vehicle_name}</h4>
+                      <p className="text-sm text-gray-600">{transport.route}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">{transport.vehicle_type}</Badge>
+                        <span className="text-xs text-gray-500">👥 {transport.capacity} people</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-emerald-600">₹{transport.price}</div>
-                    {packageData.selectedTransport?.id === transport.id && (
-                      <Check className="w-5 h-5 text-emerald-600 mt-1" />
-                    )}
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-emerald-600">₹{transport.price}</div>
+                      {isSelected && (
+                        <Check className="w-5 h-5 text-emerald-600 mt-1" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -714,19 +661,6 @@ const BuildYourOwnUmrah = () => {
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-emerald-900 mb-2">Tour Guide</h2>
         <p className="text-gray-600">Choose an experienced guide for your journey</p>
-      </div>
-
-      {/* Skip Option */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <button
-          onClick={nextStep}
-          className="w-full p-3 rounded-lg border-2 border-dashed border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-100 transition-colors"
-        >
-          <div className="text-center">
-            <div className="font-medium">Skip Guide Selection</div>
-            <div className="text-sm">I don't need a tour guide</div>
-          </div>
-        </button>
       </div>
 
       <div className="space-y-3">
@@ -937,15 +871,15 @@ const BuildYourOwnUmrah = () => {
           </div>
 
           {/* Services Summary */}
-          {(packageData.selectedVisa || packageData.selectedTransport || packageData.selectedGuide) && (
+          {(packageData.selectedVisa || (packageData.selectedTransports && packageData.selectedTransports.length > 0) || packageData.selectedGuide) && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <h4 className="font-semibold text-gray-900 mb-3">Selected Services</h4>
               <div className="space-y-2 text-sm">
                 {packageData.selectedVisa && (
                   <p><span className="font-medium">Visa:</span> {packageData.selectedVisa.visa_type}</p>
                 )}
-                {packageData.selectedTransport && (
-                  <p><span className="font-medium">Transport:</span> {packageData.selectedTransport.vehicle_name}</p>
+                {packageData.selectedTransports && packageData.selectedTransports.length > 0 && (
+                  <p><span className="font-medium">Transport:</span> {packageData.selectedTransports.map(t => t.vehicle_name).join(', ')}</p>
                 )}
                 {packageData.selectedGuide && (
                   <p><span className="font-medium">Guide:</span> {packageData.selectedGuide.guide_name}</p>
@@ -990,10 +924,10 @@ const BuildYourOwnUmrah = () => {
                   <span>₹{parseFloat(packageData.selectedVisa.price || 0).toLocaleString()}</span>
                 </div>
               )}
-              {packageData.selectedTransport && (
+              {packageData.selectedTransports && packageData.selectedTransports.length > 0 && (
                 <div className="flex justify-between text-sm">
                   <span>Transport</span>
-                  <span>₹{parseFloat(packageData.selectedTransport.price || 0).toLocaleString()}</span>
+                  <span>₹{packageData.selectedTransports.reduce((sum, t) => sum + parseFloat(t.price || 0), 0).toLocaleString()}</span>
                 </div>
               )}
               {packageData.selectedGuide && (
@@ -1058,13 +992,69 @@ const BuildYourOwnUmrah = () => {
               Back
             </Button>
           )}
-          <Button 
-            onClick={currentStep === steps.length ? () => alert('Package created!') : nextStep}
-            className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90"
-          >
-            {currentStep === steps.length ? 'Create Package' : 'Continue'}
-            <ChevronRight className="w-5 h-5 ml-1" />
-          </Button>
+          {/* Toggle Skip/Continue for each step */}
+          {(() => {
+            // Step mapping: step number to selection logic
+            if (currentStep === 3) { // Flight
+              return packageData.selectedFlight ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 4) { // Makkah Hotel
+              return packageData.selectedHotels.makkah ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 5) { // Madinah Hotel
+              return packageData.selectedHotels.madinah ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 6) { // Visa
+              return packageData.selectedVisa ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 7) { // Transport
+              return packageData.selectedTransports && packageData.selectedTransports.length > 0 ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 8) { // Guide
+              return packageData.selectedGuide ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            if (currentStep === 9) { // Activities
+              return packageData.selectedActivities && packageData.selectedActivities.length > 0 ? (
+                <Button onClick={nextStep} className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90">Continue<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              ) : (
+                <Button onClick={nextStep} variant="outline" className="flex-1 py-3 text-lg font-semibold">Skip<ChevronRight className="w-5 h-5 ml-1" /></Button>
+              );
+            }
+            // Default for other steps
+            return (
+              <Button 
+                onClick={currentStep === steps.length ? () => alert('Package created!') : nextStep}
+                className="flex-1 py-3 text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90"
+              >
+                {currentStep === steps.length ? 'Create Package' : 'Continue'}
+                <ChevronRight className="w-5 h-5 ml-1" />
+              </Button>
+            );
+          })()}
         </div>
       </div>
 

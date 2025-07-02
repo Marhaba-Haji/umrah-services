@@ -23,14 +23,14 @@ const HotelBooking = () => {
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('price-asc');
-  const [activeFilters, setActiveFilters] = useState<any>({
+  const [activeFilters, setActiveFilters] = useState<Record<string, unknown>>({
     city: 'makkah',
     priceRange: [0, 10000],
     starRating: [],
     distanceRange: [0, 15000],
     amenities: [],
   });
-  const [enquiryHotel, setEnquiryHotel] = useState<any>(null);
+  const [enquiryHotel, setEnquiryHotel] = useState<unknown>(null);
   const [isEnquiryOpen, setIsEnquiryOpen] = useState(false);
   const [enquiryForm, setEnquiryForm] = useState({
     name: '',
@@ -179,7 +179,7 @@ const HotelBooking = () => {
     }
   };
 
-  const openEnquiry = (hotel: any) => {
+  const openEnquiry = (hotel: unknown) => {
     setEnquiryHotel(hotel);
     setIsEnquiryOpen(true);
   };
@@ -234,7 +234,7 @@ const HotelBooking = () => {
       setEnquiryHotel(null);
       setEnquiryForm({ name: '', email: '', countryCode: '+91', phone: '', message: '', checkIn: '', checkOut: '', rooms: [{ guests: 1 }] });
       toast.success('Enquiry submitted!');
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error('Failed to submit enquiry. Please try again.');
     } finally {
       setEnquiryLoading(false);
@@ -247,7 +247,7 @@ const HotelBooking = () => {
     setCountrySearch('');
   };
 
-  const HotelCard = ({ hotel }: { hotel: any }) => {
+  const HotelCard = ({ hotel }: { hotel: unknown }) => {
     const distanceColumn = hotel.city === 'makkah' ? hotel.distance_from_haram : hotel.distance_from_masjid_e_nabawi;
     const distanceFrom = hotel.city === 'makkah' ? 'Haram' : 'Masjid-e-Nabawi';
 

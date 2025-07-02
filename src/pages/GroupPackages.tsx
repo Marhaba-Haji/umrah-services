@@ -21,7 +21,7 @@ import { format } from 'date-fns';
 
 const GroupPackages = () => {
   const [filters, setFilters] = useState({});
-  const [groupPackages, setGroupPackages] = useState<any[]>([]);
+  const [groupPackages, setGroupPackages] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const GroupPackages = () => {
     fetchGroupPackages();
   }, []);
 
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = (newFilters: unknown) => {
     setFilters(newFilters);
     // Filtering logic can be added here
   };
