@@ -501,6 +501,65 @@ export type Database = {
           },
         ]
       }
+      group_flight_inquiries: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string | null
+          departure_date: string
+          from_city: string
+          id: string
+          passenger_count: number
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          return_date: string | null
+          status: string | null
+          to_city: string
+          trip_type: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          departure_date: string
+          from_city: string
+          id?: string
+          passenger_count: number
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          return_date?: string | null
+          status?: string | null
+          to_city: string
+          trip_type: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string | null
+          departure_date?: string
+          from_city?: string
+          id?: string
+          passenger_count?: number
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          return_date?: string | null
+          status?: string | null
+          to_city?: string
+          trip_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_flight_inquiries_responded_by_fkey"
+            columns: ["responded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_flights: {
         Row: {
           airline: string
@@ -1098,53 +1157,77 @@ export type Database = {
       }
       saudi_visas: {
         Row: {
+          agency_fees: number | null
           application_process: Json | null
           approval_rate: number | null
+          checklist_url: string | null
           created_at: string | null
           description: string | null
+          eligibility: string | null
+          embassy_fees: number | null
+          featured_image: string | null
           id: string
           number_of_entries: string
           price: number
+          process: string | null
           processing_time: string
           required_documents: Json | null
           requirements: string[] | null
           status: Database["public"]["Enums"]["visa_status"] | null
           stay_validity: string
+          total_stay_allowed: number | null
           visa_category: string
+          visa_format: string | null
           visa_type: string
           visa_validity: string
         }
         Insert: {
+          agency_fees?: number | null
           application_process?: Json | null
           approval_rate?: number | null
+          checklist_url?: string | null
           created_at?: string | null
           description?: string | null
+          eligibility?: string | null
+          embassy_fees?: number | null
+          featured_image?: string | null
           id?: string
           number_of_entries: string
           price: number
+          process?: string | null
           processing_time: string
           required_documents?: Json | null
           requirements?: string[] | null
           status?: Database["public"]["Enums"]["visa_status"] | null
           stay_validity: string
+          total_stay_allowed?: number | null
           visa_category: string
+          visa_format?: string | null
           visa_type: string
           visa_validity: string
         }
         Update: {
+          agency_fees?: number | null
           application_process?: Json | null
           approval_rate?: number | null
+          checklist_url?: string | null
           created_at?: string | null
           description?: string | null
+          eligibility?: string | null
+          embassy_fees?: number | null
+          featured_image?: string | null
           id?: string
           number_of_entries?: string
           price?: number
+          process?: string | null
           processing_time?: string
           required_documents?: Json | null
           requirements?: string[] | null
           status?: Database["public"]["Enums"]["visa_status"] | null
           stay_validity?: string
+          total_stay_allowed?: number | null
           visa_category?: string
+          visa_format?: string | null
           visa_type?: string
           visa_validity?: string
         }
