@@ -1,68 +1,106 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, Car } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { Eye, Edit, Trash2, Plus, Car } from "lucide-react";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 
 const VEHICLE_TYPES = [
-  'Sedan', 'Mini Van', 'GMC', 'Large Van', 'Mini Bus', 'Bus', 'Van', 'Coach'
+  "Sedan",
+  "Mini Van",
+  "GMC",
+  "Large Van",
+  "Mini Bus",
+  "Bus",
+  "Van",
+  "Coach",
 ];
 const FEATURE_OPTIONS = [
-  'AC', 'WiFi', 'Reclining Seats', 'Charger', 'TV', 'Music', 'Luggage', 'Water', 'Snacks', 'GPS', 'Leather Seats', 'Sunroof'
+  "AC",
+  "WiFi",
+  "Reclining Seats",
+  "Charger",
+  "TV",
+  "Music",
+  "Luggage",
+  "Water",
+  "Snacks",
+  "GPS",
+  "Leather Seats",
+  "Sunroof",
 ];
 
 const VEHICLE_TYPE_MAP = {
-  'Sedan': 'car',
-  'Mini Van': 'van',
-  'GMC': 'luxury_car',
-  'Large Van': 'van',
-  'Mini Bus': 'bus',
-  'Bus': 'bus',
-  'Van': 'van',
-  'Coach': 'bus',
+  Sedan: "car",
+  "Mini Van": "van",
+  GMC: "luxury_car",
+  "Large Van": "van",
+  "Mini Bus": "bus",
+  Bus: "bus",
+  Van: "van",
+  Coach: "bus",
 };
 
 const defaultValues = {
-  vehicle_type: '',
-  vehicle_name: '',
-  route: '',
-  capacity: '',
-  price: '',
-  description: '',
+  vehicle_type: "",
+  vehicle_name: "",
+  route: "",
+  capacity: "",
+  price: "",
+  description: "",
   features: [],
-  driver_name: '',
-  driver_contact: '',
-  vehicle_details: '',
+  driver_name: "",
+  driver_contact: "",
+  vehicle_details: "",
   is_ac: true,
-  luggage_capacity: '',
+  luggage_capacity: "",
   is_active: true,
-  trip_distance: '',
-  trip_duration: '',
-  vehicle_image: '',
+  trip_distance: "",
+  trip_duration: "",
+  vehicle_image: "",
 };
 
 const vehicleDefaultValues = {
-  vehicle_name: '',
-  vehicle_type: '',
-  capacity: '',
-  luggage_capacity: '',
+  vehicle_name: "",
+  vehicle_type: "",
+  capacity: "",
+  luggage_capacity: "",
   features: [],
-  vehicle_image: '',
-  description: '',
+  vehicle_image: "",
+  description: "",
 };
 
 const routeDefaultValues = {
-  route_name: '',
-  trip_duration: '',
-  trip_distance: '',
-  description: '',
+  route_name: "",
+  trip_duration: "",
+  trip_distance: "",
+  description: "",
 };
 
 const TransportManager = () => {
@@ -77,9 +115,9 @@ const TransportManager = () => {
   const [isRouteDialogOpen, setIsRouteDialogOpen] = useState(false);
   const [vehicleImageFile, setVehicleImageFile] = useState(null);
   const [isTransportDialogOpen, setIsTransportDialogOpen] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState('');
-  const [selectedRouteId, setSelectedRouteId] = useState('');
-  const [transportPrice, setTransportPrice] = useState('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
+  const [selectedRouteId, setSelectedRouteId] = useState("");
+  const [transportPrice, setTransportPrice] = useState("");
 
   const form = useForm({ defaultValues });
   const vehicleForm = useForm({ defaultValues: vehicleDefaultValues });
@@ -89,9 +127,9 @@ const TransportManager = () => {
   const fetchTransports = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('transport_services')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("transport_services")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (!error) setTransports(data || []);
     setLoading(false);
   };
@@ -99,38 +137,44 @@ const TransportManager = () => {
   // Fetch all vehicles
   const fetchVehicles = async () => {
     const { data, error } = await supabase
-      .from('vehicles')
-      .select('*')
-      .order('vehicle_name');
+      .from("vehicles")
+      .select("*")
+      .order("vehicle_name");
     if (!error) setVehicles(data || []);
   };
 
   // Fetch all routes
   const fetchRoutes = async () => {
     const { data, error } = await supabase
-      .from('routes')
-      .select('*')
-      .order('route_name');
+      .from("routes")
+      .select("*")
+      .order("route_name");
     if (!error) setRoutes(data || []);
   };
 
-  useEffect(() => { fetchTransports(); fetchVehicles(); fetchRoutes(); }, []);
+  useEffect(() => {
+    fetchTransports();
+    fetchVehicles();
+    fetchRoutes();
+  }, []);
 
   // Add or update transport
   const onSubmit = async (data) => {
     let vehicleImageUrl = data.vehicle_image;
     if (imageFile) {
-      const fileExt = imageFile.name.split('.').pop();
+      const fileExt = imageFile.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('lovable-uploads').upload(fileName, imageFile);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("lovable-uploads")
+        .upload(fileName, imageFile);
       if (uploadError) {
-        alert('Image upload failed: ' + uploadError.message);
+        alert("Image upload failed: " + uploadError.message);
         return;
       }
-      vehicleImageUrl = `${supabaseUrl}/storage/v1/object/public/lovable-uploads/${fileName}`;
+      vehicleImageUrl = `${SUPABASE_URL}/storage/v1/object/public/lovable-uploads/${fileName}`;
     }
     const payload = {
-      vehicle_type: VEHICLE_TYPE_MAP[data.vehicle_type] || 'car',
+      vehicle_type: VEHICLE_TYPE_MAP[data.vehicle_type] || "car",
       vehicle_name: data.vehicle_name,
       route: data.route,
       capacity: parseInt(data.capacity),
@@ -140,7 +184,9 @@ const TransportManager = () => {
       driver_name: data.driver_name || null,
       driver_contact: data.driver_contact || null,
       vehicle_details: data.vehicle_details
-        ? (data.vehicle_details.trim().startsWith('{') ? JSON.parse(data.vehicle_details) : data.vehicle_details)
+        ? data.vehicle_details.trim().startsWith("{")
+          ? JSON.parse(data.vehicle_details)
+          : data.vehicle_details
         : null,
       is_ac: data.is_ac,
       luggage_capacity: data.luggage_capacity || null,
@@ -153,17 +199,15 @@ const TransportManager = () => {
     let result;
     if (editingTransport) {
       result = await supabase
-        .from('transport_services')
+        .from("transport_services")
         .update(payload)
-        .eq('id', editingTransport.id);
+        .eq("id", editingTransport.id);
     } else {
-      result = await supabase
-        .from('transport_services')
-        .insert([payload]);
+      result = await supabase.from("transport_services").insert([payload]);
     }
 
     if (result.error) {
-      alert('Failed to save transport: ' + result.error.message);
+      alert("Failed to save transport: " + result.error.message);
       return;
     }
 
@@ -179,21 +223,23 @@ const TransportManager = () => {
     setEditingTransport(transport);
     form.reset({
       vehicle_type: transport.vehicle_type,
-      vehicle_name: transport.vehicle_name || '',
+      vehicle_name: transport.vehicle_name || "",
       route: transport.route,
       capacity: transport.capacity.toString(),
       price: transport.price.toString(),
-      description: transport.description || '',
+      description: transport.description || "",
       features: transport.features || [],
-      driver_name: transport.driver_name || '',
-      driver_contact: transport.driver_contact || '',
-      vehicle_details: transport.vehicle_details ? JSON.stringify(transport.vehicle_details) : '',
+      driver_name: transport.driver_name || "",
+      driver_contact: transport.driver_contact || "",
+      vehicle_details: transport.vehicle_details
+        ? JSON.stringify(transport.vehicle_details)
+        : "",
       is_ac: transport.is_ac,
-      luggage_capacity: transport.luggage_capacity || '',
+      luggage_capacity: transport.luggage_capacity || "",
       is_active: transport.is_active,
-      trip_distance: transport.trip_distance || '',
-      trip_duration: transport.trip_duration || '',
-      vehicle_image: transport.vehicle_image || '',
+      trip_distance: transport.trip_distance || "",
+      trip_duration: transport.trip_duration || "",
+      vehicle_image: transport.vehicle_image || "",
     });
     setIsDialogOpen(true);
     setImageFile(null);
@@ -201,13 +247,14 @@ const TransportManager = () => {
 
   // Delete handler
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this transport?')) return;
+    if (!window.confirm("Are you sure you want to delete this transport?"))
+      return;
     const { error } = await supabase
-      .from('transport_services')
+      .from("transport_services")
       .delete()
-      .eq('id', id);
+      .eq("id", id);
     if (error) {
-      alert('Failed to delete transport: ' + error.message);
+      alert("Failed to delete transport: " + error.message);
       return;
     }
     fetchTransports();
@@ -215,18 +262,20 @@ const TransportManager = () => {
 
   // Add vehicle
   const onVehicleSubmit = async (data) => {
-    let vehicleImageUrl = '';
+    let vehicleImageUrl = "";
     if (vehicleImageFile) {
-      const fileExt = vehicleImageFile.name.split('.').pop();
+      const fileExt = vehicleImageFile.name.split(".").pop();
       const fileName = `${Date.now()}-vehicle-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage.from('lovable-uploads').upload(fileName, vehicleImageFile);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("lovable-uploads")
+        .upload(fileName, vehicleImageFile);
       if (uploadError) {
-        alert('Image upload failed: ' + uploadError.message);
+        alert("Image upload failed: " + uploadError.message);
         return;
       }
-      vehicleImageUrl = `${supabaseUrl}/storage/v1/object/public/lovable-uploads/${fileName}`;
+      vehicleImageUrl = `${SUPABASE_URL}/storage/v1/object/public/lovable-uploads/${fileName}`;
     }
-    const { error } = await supabase.from('vehicles').insert([
+    const { error } = await supabase.from("vehicles").insert([
       {
         vehicle_name: data.vehicle_name,
         vehicle_type: data.vehicle_type,
@@ -237,7 +286,10 @@ const TransportManager = () => {
         description: data.description,
       },
     ]);
-    if (error) { alert('Failed to save vehicle: ' + error.message); return; }
+    if (error) {
+      alert("Failed to save vehicle: " + error.message);
+      return;
+    }
     setIsVehicleDialogOpen(false);
     vehicleForm.reset(vehicleDefaultValues);
     setVehicleImageFile(null);
@@ -246,7 +298,7 @@ const TransportManager = () => {
 
   // Add route
   const onRouteSubmit = async (data) => {
-    const { error } = await supabase.from('routes').insert([
+    const { error } = await supabase.from("routes").insert([
       {
         route_name: data.route_name,
         trip_duration: data.trip_duration,
@@ -254,7 +306,10 @@ const TransportManager = () => {
         description: data.description,
       },
     ]);
-    if (error) { alert('Failed to save route: ' + error.message); return; }
+    if (error) {
+      alert("Failed to save route: " + error.message);
+      return;
+    }
     setIsRouteDialogOpen(false);
     routeForm.reset(routeDefaultValues);
     fetchRoutes();
@@ -263,10 +318,10 @@ const TransportManager = () => {
   // Add transport from vehicle and route
   const onTransportSubmit = async (e) => {
     e.preventDefault();
-    const vehicle = vehicles.find(v => v.id === selectedVehicleId);
-    const route = routes.find(r => r.id === selectedRouteId);
+    const vehicle = vehicles.find((v) => v.id === selectedVehicleId);
+    const route = routes.find((r) => r.id === selectedRouteId);
     if (!vehicle || !route || !transportPrice) {
-      alert('Please select a vehicle, route, and enter a price.');
+      alert("Please select a vehicle, route, and enter a price.");
       return;
     }
     const payload = {
@@ -283,12 +338,24 @@ const TransportManager = () => {
       trip_duration: route.trip_duration,
       is_active: true,
     };
-    const { error } = await supabase.from('transport_services').insert([payload]);
-    if (error) { alert('Failed to save transport: ' + error.message); return; }
+    let error;
+    if (editingTransport) {
+      ({ error } = await supabase
+        .from("transport_services")
+        .update(payload)
+        .eq("id", editingTransport.id));
+    } else {
+      ({ error } = await supabase.from("transport_services").insert([payload]));
+    }
+    if (error) {
+      alert("Failed to save transport: " + error.message);
+      return;
+    }
     setIsTransportDialogOpen(false);
-    setSelectedVehicleId('');
-    setSelectedRouteId('');
-    setTransportPrice('');
+    setEditingTransport(null);
+    setSelectedVehicleId("");
+    setSelectedRouteId("");
+    setTransportPrice("");
     fetchTransports();
   };
 
@@ -297,9 +364,16 @@ const TransportManager = () => {
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <h3 className="text-xl font-semibold">Transport Management</h3>
         <div className="flex gap-2">
-          <Dialog open={isVehicleDialogOpen} onOpenChange={setIsVehicleDialogOpen}>
+          <Dialog
+            open={isVehicleDialogOpen}
+            onOpenChange={setIsVehicleDialogOpen}
+          >
             <DialogTrigger asChild>
-              <Button onClick={() => { vehicleForm.reset(vehicleDefaultValues); }}>
+              <Button
+                onClick={() => {
+                  vehicleForm.reset(vehicleDefaultValues);
+                }}
+              >
                 <Plus className="w-4 h-4 mr-2" /> Add Vehicle
               </Button>
             </DialogTrigger>
@@ -307,88 +381,161 @@ const TransportManager = () => {
               <DialogHeader>
                 <DialogTitle>Add Vehicle</DialogTitle>
                 <DialogDescription>
-                  Fill in the details to add a new vehicle. All fields marked * are required.
+                  Fill in the details to add a new vehicle. All fields marked *
+                  are required.
                 </DialogDescription>
               </DialogHeader>
               <Form {...vehicleForm}>
-                <form onSubmit={vehicleForm.handleSubmit(onVehicleSubmit)} className="space-y-4">
-                  <FormField control={vehicleForm.control} name="vehicle_name" render={({ field }) => (
-                    <FormItem><FormLabel>Vehicle Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="vehicle_type" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <form
+                  onSubmit={vehicleForm.handleSubmit(onVehicleSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={vehicleForm.control}
+                    name="vehicle_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Name</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select vehicle type" />
-                          </SelectTrigger>
+                          <Input {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Sedan">Sedan</SelectItem>
-                          <SelectItem value="Mini Van">Mini Van</SelectItem>
-                          <SelectItem value="GMC">GMC</SelectItem>
-                          <SelectItem value="Van">Van</SelectItem>
-                          <SelectItem value="Mini Bus">Mini Bus</SelectItem>
-                          <SelectItem value="Bus">Bus</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="capacity" render={({ field }) => (
-                    <FormItem><FormLabel>Capacity</FormLabel><FormControl><Input type="number" min={1} {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="luggage_capacity" render={({ field }) => (
-                    <FormItem><FormLabel>Luggage Capacity</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="features" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Features</FormLabel>
-                      <div className="flex flex-wrap gap-2">
-                        {FEATURE_OPTIONS.map(option => (
-                          <label key={option} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              checked={field.value?.includes(option)}
-                              onChange={e => {
-                                if (e.target.checked) {
-                                  field.onChange([...(field.value || []), option]);
-                                } else {
-                                  field.onChange((field.value || []).filter(f => f !== option));
-                                }
-                              }}
-                            />
-                            <span>{option}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="vehicle_image" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle Image</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={e => {
-                            const file = e.target.files?.[0];
-                            setVehicleImageFile(file || null);
-                            if (!file) field.onChange('');
-                          }}
-                        />
-                      </FormControl>
-                      {vehicleImageFile && (
-                        <img src={URL.createObjectURL(vehicleImageFile)} alt="preview" className="w-24 h-16 object-cover rounded mt-2" />
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={vehicleForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="vehicle_type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select vehicle type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Sedan">Sedan</SelectItem>
+                            <SelectItem value="Mini Van">Mini Van</SelectItem>
+                            <SelectItem value="GMC">GMC</SelectItem>
+                            <SelectItem value="Van">Van</SelectItem>
+                            <SelectItem value="Mini Bus">Mini Bus</SelectItem>
+                            <SelectItem value="Bus">Bus</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="capacity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Capacity</FormLabel>
+                        <FormControl>
+                          <Input type="number" min={1} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="luggage_capacity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Luggage Capacity</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="features"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Features</FormLabel>
+                        <div className="flex flex-wrap gap-2">
+                          {FEATURE_OPTIONS.map((option) => (
+                            <label
+                              key={option}
+                              className="flex items-center space-x-2"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={field.value?.includes(option)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    field.onChange([
+                                      ...(field.value || []),
+                                      option,
+                                    ]);
+                                  } else {
+                                    field.onChange(
+                                      (field.value || []).filter(
+                                        (f) => f !== option,
+                                      ),
+                                    );
+                                  }
+                                }}
+                              />
+                              <span>{option}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="vehicle_image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Image</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              setVehicleImageFile(file || null);
+                              if (!file) field.onChange("");
+                            }}
+                          />
+                        </FormControl>
+                        {vehicleImageFile && (
+                          <img
+                            src={URL.createObjectURL(vehicleImageFile)}
+                            alt="preview"
+                            className="w-24 h-16 object-cover rounded mt-2"
+                          />
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={vehicleForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit">Save Vehicle</Button>
                 </form>
               </Form>
@@ -396,7 +543,11 @@ const TransportManager = () => {
           </Dialog>
           <Dialog open={isRouteDialogOpen} onOpenChange={setIsRouteDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { routeForm.reset(routeDefaultValues); }}>
+              <Button
+                onClick={() => {
+                  routeForm.reset(routeDefaultValues);
+                }}
+              >
                 <Plus className="w-4 h-4 mr-2" /> Add Route
               </Button>
             </DialogTrigger>
@@ -404,65 +555,153 @@ const TransportManager = () => {
               <DialogHeader>
                 <DialogTitle>Add Route</DialogTitle>
                 <DialogDescription>
-                  Enter the details for the new route. All fields marked * are required.
+                  Enter the details for the new route. All fields marked * are
+                  required.
                 </DialogDescription>
               </DialogHeader>
               <Form {...routeForm}>
-                <form onSubmit={routeForm.handleSubmit(onRouteSubmit)} className="space-y-4">
-                  <FormField control={routeForm.control} name="route_name" render={({ field }) => (
-                    <FormItem><FormLabel>Route Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="trip_duration" render={({ field }) => (
-                    <FormItem><FormLabel>Trip Duration</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="trip_distance" render={({ field }) => (
-                    <FormItem><FormLabel>Trip Distance</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
-                  <FormField control={routeForm.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                  )} />
+                <form
+                  onSubmit={routeForm.handleSubmit(onRouteSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={routeForm.control}
+                    name="route_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Route Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={routeForm.control}
+                    name="trip_duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trip Duration</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={routeForm.control}
+                    name="trip_distance"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Trip Distance</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={routeForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button type="submit">Save Route</Button>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
-          <Dialog open={isTransportDialogOpen} onOpenChange={setIsTransportDialogOpen}>
+          <Dialog
+            open={isTransportDialogOpen}
+            onOpenChange={setIsTransportDialogOpen}
+          >
             <DialogTrigger asChild>
-              <Button onClick={() => { setSelectedVehicleId(''); setSelectedRouteId(''); setTransportPrice(''); }}>
+              <Button
+                onClick={() => {
+                  setSelectedVehicleId("");
+                  setSelectedRouteId("");
+                  setTransportPrice("");
+                  setEditingTransport(null);
+                }}
+              >
                 <Plus className="w-4 h-4 mr-2" /> Add Transport
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-6">
               <DialogHeader>
-                <DialogTitle>Add Transport</DialogTitle>
+                <DialogTitle>
+                  {editingTransport ? "Edit Transport" : "Add Transport"}
+                </DialogTitle>
                 <DialogDescription>
-                  Select a vehicle and a route, and enter a price to create a new transport service.
+                  Select a vehicle and a route, and enter a price to{" "}
+                  {editingTransport ? "update" : "create"} a transport service.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={onTransportSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Vehicle</label>
-                  <select className="w-full border rounded p-2" value={selectedVehicleId} onChange={e => setSelectedVehicleId(e.target.value)} required>
+                  <label className="block text-sm font-medium mb-1">
+                    Vehicle
+                  </label>
+                  <select
+                    className="w-full border rounded p-2"
+                    value={selectedVehicleId}
+                    onChange={(e) => setSelectedVehicleId(e.target.value)}
+                    required
+                  >
                     <option value="">Select vehicle</option>
-                    {vehicles.map(v => (
-                      <option key={v.id} value={v.id}>{v.vehicle_name} ({v.vehicle_type})</option>
+                    {vehicles.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.vehicle_name} ({v.vehicle_type})
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Route</label>
-                  <select className="w-full border rounded p-2" value={selectedRouteId} onChange={e => setSelectedRouteId(e.target.value)} required>
+                  <label className="block text-sm font-medium mb-1">
+                    Route
+                  </label>
+                  <select
+                    className="w-full border rounded p-2"
+                    value={selectedRouteId}
+                    onChange={(e) => setSelectedRouteId(e.target.value)}
+                    required
+                  >
                     <option value="">Select route</option>
-                    {routes.map(r => (
-                      <option key={r.id} value={r.id}>{r.route_name}</option>
+                    {routes.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.route_name}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Price</label>
-                  <input className="w-full border rounded p-2" type="number" min="0" step="0.01" value={transportPrice} onChange={e => setTransportPrice(e.target.value)} required placeholder="₹1000" />
+                  <label className="block text-sm font-medium mb-1">
+                    Price
+                  </label>
+                  <input
+                    className="w-full border rounded p-2"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={transportPrice}
+                    onChange={(e) => setTransportPrice(e.target.value)}
+                    required
+                    placeholder="₹1000"
+                  />
                 </div>
-                <Button type="submit">Save Transport</Button>
+                <Button type="submit">
+                  {editingTransport ? "Update Transport" : "Save Transport"}
+                </Button>
               </form>
             </DialogContent>
           </Dialog>
@@ -492,24 +731,58 @@ const TransportManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {transports.map(transport => (
+                {transports.map((transport) => (
                   <tr key={transport.id}>
                     <td className="p-2 border">{transport.vehicle_type}</td>
                     <td className="p-2 border">{transport.vehicle_name}</td>
                     <td className="p-2 border">{transport.trip_distance}</td>
                     <td className="p-2 border">{transport.trip_duration}</td>
-                    <td className="p-2 border">{transport.vehicle_image && <img src={transport.vehicle_image} alt="vehicle" className="w-16 h-10 object-cover rounded" />}</td>
+                    <td className="p-2 border">
+                      {transport.vehicle_image && (
+                        <img
+                          src={transport.vehicle_image}
+                          alt="vehicle"
+                          className="w-16 h-10 object-cover rounded"
+                        />
+                      )}
+                    </td>
                     <td className="p-2 border">{transport.route}</td>
                     <td className="p-2 border">{transport.capacity}</td>
                     <td className="p-2 border">{transport.price}</td>
-                    <td className="p-2 border">{transport.is_active ? 'Yes' : 'No'}</td>
+                    <td className="p-2 border">
+                      {transport.is_active ? "Yes" : "No"}
+                    </td>
                     <td className="p-2 border space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(transport)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingTransport(transport);
+                          const vehicle = vehicles.find(
+                            (v) =>
+                              v.vehicle_name === transport.vehicle_name &&
+                              v.vehicle_type === transport.vehicle_type,
+                          );
+                          const route = routes.find(
+                            (r) => r.route_name === transport.route,
+                          );
+                          setSelectedVehicleId(vehicle ? vehicle.id : "");
+                          setSelectedRouteId(route ? route.id : "");
+                          setTransportPrice(
+                            transport.price ? transport.price.toString() : "",
+                          );
+                          setIsTransportDialogOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(transport.id)}>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(transport.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
-                        </Button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -520,7 +793,9 @@ const TransportManager = () => {
       </Card>
       {/* Vehicles Table */}
       <Card>
-        <CardHeader><CardTitle>All Vehicles</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>All Vehicles</CardTitle>
+        </CardHeader>
         <CardContent>
           <table className="min-w-full text-sm border mb-4">
             <thead>
@@ -535,14 +810,26 @@ const TransportManager = () => {
               </tr>
             </thead>
             <tbody>
-              {vehicles.map(vehicle => (
+              {vehicles.map((vehicle) => (
                 <tr key={vehicle.id}>
                   <td className="p-2 border">{vehicle.vehicle_name}</td>
                   <td className="p-2 border">{vehicle.vehicle_type}</td>
                   <td className="p-2 border">{vehicle.capacity}</td>
                   <td className="p-2 border">{vehicle.luggage_capacity}</td>
-                  <td className="p-2 border">{Array.isArray(vehicle.features) ? vehicle.features.join(', ') : vehicle.features}</td>
-                  <td className="p-2 border">{vehicle.vehicle_image && <img src={vehicle.vehicle_image} alt="vehicle" className="w-16 h-10 object-cover rounded" />}</td>
+                  <td className="p-2 border">
+                    {Array.isArray(vehicle.features)
+                      ? vehicle.features.join(", ")
+                      : vehicle.features}
+                  </td>
+                  <td className="p-2 border">
+                    {vehicle.vehicle_image && (
+                      <img
+                        src={vehicle.vehicle_image}
+                        alt="vehicle"
+                        className="w-16 h-10 object-cover rounded"
+                      />
+                    )}
+                  </td>
                   <td className="p-2 border">{vehicle.description}</td>
                 </tr>
               ))}
@@ -552,7 +839,9 @@ const TransportManager = () => {
       </Card>
       {/* Routes Table */}
       <Card>
-        <CardHeader><CardTitle>All Routes</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>All Routes</CardTitle>
+        </CardHeader>
         <CardContent>
           <table className="min-w-full text-sm border mb-4">
             <thead>
@@ -564,7 +853,7 @@ const TransportManager = () => {
               </tr>
             </thead>
             <tbody>
-              {routes.map(route => (
+              {routes.map((route) => (
                 <tr key={route.id}>
                   <td className="p-2 border">{route.route_name}</td>
                   <td className="p-2 border">{route.trip_duration}</td>

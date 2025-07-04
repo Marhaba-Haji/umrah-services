@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import React, { Suspense, lazy } from "react";
+import ZiarathActivityDetail from "./pages/ZiarathActivityDetail";
 
 const queryClient = new QueryClient();
 
@@ -84,6 +85,10 @@ const App = () => (
               <Route path="/faq" element={<FAQ />} />
               <Route path="/guide" element={<GuideBooking />} />
               <Route path="/ziarath" element={<ZiarathBooking />} />
+              <Route
+                path="/ziarath/:slug"
+                element={<ZiarathActivityDetail />}
+              />
               <Route path="/other-visas" element={<OtherSaudiVisas />} />
               <Route path="/control-panel" element={<ControlPanel />} />
               <Route

@@ -1,54 +1,346 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, MapPin, Clock, Users, Star, Bookmark, CheckCircle, Heart, X, ShoppingCart } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { useZiarathCart } from '@/hooks/useZiarathCart';
-import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel';
+import React, { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  CalendarIcon,
+  MapPin,
+  Clock,
+  Users,
+  Star,
+  Bookmark,
+  CheckCircle,
+  Heart,
+  X,
+  ShoppingCart,
+} from "lucide-react";
+import { format as formatDate } from "date-fns";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { useZiarathCart } from "@/hooks/useZiarathCart";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+  DrawerClose,
+} from "@/components/ui/drawer";
+import { useNavigate } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface ZiarathService {
+// Define types
+interface Activity {
   id: string;
-  title: string;
-  location: string;
-  ziarath_type: string;
+  name: string;
+  featured_image?: string;
+  is_featured: boolean;
+  city: string;
   description: string;
-  duration: string;
-  price: number;
-  max_participants: number;
-  inclusions: string[];
-  significance: string;
-  historical_importance: string;
-  best_time: string;
-  images: string[];
+  duration?: string;
+  price?: number;
+  created_at: string;
+  updated_at: string;
+  vehicle_prices?: Record<string, string>;
+  slug?: string;
+  inclusions?: string;
+  exclusions?: string;
+  features?: string;
+  faqs?: { q: string; a: string }[];
+  gallery?: string[];
+  sites?: string;
+  [key: string]: unknown;
+}
+interface Vehicle {
+  id: string;
+  vehicle_name: string;
+  vehicle_type: string;
+  vehicle_image?: string;
+  capacity?: number;
+}
+
+// BookingModal component (top-level, not nested)
+export function BookingModal({
+  open,
+  onOpenChange,
+  activity,
+  vehicles,
+  selectedVehicleId,
+  setSelectedVehicleId,
+}) {
+  const [bookingForm, setBookingForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    numberOfPeople: 1,
+    bookingDate: "",
+    specialRequests: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // Update numberOfPeople when vehicle changes
+  useEffect(() => {
+    if (selectedVehicleId) {
+      const vehicle = vehicles.find((v) => v.id === selectedVehicleId);
+      if (vehicle && vehicle.capacity) {
+        setBookingForm((f) => ({ ...f, numberOfPeople: vehicle.capacity }));
+      }
+    }
+  }, [selectedVehicleId, vehicles]);
+
+  if (!activity) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+      setBookingSuccess(true);
+    }, 1200);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Book {activity.name}</DialogTitle>
+        </DialogHeader>
+        {!bookingSuccess ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {activity.vehicle_prices && (
+              <div>
+                <div className="font-semibold mb-2 text-[#023f3a] text-lg">
+                  Choose Your Vehicle
+                </div>
+                <div className="space-y-3">
+                  {Object.entries(activity.vehicle_prices).map(
+                    ([vehicleId, price]) => {
+                      const vehicle = vehicles.find((v) => v.id === vehicleId);
+                      if (!vehicle) return null;
+                      return (
+                        <label
+                          key={vehicleId}
+                          className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition ${selectedVehicleId === vehicleId ? "border-[#023f3a] bg-[#e6f4f1]" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+                        >
+                          <input
+                            type="radio"
+                            name="vehicle"
+                            value={vehicleId}
+                            checked={selectedVehicleId === vehicleId}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>,
+                            ) => setSelectedVehicleId(e.target.value)}
+                            className="accent-[#023f3a] w-5 h-5"
+                          />
+                          {vehicle.vehicle_image && (
+                            <img
+                              src={vehicle.vehicle_image}
+                              alt={vehicle.vehicle_name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <div className="font-semibold text-[#023f3a]">
+                              {vehicle.vehicle_name}{" "}
+                              <span className="text-xs text-gray-500">
+                                ({vehicle.capacity} people)
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {vehicle.vehicle_type}
+                            </div>
+                          </div>
+                          <div className="text-lg font-bold text-[#fbbf24]">
+                            ₹{Number(price).toLocaleString("en-IN")}
+                          </div>
+                        </label>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-4 mb-2 mt-4">
+              <span className="text-2xl font-extrabold text-[#fbbf24]">
+                ₹
+                {activity.vehicle_prices && selectedVehicleId
+                  ? Number(
+                      activity.vehicle_prices[selectedVehicleId],
+                    ).toLocaleString("en-IN")
+                  : activity.price?.toLocaleString("en-IN")}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Name</label>
+                <input
+                  className="w-full border rounded p-2"
+                  value={bookingForm.name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setBookingForm((f) => ({ ...f, name: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  className="w-full border rounded p-2"
+                  type="email"
+                  value={bookingForm.email}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setBookingForm((f) => ({ ...f, email: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Phone</label>
+                <input
+                  className="w-full border rounded p-2"
+                  value={bookingForm.phone}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setBookingForm((f) => ({ ...f, phone: e.target.value }))
+                  }
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Number of People
+                </label>
+                <input
+                  className="w-full border rounded p-2"
+                  type="number"
+                  min={1}
+                  value={bookingForm.numberOfPeople}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setBookingForm((f) => ({
+                      ...f,
+                      numberOfPeople: Number(e.target.value),
+                    }))
+                  }
+                  required
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Preferred Date
+              </label>
+              <input
+                className="w-full border rounded p-2"
+                type="date"
+                value={bookingForm.bookingDate}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setBookingForm((f) => ({ ...f, bookingDate: e.target.value }))
+                }
+                required
+              />
+              {bookingForm.bookingDate && (
+                <div className="text-xs text-gray-500 mt-1">
+                  Selected:{" "}
+                  {formatDate(new Date(bookingForm.bookingDate), "dd-MMM-yyyy")}
+                </div>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Special Requests
+              </label>
+              <textarea
+                className="w-full border rounded p-2"
+                value={bookingForm.specialRequests}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setBookingForm((f) => ({
+                    ...f,
+                    specialRequests: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform"
+              disabled={isLoading}
+            >
+              {isLoading ? "Booking..." : "Confirm Booking"}
+            </button>
+          </form>
+        ) : (
+          <div className="p-8 flex flex-col items-center justify-center text-center gap-6">
+            <CheckCircle className="w-16 h-16 text-emerald-500 mb-2" />
+            <div className="text-2xl font-bold text-[#023f3a]">
+              Booking Confirmed!
+            </div>
+            <div className="text-lg text-gray-600">
+              Thank you for booking your Ziarath tour.
+              <br />
+              We will contact you soon with confirmation details.
+            </div>
+            <button
+              className="mt-4 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white px-8 py-3 rounded-full shadow-lg"
+              onClick={() => {
+                setBookingSuccess(false);
+                onOpenChange(false);
+              }}
+            >
+              Back to Activities
+            </button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 const ZiarathBooking = () => {
-  const [ziarathServices, setZiarathServices] = useState<ZiarathService[]>([]);
-  const [selectedService, setSelectedService] = useState<ZiarathService | null>(null);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null,
+  );
   const [bookingDate, setBookingDate] = useState<Date>();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const [bookingForm, setBookingForm] = useState({
-    name: '',
-    email: '',
-    phone: '',
+    name: "",
+    email: "",
+    phone: "",
     numberOfPeople: 1,
-    specialRequests: '',
-    preferredTime: ''
+    specialRequests: "",
+    preferredTime: "",
   });
 
   const {
@@ -62,36 +354,64 @@ const ZiarathBooking = () => {
   } = useZiarathCart();
   const [cartOpen, setCartOpen] = useState(false);
 
-  useEffect(() => {
-    fetchZiarathServices();
-  }, []);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerActivity, setDrawerActivity] = useState<Activity | null>(null);
+  const [drawerStep, setDrawerStep] = useState(1);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
 
-  const fetchZiarathServices = async () => {
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
+    null,
+  );
+
+  const navigate = useNavigate();
+
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [modalActivity, setModalActivity] = useState<Activity | null>(null);
+
+  const fetchActivities = useCallback(async () => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from('ziarath_services')
-        .select('*')
-        .eq('status', 'active')
-        .order('price', { ascending: true });
-
+        .from("activities")
+        .select("*")
+        .order("price", { ascending: true });
       if (error) throw error;
-      setZiarathServices(data || []);
+      setActivities(data || []);
     } catch (error) {
-      console.error('Error fetching ziarath services:', error);
+      console.error("Error fetching activities:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch ziarath services",
+        description: "Failed to fetch activities",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchActivities();
+  }, [fetchActivities]);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("id, vehicle_name, vehicle_type, vehicle_image, capacity");
+      if (!error && data) setVehicles(data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    setSelectedVehicleId(null);
+    setDrawerStep(1);
+    setBookingSuccess(false);
+  }, [drawerActivity]);
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedService || !bookingDate) {
+    if (!selectedActivity || !bookingDate) {
       toast({
         title: "Error",
         description: "Please complete all required fields",
@@ -104,33 +424,34 @@ const ZiarathBooking = () => {
     try {
       const bookingData = {
         ...bookingForm,
-        service_id: selectedService.id,
+        service_id: selectedActivity.id,
         service_date: bookingDate,
-        total_amount: selectedService.price * bookingForm.numberOfPeople,
-        status: 'pending'
+        total_amount: selectedActivity.price * bookingForm.numberOfPeople,
+        status: "pending",
       };
 
-      console.log('Ziarath booking data:', bookingData);
-      
+      console.log("Ziarath booking data:", bookingData);
+
       toast({
         title: "Success",
-        description: "Your ziarath booking has been submitted! We'll send you confirmation details within 24 hours.",
+        description:
+          "Your ziarath booking has been submitted! We'll send you confirmation details within 24 hours.",
       });
 
       // Reset form
       setBookingForm({
-        name: '',
-        email: '',
-        phone: '',
+        name: "",
+        email: "",
+        phone: "",
         numberOfPeople: 1,
-        specialRequests: '',
-        preferredTime: ''
+        specialRequests: "",
+        preferredTime: "",
       });
-      setSelectedService(null);
+      setSelectedActivity(null);
       setBookingDate(undefined);
       setCurrentStep(1);
     } catch (error) {
-      console.error('Error submitting booking:', error);
+      console.error("Error submitting booking:", error);
       toast({
         title: "Error",
         description: "Failed to submit booking request",
@@ -142,7 +463,7 @@ const ZiarathBooking = () => {
   };
 
   const nextStep = () => {
-    if (currentStep === 1 && !selectedService) {
+    if (currentStep === 1 && !selectedActivity) {
       toast({
         title: "Selection Required",
         description: "Please select a ziarath tour to continue",
@@ -158,15 +479,72 @@ const ZiarathBooking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-[#e6f4f1] via-white to-[#f6f8f7]">
       <Header />
+      {/* Luxurious Hero Section */}
+      <div className="relative w-full h-[340px] md:h-[420px] flex items-center justify-center bg-gradient-to-br from-[#023f3a] to-[#059669] overflow-hidden shadow-lg">
+        <img
+          src="/public/umrah-package-banner.jpg"
+          alt="Ziarath Hero"
+          className="absolute inset-0 w-full h-full object-cover opacity-60"
+        />
+        <div className="relative z-10 text-center text-white max-w-2xl mx-auto px-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 drop-shadow-lg tracking-tight">
+            Discover Sacred Ziarath Tours
+          </h1>
+          <p className="text-lg md:text-xl font-medium mb-6 drop-shadow">
+            Experience the journey of a lifetime with our exclusive, luxury
+            Ziarath tours led by expert guides.
+          </p>
+          <Button
+            size="lg"
+            className="bg-gradient-to-r from-[#fbbf24] to-[#023f3a] text-white text-lg px-8 py-4 rounded-full shadow-xl hover:scale-105 transition-transform"
+          >
+            Book Your Journey
+          </Button>
+        </div>
+      </div>
+      {/* Trust/USP Bar */}
+      <div className="flex flex-wrap justify-center gap-4 py-6 bg-white/80 shadow-sm border-b border-emerald-100">
+        <Badge
+          variant="outline"
+          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+        >
+          Licensed Guides
+        </Badge>
+        <Badge
+          variant="outline"
+          className="bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-4 py-2 text-base font-semibold shadow"
+        >
+          Instant Booking
+        </Badge>
+        <Badge
+          variant="outline"
+          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+        >
+          Best Price Guarantee
+        </Badge>
+        <Badge
+          variant="outline"
+          className="bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-4 py-2 text-base font-semibold shadow"
+        >
+          5-Star Reviews
+        </Badge>
+        <Badge
+          variant="outline"
+          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+        >
+          24/7 Support
+        </Badge>
+      </div>
       {/* Floating Cart Button */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-purple-600 text-white rounded-full shadow-lg flex items-center px-4 py-3 hover:bg-purple-700 transition"
+        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white rounded-full shadow-2xl flex items-center px-6 py-4 hover:scale-105 transition-transform border-4 border-white/80"
         onClick={() => setCartOpen(true)}
+        style={{ boxShadow: "0 8px 32px 0 rgba(2, 63, 58, 0.25)" }}
       >
-        <ShoppingCart className="w-5 h-5 mr-2" />
-        Cart ({getTotalItems()})
+        <ShoppingCart className="w-6 h-6 mr-3" />
+        <span className="font-bold text-lg">Cart ({getTotalItems()})</span>
       </button>
       {/* Cart Modal */}
       {cartOpen && (
@@ -183,24 +561,33 @@ const ZiarathBooking = () => {
               Your Ziarath Cart
             </h3>
             {cartItems.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">Your cart is empty.</div>
+              <div className="text-center text-gray-500 py-8">
+                Your cart is empty.
+              </div>
             ) : (
               <div className="space-y-4">
-                {cartItems.map(item => (
-                  <div key={item.id} className="flex items-center gap-3 border-b pb-3">
+                {cartItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-3 border-b pb-3"
+                  >
                     <img
-                      src={item.image || '/public/placeholder.svg'}
+                      src={item.image || "/public/placeholder.svg"}
                       alt={item.title}
                       className="w-16 h-16 object-cover rounded-lg border"
                     />
                     <div className="flex-1">
                       <div className="font-medium">{item.title}</div>
-                      <div className="text-sm text-gray-500">${item.price} x </div>
+                      <div className="text-sm text-gray-500">
+                        ₹{item.price} x{" "}
+                      </div>
                       <input
                         type="number"
                         min={1}
                         value={item.count}
-                        onChange={e => updateCartItemCount(item.id, parseInt(e.target.value))}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          updateCartItemCount(item.id, parseInt(e.target.value))
+                        }
                         className="w-16 border rounded px-2 py-1 text-sm mt-1"
                       />
                     </div>
@@ -214,11 +601,16 @@ const ZiarathBooking = () => {
                 ))}
                 <div className="flex justify-between items-center pt-4">
                   <span className="font-semibold">Total:</span>
-                  <span className="text-lg font-bold text-purple-700">${getTotalAmount().toFixed(2)}</span>
+                  <span className="text-lg font-bold text-emerald-700">
+                    ₹{getTotalAmount().toLocaleString("en-IN")}
+                  </span>
                 </div>
                 <button
-                  className="w-full bg-purple-600 text-white py-2 rounded-lg mt-4 hover:bg-purple-700 transition"
-                  onClick={() => { setCartOpen(false); setCurrentStep(2); }}
+                  className="w-full bg-[#023f3a] text-white py-2 rounded-lg mt-4 hover:bg-emerald-700 transition"
+                  onClick={() => {
+                    setCartOpen(false);
+                    setCurrentStep(2);
+                  }}
                 >
                   Proceed to Booking
                 </button>
@@ -233,354 +625,461 @@ const ZiarathBooking = () => {
           </div>
         </div>
       )}
-      <div className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center space-x-2 bg-purple-100 text-purple-800 rounded-full px-4 py-2 mb-6">
-            <Heart className="w-4 h-4" />
-            <span className="text-sm font-medium">Sacred Journey Tours</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-            Ziarath Tours
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Walk in the footsteps of our beloved Prophet (PBUH) and explore the sacred sites that shaped Islamic history with our expertly guided ziarath tours.
+      <div className="container mx-auto px-4 py-10">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#023f3a] mb-2 tracking-tight">
+            Choose Your Ziarath Experience
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Handpicked luxury tours, curated for spiritual fulfillment and
+            comfort. Limited spots available—reserve yours now!
           </p>
         </div>
-
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
-                  currentStep >= step 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {currentStep > step ? <CheckCircle className="w-5 h-5" /> : step}
-                </div>
-                {step < 3 && (
-                  <div className={`w-16 h-0.5 ${currentStep > step ? 'bg-purple-600' : 'bg-gray-200'}`} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {currentStep === 1 && (
-              <div>
-                <h2 className="text-2xl font-semibold mb-6 flex items-center">
-                  <Bookmark className="w-6 h-6 mr-3 text-purple-600" />
-                  Select Your Sacred Journey
-                </h2>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {activities
+            .filter((a) => a.name !== "Umrah Tawaf and Sa'i")
+            .map((activity) => {
+              const inCart = cartItems.some((item) => item.id === activity.id);
+              // Get vehicle options for this activity
+              const vehicleOptions = activity.vehicle_prices
+                ? Object.entries(activity.vehicle_prices)
+                : [];
+              return (
+                <Card
+                  key={activity.id}
+                  className="relative group overflow-hidden border-0 shadow-xl rounded-3xl bg-white/90 hover:scale-[1.03] hover:shadow-2xl transition-transform"
+                >
+                  <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
+                    <img
+                      src={activity.featured_image || "/public/placeholder.svg"}
+                      alt={activity.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    {activity.is_featured && (
+                      <Badge className="absolute top-4 left-4 bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-3 py-1 text-xs font-bold shadow-lg">
+                        Featured
+                      </Badge>
+                    )}
+                    <Badge className="absolute top-4 right-4 bg-white/80 text-[#023f3a] px-3 py-1 text-xs font-bold shadow">
+                      {activity.city}
+                    </Badge>
                   </div>
-                ) : ziarathServices.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <p className="text-gray-500">No ziarath tours available at the moment.</p>
-                  </Card>
-                ) : (
-                  <div className="space-y-6">
-                    {ziarathServices.map((service) => {
-                      const inCart = cartItems.some(item => item.id === service.id);
-                      const featuredImage = service.images && service.images.length > 0 ? service.images[0] : '/public/placeholder.svg';
-                      return (
-                        <Card key={service.id} className="relative">
-                          <div className="absolute top-4 right-4 z-10">
-                            {inCart ? (
-                              <Button size="sm" variant="destructive" onClick={() => removeFromCart(service.id)}>
-                                Remove
-                              </Button>
-                            ) : (
-                              <Button size="sm" onClick={() => addToCart({ id: service.id, title: service.title, price: service.price, image: featuredImage })}>
-                                Add to Cart
-                              </Button>
-                            )}
-                          </div>
-                          <CardContent className="p-6">
-                            <div className="flex gap-6">
-                              <img
-                                src={featuredImage}
-                                alt={service.title}
-                                className="w-40 h-32 object-cover rounded-lg border"
-                              />
-                              <div className="flex-1">
-                                <h3 className="text-xl font-semibold mb-2 text-gray-900">{service.title}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                  <div className="flex items-center space-x-2 text-gray-600">
-                                    <MapPin className="w-4 h-4" />
-                                    <span className="text-sm">{service.location}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-2 text-gray-600">
-                                    <Clock className="w-4 h-4" />
-                                    <span className="text-sm">{service.duration}</span>
-                                  </div>
-                                  <div className="flex items-center space-x-2 text-gray-600">
-                                    <Users className="w-4 h-4" />
-                                    <span className="text-sm">Max {service.max_participants} people</span>
-                                  </div>
-                                </div>
-                                <div className="text-2xl font-bold text-purple-600 mb-2">${service.price}</div>
-                                <p className="text-gray-700 mb-2">{service.description}</p>
-                                <div className="grid md:grid-cols-2 gap-6 mb-4">
-                                  <div>
-                                    <h4 className="font-semibold text-sm mb-2 text-purple-800">Historical Significance:</h4>
-                                    <p className="text-sm text-gray-600">{service.historical_importance}</p>
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-sm mb-2 text-purple-800">Religious Significance:</h4>
-                                    <p className="text-sm text-gray-600">{service.significance}</p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center space-x-3">
-                                  <Badge variant="outline">{service.ziarath_type}</Badge>
-                                  <Badge variant="secondary">Best: {service.best_time}</Badge>
-                                </div>
-                                {service.inclusions && service.inclusions.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    {service.inclusions.slice(0, 3).map((inclusion, index) => (
-                                      <Badge key={index} variant="outline" className="text-xs">
-                                        {inclusion}
-                                      </Badge>
-                                    ))}
-                                    {service.inclusions.length > 3 && (
-                                      <span className="text-xs text-gray-500">+{service.inclusions.length - 3} more</span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {currentStep === 2 && selectedService && (
-              <div>
-                <h2 className="text-2xl font-semibold mb-6">Tour Details</h2>
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="bg-purple-50 p-4 rounded-lg mb-6">
-                      <h4 className="font-semibold text-purple-800 mb-2">{selectedService.title}</h4>
-                      <p className="text-purple-700 text-sm">{selectedService.location} • {selectedService.duration}</p>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div>
-                        <Label>Preferred Date</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !bookingDate && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {bookingDate ? format(bookingDate, "PPP") : "Select your preferred date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={bookingDate}
-                              onSelect={setBookingDate}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
-                              className={cn("p-3 pointer-events-auto")}
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="preferredTime">Preferred Time</Label>
-                        <Select value={bookingForm.preferredTime} onValueChange={(value) => setBookingForm({...bookingForm, preferredTime: value})}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select preferred time" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="morning">Morning (8:00 AM - 12:00 PM)</SelectItem>
-                            <SelectItem value="afternoon">Afternoon (1:00 PM - 5:00 PM)</SelectItem>
-                            <SelectItem value="evening">Evening (6:00 PM - 10:00 PM)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="numberOfPeople">Number of People</Label>
-                        <Input
-                          id="numberOfPeople"
-                          type="number"
-                          min="1"
-                          max={selectedService.max_participants}
-                          value={bookingForm.numberOfPeople}
-                          onChange={(e) => setBookingForm({...bookingForm, numberOfPeople: parseInt(e.target.value)})}
-                          required
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Maximum {selectedService.max_participants} participants per tour
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="specialRequests">Special Requirements</Label>
-                        <Textarea
-                          id="specialRequests"
-                          value={bookingForm.specialRequests}
-                          onChange={(e) => setBookingForm({...bookingForm, specialRequests: e.target.value})}
-                          placeholder="Any special needs, accessibility requirements, or questions..."
-                          rows={4}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div>
-                <h2 className="text-2xl font-semibold mb-6">Contact Information</h2>
-                <Card>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleBooking} className="space-y-6">
-                      <div>
-                        <Label htmlFor="name">Full Name *</Label>
-                        <Input
-                          id="name"
-                          value={bookingForm.name}
-                          onChange={(e) => setBookingForm({...bookingForm, name: e.target.value})}
-                          required
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="email">Email Address *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={bookingForm.email}
-                          onChange={(e) => setBookingForm({...bookingForm, email: e.target.value})}
-                          required
-                          placeholder="your.email@example.com"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="phone">Phone Number *</Label>
-                        <Input
-                          id="phone"
-                          value={bookingForm.phone}
-                          onChange={(e) => setBookingForm({...bookingForm, phone: e.target.value})}
-                          required
-                          placeholder="+1 (555) 123-4567"
-                        />
-                      </div>
-
-                      <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700" disabled={isLoading}>
-                        {isLoading ? 'Submitting Request...' : 'Confirm Ziarath Booking'}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-4">
-              <CardHeader>
-                <CardTitle>Booking Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedService ? (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-purple-50 rounded-lg">
-                      <h4 className="font-semibold text-purple-800">{selectedService.title}</h4>
-                      <p className="text-sm text-purple-600">{selectedService.location}</p>
-                      <p className="text-sm text-purple-600">Duration: {selectedService.duration}</p>
-                    </div>
-
-                    {bookingDate && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Date</p>
-                        <p className="font-medium">{format(bookingDate, "PPP")}</p>
-                      </div>
-                    )}
-
-                    {bookingForm.preferredTime && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Time</p>
-                        <p className="font-medium capitalize">{bookingForm.preferredTime}</p>
-                      </div>
-                    )}
-
-                    {bookingForm.numberOfPeople > 0 && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600">Group Size</p>
-                        <p className="font-medium">{bookingForm.numberOfPeople} {bookingForm.numberOfPeople === 1 ? 'Person' : 'People'}</p>
-                      </div>
-                    )}
-
-                    <div className="p-3 bg-gray-50 rounded-lg border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <span className="font-semibold">Total Amount:</span>
-                        <span className="text-xl font-bold text-purple-600">
-                          ${(selectedService.price * bookingForm.numberOfPeople).toFixed(2)}
+                  <CardContent className="p-6 flex flex-col gap-3">
+                    <h3 className="text-2xl font-bold text-[#023f3a] mb-1 group-hover:text-[#fbbf24] transition-colors">
+                      {activity.name}
+                    </h3>
+                    <p
+                      className="text-gray-700 text-base line-clamp-3 mb-2"
+                      dangerouslySetInnerHTML={{ __html: activity.description }}
+                    />
+                    <div className="flex items-center gap-4 mb-2">
+                      {activity.duration && (
+                        <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                          <Clock className="w-4 h-4" /> {activity.duration}
                         </span>
-                      </div>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                        <Star className="w-4 h-4 text-[#fbbf24]" /> Luxury
+                      </span>
                     </div>
-
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h5 className="font-medium text-blue-800 mb-2">Tour Includes:</h5>
-                      <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• Expert religious guide</li>
-                        <li>• Historical context & stories</li>
-                        <li>• Prayer time coordination</li>
-                        <li>• Transportation (if applicable)</li>
-                        <li>• Group coordination</li>
-                      </ul>
+                    <div className="flex items-center justify-between mt-2 gap-2">
+                      <span className="text-2xl font-extrabold text-[#fbbf24]">
+                        ₹{activity.price?.toLocaleString("en-IN")}
+                      </span>
+                      <Button
+                        size="lg"
+                        className="rounded-full px-6 py-2 text-lg font-bold shadow-lg bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white hover:scale-105 transition-transform"
+                        onClick={() => {
+                          setModalActivity(activity);
+                          setBookingModalOpen(true);
+                          const vehicleOptions = activity.vehicle_prices
+                            ? Object.entries(activity.vehicle_prices)
+                            : [];
+                          if (vehicleOptions.length === 1) {
+                            setSelectedVehicleId(vehicleOptions[0][0]);
+                          } else {
+                            setSelectedVehicleId(null);
+                          }
+                        }}
+                      >
+                        Book Now
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-2"
+                        onClick={() => navigate(`/ziarath/${activity.slug}`)}
+                        disabled={!activity.slug}
+                      >
+                        View Details
+                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Bookmark className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                    <p>Select a tour to see booking details</p>
-                  </div>
-                )}
-
-                <div className="flex gap-3 mt-6">
-                  {currentStep > 1 && (
-                    <Button variant="outline" onClick={prevStep} className="flex-1">
-                      Previous
-                    </Button>
-                  )}
-                  {currentStep < 3 && (
-                    <Button onClick={nextStep} className="flex-1 bg-purple-600 hover:bg-purple-700">
-                      Next Step
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
         </div>
       </div>
-
+      {/* Activity Detail Drawer with Stepper */}
+      <Drawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        shouldScaleBackground
+      >
+        <DrawerContent className="max-w-xl w-full ml-auto h-full overflow-y-auto bg-white rounded-l-3xl shadow-2xl border-0 animate-fade-in-scale">
+          <DrawerHeader className="relative p-0">
+            {drawerStep === 1 && drawerActivity && (
+              <>
+                <div className="relative w-full h-64 md:h-80 rounded-t-3xl overflow-hidden">
+                  <img
+                    src={
+                      drawerActivity.featured_image || "/public/placeholder.svg"
+                    }
+                    alt={drawerActivity.name}
+                    className="w-full h-full object-cover"
+                  />
+                  <DrawerClose className="absolute top-4 right-4 bg-white/80 rounded-full p-2 shadow hover:bg-white">
+                    <X className="w-6 h-6 text-[#023f3a]" />
+                  </DrawerClose>
+                  {drawerActivity.is_featured && (
+                    <Badge className="absolute top-4 left-4 bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-3 py-1 text-xs font-bold shadow-lg">
+                      Featured
+                    </Badge>
+                  )}
+                  <Badge className="absolute top-4 right-16 bg-white/80 text-[#023f3a] px-3 py-1 text-xs font-bold shadow">
+                    {drawerActivity.city}
+                  </Badge>
+                </div>
+                <div
+                  className="p-6 pb-2 flex flex-col gap-2 overflow-y-auto"
+                  style={{ maxHeight: "calc(100vh - 18rem)" }}
+                >
+                  <DrawerTitle className="text-3xl font-extrabold text-[#023f3a] mb-1">
+                    {drawerActivity.name}
+                  </DrawerTitle>
+                  <div className="flex flex-wrap items-center gap-4 mb-2">
+                    {drawerActivity.duration && (
+                      <span className="inline-flex items-center gap-1 text-base text-gray-500">
+                        <Clock className="w-5 h-5" /> {drawerActivity.duration}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-base text-gray-500">
+                      <Star className="w-5 h-5 text-[#fbbf24]" /> Luxury
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4 mb-2">
+                    <span className="text-base text-gray-400">
+                      City:{" "}
+                      <span className="text-[#023f3a] font-semibold">
+                        {drawerActivity.city}
+                      </span>
+                    </span>
+                    <span className="text-base text-gray-400">
+                      ID:{" "}
+                      <span className="text-gray-500">
+                        {drawerActivity.id?.slice(0, 8)}...
+                      </span>
+                    </span>
+                  </div>
+                  <div
+                    className="text-lg text-gray-700 mb-4 leading-relaxed"
+                    style={{ wordBreak: "break-word" }}
+                  >
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: drawerActivity.description || "",
+                      }}
+                    />
+                  </div>
+                  {/* Vehicle Selection */}
+                  {drawerActivity.vehicle_prices && (
+                    <div className="mt-6 mb-4">
+                      <div className="font-semibold mb-2 text-[#023f3a] text-lg">
+                        Choose Your Vehicle
+                      </div>
+                      <div className="space-y-3">
+                        {Object.entries(drawerActivity.vehicle_prices).map(
+                          ([vehicleId, price]) => {
+                            const vehicle = vehicles.find(
+                              (v) => v.id === vehicleId,
+                            );
+                            if (!vehicle) return null;
+                            return (
+                              <label
+                                key={vehicleId}
+                                className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition ${selectedVehicleId === vehicleId ? "border-[#023f3a] bg-[#e6f4f1]" : "border-gray-200 bg-white hover:bg-gray-50"}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="vehicle"
+                                  value={vehicleId}
+                                  checked={selectedVehicleId === vehicleId}
+                                  onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>,
+                                  ) => setSelectedVehicleId(e.target.value)}
+                                  className="accent-[#023f3a] w-5 h-5"
+                                />
+                                {vehicle.vehicle_image && (
+                                  <img
+                                    src={vehicle.vehicle_image}
+                                    alt={vehicle.vehicle_name}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                )}
+                                <div className="flex-1">
+                                  <div className="font-semibold text-[#023f3a]">
+                                    {vehicle.vehicle_name}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {vehicle.vehicle_type}
+                                  </div>
+                                </div>
+                                <div className="text-lg font-bold text-[#fbbf24]">
+                                  ₹{Number(price).toLocaleString("en-IN")}
+                                </div>
+                              </label>
+                            );
+                          },
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 mb-6">
+                    <span className="text-2xl font-extrabold text-[#fbbf24]">
+                      ₹
+                      {drawerActivity.vehicle_prices && selectedVehicleId
+                        ? Number(
+                            drawerActivity.vehicle_prices[selectedVehicleId],
+                          ).toLocaleString("en-IN")
+                        : drawerActivity.price?.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:gap-4 gap-2 mt-2">
+                    <Button
+                      size="lg"
+                      className="flex-1 rounded-full px-6 py-3 text-lg font-bold shadow-lg bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white hover:scale-105 transition-transform"
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                        setDrawerStep(2);
+                      }}
+                      disabled={
+                        drawerActivity.vehicle_prices && !selectedVehicleId
+                      }
+                    >
+                      Book Now
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1 rounded-full px-6 py-3 text-lg font-bold border-[#023f3a] text-[#023f3a] hover:bg-[#fbbf24]/10"
+                      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        e.preventDefault();
+                        setDrawerOpen(false);
+                      }}
+                    >
+                      Back to Activities
+                    </Button>
+                  </div>
+                  <div className="mt-8 border-t pt-4 flex flex-wrap gap-6 text-xs text-gray-400">
+                    <span>
+                      Created:{" "}
+                      {drawerActivity.created_at
+                        ? new Date(drawerActivity.created_at).toLocaleString()
+                        : "-"}
+                    </span>
+                    <span>
+                      Last Updated:{" "}
+                      {drawerActivity.updated_at
+                        ? new Date(drawerActivity.updated_at).toLocaleString()
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+            {drawerStep === 2 && drawerActivity && (
+              <div className="p-6 flex flex-col gap-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      e.preventDefault();
+                      setDrawerStep(1);
+                    }}
+                  >
+                    &larr; Back
+                  </Button>
+                  <span className="text-lg font-bold text-[#023f3a]">
+                    Booking Details
+                  </span>
+                </div>
+                <div className="bg-[#f8f6ff] rounded-lg p-4 mb-4">
+                  <div className="font-semibold text-[#023f3a] mb-1">
+                    {drawerActivity.name}
+                  </div>
+                  <div className="text-sm text-gray-500 mb-1">
+                    {
+                      vehicles.find((v) => v.id === selectedVehicleId)
+                        ?.vehicle_name
+                    }
+                  </div>
+                  <div className="text-sm text-gray-500 mb-1">
+                    Date:{" "}
+                    <span className="font-medium">
+                      {bookingDate
+                        ? formatDate(bookingDate, "PPP")
+                        : "Select date"}
+                    </span>
+                  </div>
+                  <div className="text-lg font-bold text-[#fbbf24]">
+                    ₹
+                    {drawerActivity.vehicle_prices && selectedVehicleId
+                      ? Number(
+                          drawerActivity.vehicle_prices[selectedVehicleId],
+                        ).toLocaleString("en-IN")
+                      : drawerActivity.price?.toLocaleString("en-IN")}
+                  </div>
+                </div>
+                <form onSubmit={handleBooking} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Name
+                      </label>
+                      <Input
+                        value={bookingForm.name}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setBookingForm((f) => ({
+                            ...f,
+                            name: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Email
+                      </label>
+                      <Input
+                        type="email"
+                        value={bookingForm.email}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setBookingForm((f) => ({
+                            ...f,
+                            email: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Phone
+                      </label>
+                      <Input
+                        value={bookingForm.phone}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setBookingForm((f) => ({
+                            ...f,
+                            phone: e.target.value,
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Number of People
+                      </label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={bookingForm.numberOfPeople}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          setBookingForm((f) => ({
+                            ...f,
+                            numberOfPeople: Number(e.target.value),
+                          }))
+                        }
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Preferred Date
+                    </label>
+                    <Input
+                      type="date"
+                      value={
+                        bookingDate ? formatDate(bookingDate, "yyyy-MM-dd") : ""
+                      }
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        setBookingDate(new Date(e.target.value))
+                      }
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">
+                      Special Requests
+                    </label>
+                    <Textarea
+                      value={bookingForm.specialRequests}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        setBookingForm((f) => ({
+                          ...f,
+                          specialRequests: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Booking..." : "Confirm Booking"}
+                  </Button>
+                </form>
+              </div>
+            )}
+            {drawerStep === 3 && bookingSuccess && (
+              <div className="p-8 flex flex-col items-center justify-center text-center gap-6">
+                <CheckCircle className="w-16 h-16 text-emerald-500 mb-2" />
+                <div className="text-2xl font-bold text-[#023f3a]">
+                  Booking Confirmed!
+                </div>
+                <div className="text-lg text-gray-600">
+                  Thank you for booking your Ziarath tour.
+                  <br />
+                  We will contact you soon with confirmation details.
+                </div>
+                <Button
+                  className="mt-4 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white px-8 py-3 rounded-full shadow-lg"
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.preventDefault();
+                    setDrawerOpen(false);
+                    setDrawerStep(1);
+                  }}
+                >
+                  Back to Activities
+                </Button>
+              </div>
+            )}
+          </DrawerHeader>
+        </DrawerContent>
+      </Drawer>
+      <BookingModal
+        open={bookingModalOpen}
+        onOpenChange={setBookingModalOpen}
+        activity={modalActivity}
+        vehicles={vehicles}
+        selectedVehicleId={selectedVehicleId}
+        setSelectedVehicleId={setSelectedVehicleId}
+      />
       <Footer />
     </div>
   );
