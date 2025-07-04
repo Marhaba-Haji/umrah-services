@@ -52,6 +52,14 @@ interface Activity {
   faqs?: { q: string; a: string }[];
   gallery?: string[];
   sites?: string;
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  canonical_url: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  page_schema: string;
   [key: string]: unknown;
 }
 
@@ -64,7 +72,14 @@ interface ActivityFormValues {
   price: string;
   featured_image: string;
   is_featured: boolean;
-  // add any other fields you use in the form
+  meta_title: string;
+  meta_description: string;
+  meta_keywords: string;
+  canonical_url: string;
+  og_title: string;
+  og_description: string;
+  og_image: string;
+  page_schema: string;
   [key: string]: unknown;
 }
 
@@ -88,6 +103,14 @@ const ActivityManager = () => {
       price: "",
       featured_image: "",
       is_featured: false,
+      meta_title: "",
+      meta_description: "",
+      meta_keywords: "",
+      canonical_url: "",
+      og_title: "",
+      og_description: "",
+      og_image: "",
+      page_schema: "",
     },
   });
 
@@ -141,6 +164,14 @@ const ActivityManager = () => {
       is_featured: data.is_featured,
       vehicle_prices: vehiclePrices,
       slug: data.slug,
+      meta_title: data.meta_title,
+      meta_description: data.meta_description,
+      meta_keywords: data.meta_keywords,
+      canonical_url: data.canonical_url,
+      og_title: data.og_title,
+      og_description: data.og_description,
+      og_image: data.og_image,
+      page_schema: data.page_schema,
     };
 
     let error;
@@ -179,6 +210,14 @@ const ActivityManager = () => {
       price: activity.price?.toString() || "",
       featured_image: activity.featured_image || "",
       is_featured: activity.is_featured,
+      meta_title: activity.meta_title || "",
+      meta_description: activity.meta_description || "",
+      meta_keywords: activity.meta_keywords || "",
+      canonical_url: activity.canonical_url || "",
+      og_title: activity.og_title || "",
+      og_description: activity.og_description || "",
+      og_image: activity.og_image || "",
+      page_schema: activity.page_schema || "",
     });
     setIsDialogOpen(true);
   };
@@ -409,6 +448,138 @@ const ActivityManager = () => {
                       />
                     </div>
                   ))}
+                </div>
+                <div className="mt-8 p-4 rounded-lg border bg-gray-50">
+                  <h3 className="text-lg font-bold mb-4 text-emerald-900">
+                    SEO Settings
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="meta_title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meta Title</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Meta title for SEO"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="meta_description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meta Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Meta description for SEO"
+                              rows={2}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="meta_keywords"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Meta Keywords</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Meta keywords, comma separated"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="canonical_url"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Canonical URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Canonical URL" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="og_title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Title</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Open Graph title" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="og_description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Description</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Open Graph description"
+                              rows={2}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="og_image"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OG Image</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Open Graph image URL"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="page_schema"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Page Schema (JSON-LD)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Page schema as JSON-LD"
+                              rows={4}
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">

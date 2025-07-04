@@ -1,18 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, Star } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { Eye, Edit, Trash2, Plus, Star } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Hotel {
-  id: number;
+  id: string;
   name: string;
   location: string;
   rating: number;
@@ -31,12 +50,23 @@ interface Hotel {
 }
 
 const FACILITIES = [
-  'WiFi', 'Pool', 'Spa', 'Restaurant', 'Gym', 'Parking', 'Laundry', 'Room Service', 'Air Conditioning', 'Breakfast', 'Conference Room', 'Pet Friendly'
+  "WiFi",
+  "Pool",
+  "Spa",
+  "Restaurant",
+  "Gym",
+  "Parking",
+  "Laundry",
+  "Room Service",
+  "Air Conditioning",
+  "Breakfast",
+  "Conference Room",
+  "Pet Friendly",
 ];
 
 const HotelManager = ({ session }) => {
   const [hotels, setHotels] = useState<Hotel[]>([]);
-  
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [viewingHotel, setViewingHotel] = useState<Hotel | null>(null);
@@ -45,17 +75,18 @@ const HotelManager = ({ session }) => {
     return supabase;
   };
 
-  const fetchHotels = async () => {
+  const fetchHotels = async (): Promise<Hotel[]> => {
     const supabaseClient = getSupabaseClient();
     const { data, error } = await supabaseClient
-      .from('hotels')
-      .select('*')
-      .order('id', { ascending: true });
+      .from("hotels")
+      .select("*")
+      .order("id", { ascending: true });
 
     if (error) {
-      console.error('Error fetching hotels:', error);
+      console.error("Error fetching hotels:", error);
+      return [];
     } else {
-      const mappedData = data.map(hotel => ({
+      const mappedData = data.map((hotel) => ({
         id: hotel.id,
         name: hotel.name,
         location: hotel.location,
@@ -73,47 +104,55 @@ const HotelManager = ({ session }) => {
         isShuttle: hotel.is_shuttle,
         isWalkable: hotel.is_walkable,
       }));
-      setHotels(mappedData as Hotel[]);
+      return mappedData as Hotel[];
     }
   };
 
   useEffect(() => {
-    fetchHotels();
+    fetchHotels().then(setHotels);
   }, []);
 
   const form = useForm({
     defaultValues: {
-      name: '',
-      location: '',
+      name: "",
+      location: "",
       rating: 5,
-      pricePerNight: '',
-      status: 'Active',
-      description: '',
+      pricePerNight: "",
+      status: "Active",
+      description: "",
       amenities: [],
-      city: 'makkah',
-      distanceFromHaram: '',
-      distanceFromMasjidENabawi: '',
+      city: "makkah",
+      distanceFromHaram: "",
+      distanceFromMasjidENabawi: "",
       images: [],
-      latitude: '',
-      longitude: '',
+      latitude: "",
+      longitude: "",
       isShuttle: false,
       isWalkable: false,
-    }
+    },
   });
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: (typeof form)["defaultValues"]) => {
     const supabaseClient = getSupabaseClient();
     const hotelData = {
       name: data.name,
       location: data.location,
       rating: Number(data.rating),
-      price_per_night: data.pricePerNight ? parseFloat(data.pricePerNight.toString().replace(/[^0-9.]/g, '')) : null,
+      price_per_night: data.pricePerNight
+        ? parseFloat(data.pricePerNight.toString().replace(/[^0-9.]/g, ""))
+        : null,
       status: data.status,
       description: data.description,
       amenities: data.amenities,
       city: data.city,
-      distance_from_haram: data.city === 'makkah' && data.distanceFromHaram ? parseInt(data.distanceFromHaram, 10) : null,
-      distance_from_masjid_e_nabawi: data.city === 'madinah' && data.distanceFromMasjidENabawi ? parseInt(data.distanceFromMasjidENabawi, 10) : null,
+      distance_from_haram:
+        data.city === "makkah" && data.distanceFromHaram
+          ? String(data.distanceFromHaram)
+          : null,
+      distance_from_masjid_e_nabawi:
+        data.city === "madinah" && data.distanceFromMasjidENabawi
+          ? String(data.distanceFromMasjidENabawi)
+          : null,
       images: data.images,
       latitude: data.latitude,
       longitude: data.longitude,
@@ -123,15 +162,18 @@ const HotelManager = ({ session }) => {
 
     let error;
     if (editingHotel) {
-      ({ error } = await supabaseClient.from('hotels').update(hotelData).eq('id', editingHotel.id));
+      ({ error } = await supabaseClient
+        .from("hotels")
+        .update(hotelData)
+        .eq("id", editingHotel.id));
     } else {
-      ({ error } = await supabaseClient.from('hotels').insert([hotelData]));
+      ({ error } = await supabaseClient.from("hotels").insert([hotelData]));
     }
 
     if (error) {
-      console.error('Error saving hotel:', error);
+      console.error("Error saving hotel:", error);
     } else {
-      fetchHotels();
+      fetchHotels().then(setHotels);
       setIsDialogOpen(false);
       setEditingHotel(null);
       form.reset();
@@ -164,13 +206,13 @@ const HotelManager = ({ session }) => {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     const supabaseClient = getSupabaseClient();
-    const { error } = await supabaseClient.from('hotels').delete().eq('id', id);
+    const { error } = await supabaseClient.from("hotels").delete().eq("id", id);
     if (error) {
-      console.error('Error deleting hotel:', error);
+      console.error("Error deleting hotel:", error);
     } else {
-      fetchHotels();
+      fetchHotels().then(setHotels);
     }
   };
 
@@ -180,17 +222,27 @@ const HotelManager = ({ session }) => {
         <h3 className="text-xl font-semibold">Hotel Management</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingHotel(null); form.reset(); }}>
+            <Button
+              onClick={() => {
+                setEditingHotel(null);
+                form.reset();
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Hotel
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingHotel ? 'Edit Hotel' : 'Add New Hotel'}</DialogTitle>
+              <DialogTitle>
+                {editingHotel ? "Edit Hotel" : "Add New Hotel"}
+              </DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -219,7 +271,7 @@ const HotelManager = ({ session }) => {
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
@@ -227,7 +279,10 @@ const HotelManager = ({ session }) => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>City</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select city" />
@@ -250,7 +305,12 @@ const HotelManager = ({ session }) => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Rating</FormLabel>
-                        <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={String(field.value)}>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(Number(value))
+                          }
+                          defaultValue={String(field.value)}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select rating" />
@@ -271,7 +331,7 @@ const HotelManager = ({ session }) => {
                     name="pricePerNight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price per Night</FormLabel>
+                        <FormLabel>Price per Night (INR)</FormLabel>
                         <FormControl>
                           <Input placeholder="₹299" {...field} />
                         </FormControl>
@@ -281,7 +341,7 @@ const HotelManager = ({ session }) => {
                   />
                 </div>
 
-                {form.watch('city') === 'makkah' && (
+                {form.watch("city") === "makkah" && (
                   <FormField
                     control={form.control}
                     name="distanceFromHaram"
@@ -289,22 +349,32 @@ const HotelManager = ({ session }) => {
                       <FormItem>
                         <FormLabel>Distance from Haram (meters)</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 500" type="number" {...field} />
+                          <Input
+                            placeholder="e.g. 500"
+                            type="number"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
-                {form.watch('city') === 'madinah' && (
+                {form.watch("city") === "madinah" && (
                   <FormField
                     control={form.control}
                     name="distanceFromMasjidENabawi"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Distance from Masjid-e-Nabawi (meters)</FormLabel>
+                        <FormLabel>
+                          Distance from Masjid-e-Nabawi (meters)
+                        </FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 700" type="number" {...field} />
+                          <Input
+                            placeholder="e.g. 700"
+                            type="number"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -333,16 +403,26 @@ const HotelManager = ({ session }) => {
                     <FormItem>
                       <FormLabel>Facilities</FormLabel>
                       <div className="grid grid-cols-3 gap-2">
-                        {FACILITIES.map(facility => (
-                          <label key={facility} className="flex items-center gap-2">
+                        {FACILITIES.map((facility) => (
+                          <label
+                            key={facility}
+                            className="flex items-center gap-2"
+                          >
                             <input
                               type="checkbox"
                               checked={field.value?.includes(facility)}
-                              onChange={e => {
+                              onChange={(e) => {
                                 if (e.target.checked) {
-                                  field.onChange([...(field.value || []), facility]);
+                                  field.onChange([
+                                    ...(field.value || []),
+                                    facility,
+                                  ]);
                                 } else {
-                                  field.onChange((field.value || []).filter((f: string) => f !== facility));
+                                  field.onChange(
+                                    (field.value || []).filter(
+                                      (f: string) => f !== facility,
+                                    ),
+                                  );
                                 }
                               }}
                             />
@@ -366,23 +446,34 @@ const HotelManager = ({ session }) => {
                           type="file"
                           multiple
                           accept="image/*"
-                          onChange={e => {
+                          onChange={(e) => {
                             const files = Array.from(e.target.files || []);
-                            Promise.all(files.map(file => {
-                              return new Promise<string>((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result as string);
-                                reader.onerror = reject;
-                                reader.readAsDataURL(file);
-                              });
-                            })).then(images => field.onChange(images));
+                            Promise.all(
+                              files.map((file) => {
+                                return new Promise<string>(
+                                  (resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () =>
+                                      resolve(reader.result as string);
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(file);
+                                  },
+                                );
+                              }),
+                            ).then((images) => field.onChange(images));
                           }}
                         />
                       </FormControl>
                       <div className="flex gap-2 mt-2 flex-wrap">
-                        {field.value && field.value.map((img: string, idx: number) => (
-                          <img key={idx} src={img} alt="preview" className="w-16 h-16 object-cover rounded" />
-                        ))}
+                        {field.value &&
+                          field.value.map((img: string, idx: number) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="preview"
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                          ))}
                       </div>
                       <FormMessage />
                     </FormItem>
@@ -425,7 +516,11 @@ const HotelManager = ({ session }) => {
                     render={({ field }) => (
                       <FormItem>
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
                           Shuttle
                         </label>
                       </FormItem>
@@ -437,7 +532,11 @@ const HotelManager = ({ session }) => {
                     render={({ field }) => (
                       <FormItem>
                         <label className="flex items-center gap-2">
-                          <input type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                          />
                           Walkable
                         </label>
                       </FormItem>
@@ -451,7 +550,10 @@ const HotelManager = ({ session }) => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -470,9 +572,13 @@ const HotelManager = ({ session }) => {
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">
-                    {editingHotel ? 'Update Hotel' : 'Create Hotel'}
+                    {editingHotel ? "Update Hotel" : "Create Hotel"}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -497,32 +603,51 @@ const HotelManager = ({ session }) => {
                 </tr>
               </thead>
               <tbody>
-                {hotels.map(hotel => (
+                {hotels.map((hotel) => (
                   <tr key={hotel.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">{hotel.name}</td>
                     <td className="p-2">{hotel.location}</td>
                     <td className="p-2">
                       <div className="flex items-center">
                         {Array.from({ length: hotel.rating }).map((_, i) => (
-                          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <Star
+                            key={i}
+                            className="w-4 h-4 fill-yellow-400 text-yellow-400"
+                          />
                         ))}
                       </div>
                     </td>
-                    <td className="p-2">{hotel.pricePerNight}</td>
+                    <td className="p-2">₹{hotel.pricePerNight}</td>
                     <td className="p-2">
-                      <Badge variant={hotel.status === 'Active' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          hotel.status === "Active" ? "default" : "secondary"
+                        }
+                      >
                         {hotel.status}
                       </Badge>
                     </td>
                     <td className="p-2">
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="outline" onClick={() => handleView(hotel)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleView(hotel)}
+                        >
                           <Eye className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(hotel)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(hotel)}
+                        >
                           <Edit className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(hotel.id)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(hotel.id)}
+                        >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
@@ -536,22 +661,64 @@ const HotelManager = ({ session }) => {
       </Card>
 
       {viewingHotel && (
-        <Dialog open={!!viewingHotel} onOpenChange={() => setViewingHotel(null)}>
+        <Dialog
+          open={!!viewingHotel}
+          onOpenChange={() => setViewingHotel(null)}
+        >
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{viewingHotel.name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
-                <div><span className="font-semibold">Location:</span> {viewingHotel.location}</div>
-                <div><span className="font-semibold">City:</span> {viewingHotel.city}</div>
-                <div><span className="font-semibold">Rating:</span> {viewingHotel.rating} stars</div>
-                <div><span className="font-semibold">Price/Night:</span> ₹{viewingHotel.pricePerNight}</div>
-                <div><span className="font-semibold">Status:</span> <Badge variant={viewingHotel.status === 'Active' ? 'default' : 'secondary'}>{viewingHotel.status}</Badge></div>
-                {viewingHotel.city === 'makkah' && <div><span className="font-semibold">Distance from Haram:</span> {viewingHotel.distanceFromHaram}m</div>}
-                {viewingHotel.city === 'madinah' && <div><span className="font-semibold">Distance from Masjid-e-Nabawi:</span> {viewingHotel.distanceFromMasjidENabawi}m</div>}
-                <div><span className="font-semibold">Shuttle:</span> {viewingHotel.isShuttle ? 'Yes' : 'No'}</div>
-                <div><span className="font-semibold">Walkable:</span> {viewingHotel.isWalkable ? 'Yes' : 'No'}</div>
+                <div>
+                  <span className="font-semibold">Location:</span>{" "}
+                  {viewingHotel.location}
+                </div>
+                <div>
+                  <span className="font-semibold">City:</span>{" "}
+                  {viewingHotel.city}
+                </div>
+                <div>
+                  <span className="font-semibold">Rating:</span>{" "}
+                  {viewingHotel.rating} stars
+                </div>
+                <div>
+                  <span className="font-semibold">Price/Night:</span> ₹
+                  {viewingHotel.pricePerNight}
+                </div>
+                <div>
+                  <span className="font-semibold">Status:</span>{" "}
+                  <Badge
+                    variant={
+                      viewingHotel.status === "Active" ? "default" : "secondary"
+                    }
+                  >
+                    {viewingHotel.status}
+                  </Badge>
+                </div>
+                {viewingHotel.city === "makkah" && (
+                  <div>
+                    <span className="font-semibold">Distance from Haram:</span>{" "}
+                    {viewingHotel.distanceFromHaram}m
+                  </div>
+                )}
+                {viewingHotel.city === "madinah" && (
+                  <div>
+                    <span className="font-semibold">
+                      Distance from Masjid-e-Nabawi:
+                    </span>{" "}
+                    {viewingHotel.distanceFromMasjidENabawi}m
+                  </div>
+                )}
+                <div>
+                  <span className="font-semibold">Shuttle:</span>{" "}
+                  {viewingHotel.isShuttle ? "Yes" : "No"}
+                </div>
+                <div>
+                  <span className="font-semibold">Walkable:</span>{" "}
+                  {viewingHotel.isWalkable ? "Yes" : "No"}
+                </div>
               </div>
               <div>
                 <h4 className="font-semibold">Description</h4>
@@ -560,13 +727,24 @@ const HotelManager = ({ session }) => {
               <div>
                 <h4 className="font-semibold">Amenities</h4>
                 <div className="flex flex-wrap gap-2">
-                  {viewingHotel.amenities?.map(amenity => <Badge key={amenity} variant="outline">{amenity}</Badge>)}
+                  {viewingHotel.amenities?.map((amenity) => (
+                    <Badge key={amenity} variant="outline">
+                      {amenity}
+                    </Badge>
+                  ))}
                 </div>
               </div>
               <div>
                 <h4 className="font-semibold">Images</h4>
                 <div className="flex flex-wrap gap-2">
-                  {viewingHotel.images?.map((img, idx) => <img key={idx} src={img} alt="hotel" className="w-24 h-24 object-cover rounded" />)}
+                  {viewingHotel.images?.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt="hotel"
+                      className="w-24 h-24 object-cover rounded"
+                    />
+                  ))}
                 </div>
               </div>
             </div>

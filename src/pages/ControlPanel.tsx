@@ -93,6 +93,8 @@ interface Activity {
   gallery?: string[];
   sites?: string;
   vehicle_prices?: Record<string, number>;
+  terms_and_conditions?: string;
+  disclaimer?: string;
   [key: string]: unknown;
 }
 interface Vehicle {
@@ -147,6 +149,16 @@ const ControlPanel = () => {
     faqs: [],
     gallery: [],
     sites: "",
+    meta_title: "",
+    meta_description: "",
+    meta_keywords: "",
+    canonical_url: "",
+    og_title: "",
+    og_description: "",
+    og_image: "",
+    page_schema: "",
+    terms_and_conditions: "",
+    disclaimer: "",
   });
   const [activityLoading, setActivityLoading] = useState(false);
   const { toast } = useToast();
@@ -230,22 +242,33 @@ const ControlPanel = () => {
     setEditingActivity(activity);
     setActivityForm({
       featured_image: activity.featured_image || "",
-      is_featured: activity.is_featured || false,
-      city: activity.city || "",
-      name: activity.name || "",
+      is_featured: activity.is_featured,
+      city: activity.city,
+      name: activity.name,
       slug: activity.slug || "",
       description: activity.description || "",
       duration: activity.duration || "",
-      price: activity.price ? String(activity.price) : "",
+      price: activity.price?.toString() || "",
       inclusions: activity.inclusions || "",
       exclusions: activity.exclusions || "",
       features: activity.features || "",
       faqs: activity.faqs || [],
       gallery: activity.gallery || [],
       sites: activity.sites || "",
+      meta_title: activity.meta_title || "",
+      meta_description: activity.meta_description || "",
+      meta_keywords: activity.meta_keywords || "",
+      canonical_url: activity.canonical_url || "",
+      og_title: activity.og_title || "",
+      og_description: activity.og_description || "",
+      og_image: activity.og_image || "",
+      page_schema: activity.page_schema || "",
+      terms_and_conditions: activity.terms_and_conditions || "",
+      disclaimer: activity.disclaimer || "",
     });
     setActivityImagePreview(activity.featured_image || "");
     setActivityDialogOpen(true);
+    setVehiclePrices(activity.vehicle_prices || {});
   };
 
   const handleDeleteActivity = async (id: string) => {
@@ -269,47 +292,40 @@ const ControlPanel = () => {
     setActivityLoading(true);
     try {
       let error;
+      const activityData = {
+        featured_image: activityForm.featured_image,
+        is_featured: activityForm.is_featured,
+        city: activityForm.city,
+        name: activityForm.name,
+        slug: activityForm.slug,
+        description: activityForm.description,
+        duration: activityForm.duration,
+        price: activityForm.price ? parseFloat(activityForm.price) : null,
+        vehicle_prices: vehiclePrices,
+        inclusions: activityForm.inclusions,
+        exclusions: activityForm.exclusions,
+        features: activityForm.features,
+        faqs: activityForm.faqs,
+        gallery: activityForm.gallery,
+        sites: activityForm.sites,
+        meta_title: activityForm.meta_title,
+        meta_description: activityForm.meta_description,
+        meta_keywords: activityForm.meta_keywords,
+        canonical_url: activityForm.canonical_url,
+        og_title: activityForm.og_title,
+        og_description: activityForm.og_description,
+        og_image: activityForm.og_image,
+        page_schema: activityForm.page_schema,
+        terms_and_conditions: activityForm.terms_and_conditions,
+        disclaimer: activityForm.disclaimer,
+      };
       if (editingActivity) {
         ({ error } = await supabase
           .from("activities")
-          .update({
-            featured_image: activityForm.featured_image,
-            is_featured: activityForm.is_featured,
-            city: activityForm.city,
-            name: activityForm.name,
-            slug: activityForm.slug,
-            description: activityForm.description,
-            duration: activityForm.duration,
-            price: activityForm.price ? parseFloat(activityForm.price) : null,
-            vehicle_prices: vehiclePrices,
-            inclusions: activityForm.inclusions,
-            exclusions: activityForm.exclusions,
-            features: activityForm.features,
-            faqs: activityForm.faqs,
-            gallery: activityForm.gallery,
-            sites: activityForm.sites,
-          })
+          .update(activityData)
           .eq("id", editingActivity.id));
       } else {
-        ({ error } = await supabase.from("activities").insert([
-          {
-            featured_image: activityForm.featured_image,
-            is_featured: activityForm.is_featured,
-            city: activityForm.city,
-            name: activityForm.name,
-            slug: activityForm.slug,
-            description: activityForm.description,
-            duration: activityForm.duration,
-            price: activityForm.price ? parseFloat(activityForm.price) : null,
-            vehicle_prices: vehiclePrices,
-            inclusions: activityForm.inclusions,
-            exclusions: activityForm.exclusions,
-            features: activityForm.features,
-            faqs: activityForm.faqs,
-            gallery: activityForm.gallery,
-            sites: activityForm.sites,
-          },
-        ]));
+        ({ error } = await supabase.from("activities").insert([activityData]));
       }
       if (error) throw error;
       toast({
@@ -333,6 +349,16 @@ const ControlPanel = () => {
         faqs: [],
         gallery: [],
         sites: "",
+        meta_title: "",
+        meta_description: "",
+        meta_keywords: "",
+        canonical_url: "",
+        og_title: "",
+        og_description: "",
+        og_image: "",
+        page_schema: "",
+        terms_and_conditions: "",
+        disclaimer: "",
       });
       setActivityImagePreview("");
       setActivityDialogOpen(false);
@@ -384,6 +410,41 @@ const ControlPanel = () => {
         featured_image: publicUrlData.publicUrl,
       }));
     }
+  };
+
+  const handleGalleryImageChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    const uploadedUrls: string[] = [];
+    const previews: string[] = [];
+    for (const file of files) {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from("activities-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+      if (!error) {
+        // Get public URL
+        const { data: publicUrlData } = supabase.storage
+          .from("activities-images")
+          .getPublicUrl(fileName);
+        if (publicUrlData?.publicUrl) {
+          uploadedUrls.push(publicUrlData.publicUrl);
+          // For preview, use the public URL (not blob:)
+          previews.push(publicUrlData.publicUrl);
+        }
+      }
+    }
+    // Save only the public URLs to the gallery field
+    handleActivityChange("gallery", uploadedUrls);
+    // Optionally, set a local preview state if you want to show previews before save
+    // setGalleryPreview(previews);
   };
 
   const fetchActivities = async () => {
@@ -1215,29 +1276,40 @@ const ControlPanel = () => {
                           type="file"
                           accept="image/*"
                           multiple
-                          onChange={async (e) => {
-                            const files = Array.from(e.target.files || []);
-                            // Simulate upload and preview (replace with actual upload logic as needed)
-                            const urls = await Promise.all(
-                              files.map(async (file) => {
-                                // For now, use local preview
-                                return URL.createObjectURL(file);
-                              }),
-                            );
-                            handleActivityChange("gallery", urls);
-                          }}
+                          onChange={handleGalleryImageChange}
                           className="block w-full text-sm text-gray-700"
                         />
                         {activityForm.gallery &&
                           activityForm.gallery.length > 0 && (
                             <div className="flex flex-wrap gap-2 mt-2">
                               {activityForm.gallery.map((img, idx) => (
-                                <img
-                                  key={idx}
-                                  src={img}
-                                  alt="Gallery"
-                                  className="h-16 w-16 object-cover rounded shadow"
-                                />
+                                <div key={idx} className="relative group">
+                                  <img
+                                    src={img}
+                                    alt="Gallery"
+                                    className="h-16 w-16 object-cover rounded shadow"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newGallery =
+                                        activityForm.gallery.filter(
+                                          (_, i) => i !== idx,
+                                        );
+                                      handleActivityChange(
+                                        "gallery",
+                                        newGallery,
+                                      );
+                                    }}
+                                    className="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1 opacity-80 hover:opacity-100 transition group-hover:opacity-100"
+                                    style={{
+                                      transform: "translate(30%, -30%)",
+                                    }}
+                                    title="Remove image"
+                                  >
+                                    &times;
+                                  </button>
+                                </div>
                               ))}
                             </div>
                           )}
@@ -1381,6 +1453,35 @@ const ControlPanel = () => {
                             />
                           </div>
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Terms and Conditions
+                        </label>
+                        <Textarea
+                          value={activityForm.terms_and_conditions || ""}
+                          onChange={(e) =>
+                            handleActivityChange(
+                              "terms_and_conditions",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="Enter terms and conditions for this activity"
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Disclaimer
+                        </label>
+                        <Textarea
+                          value={activityForm.disclaimer || ""}
+                          onChange={(e) =>
+                            handleActivityChange("disclaimer", e.target.value)
+                          }
+                          placeholder="Enter disclaimer for this activity"
+                          rows={3}
+                        />
                       </div>
                       <div className="pt-2">
                         <Button
