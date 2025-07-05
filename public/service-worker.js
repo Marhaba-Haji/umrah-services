@@ -1,16 +1,25 @@
+
 const CACHE_NAME = "marhabahaji-cache-v2";
 const urlsToCache = [
   "/",
   "/index.html",
   "/favicon.ico",
-  "/umrah-package-banner.jpg",
+  "/placeholder.svg",
   "/offline.html",
   // Add more assets as needed
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache)),
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache).catch((error) => {
+        console.error('Failed to cache resources:', error);
+        // Cache files individually to avoid failing on missing files
+        return Promise.allSettled(
+          urlsToCache.map(url => cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err)))
+        );
+      });
+    })
   );
 });
 

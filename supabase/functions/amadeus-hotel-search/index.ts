@@ -30,17 +30,26 @@ let tokenExpiry: number = 0;
 async function getAmadeusToken(): Promise<string> {
   // Check if we have a valid cached token
   if (cachedToken && Date.now() < tokenExpiry) {
+    console.log('Using cached token');
     return cachedToken;
   }
 
   const clientId = Deno.env.get('AMADEUS_API_KEY');
   const clientSecret = Deno.env.get('AMADEUS_API_SECRET');
 
+  console.log('Amadeus credentials check:', {
+    hasClientId: !!clientId,
+    hasClientSecret: !!clientSecret,
+    clientIdLength: clientId?.length || 0
+  });
+
   if (!clientId || !clientSecret) {
     throw new Error('Amadeus API credentials not configured');
   }
 
   const tokenUrl = 'https://test.api.amadeus.com/v1/security/oauth2/token';
+  
+  console.log('Requesting new token from:', tokenUrl);
   
   const response = await fetch(tokenUrl, {
     method: 'POST',
@@ -56,11 +65,13 @@ async function getAmadeusToken(): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Token request failed:', errorText);
-    throw new Error(`Failed to get Amadeus token: ${response.statusText}`);
+    console.error('Token request failed:', response.status, errorText);
+    throw new Error(`Failed to get Amadeus token: ${response.status} ${response.statusText}`);
   }
 
   const data: AmadeusTokenResponse = await response.json();
+  console.log('Token received successfully, expires in:', data.expires_in, 'seconds');
+  
   cachedToken = data.access_token;
   // Set expiry to 5 minutes before actual expiry for safety
   tokenExpiry = Date.now() + (data.expires_in - 300) * 1000;
@@ -69,6 +80,7 @@ async function getAmadeusToken(): Promise<string> {
 }
 
 async function searchHotels(params: HotelSearchParams) {
+  console.log('Getting Amadeus token...');
   const token = await getAmadeusToken();
   
   const url = new URL('https://test.api.amadeus.com/v3/shopping/hotel-offers');
@@ -91,6 +103,7 @@ async function searchHotels(params: HotelSearchParams) {
   }
 
   console.log('Hotel search URL:', url.toString());
+  console.log('Request headers will include Authorization: Bearer [token]');
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -102,16 +115,33 @@ async function searchHotels(params: HotelSearchParams) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Hotel search error:', response.status, errorText);
+    console.error('Hotel search API error:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: errorText
+    });
     throw new Error(`Hotel search failed: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
-  console.log('Hotel search response:', JSON.stringify(data, null, 2));
+  console.log('Hotel search response received:', {
+    dataKeys: Object.keys(data),
+    dataCount: data.data?.length || 0,
+    hasWarnings: !!data.warnings,
+    warnings: data.warnings
+  });
+  
   return data;
 }
 
 serve(async (req) => {
+  console.log('Hotel search function called:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -130,12 +160,14 @@ serve(async (req) => {
 
     const params: HotelSearchParams = await req.json();
     
-    console.log('Hotel search params:', params);
+    console.log('Hotel search params received:', params);
     
     // Validate required parameters
     if (!params.cityCode || !params.checkInDate || !params.checkOutDate || !params.adults) {
+      const error = 'Missing required parameters: cityCode, checkInDate, checkOutDate, adults';
+      console.error('Validation error:', error, { received: params });
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: cityCode, checkInDate, checkOutDate, adults' }),
+        JSON.stringify({ error }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -148,8 +180,10 @@ serve(async (req) => {
     const checkOut = new Date(params.checkOutDate);
     
     if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      const error = 'Invalid date format. Use YYYY-MM-DD format.';
+      console.error('Date validation error:', error, { checkIn: params.checkInDate, checkOut: params.checkOutDate });
       return new Response(
-        JSON.stringify({ error: 'Invalid date format. Use YYYY-MM-DD format.' }),
+        JSON.stringify({ error }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -158,8 +192,10 @@ serve(async (req) => {
     }
 
     if (checkOut <= checkIn) {
+      const error = 'Check-out date must be after check-in date';
+      console.error('Date logic error:', error, { checkIn, checkOut });
       return new Response(
-        JSON.stringify({ error: 'Check-out date must be after check-in date' }),
+        JSON.stringify({ error }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -167,14 +203,20 @@ serve(async (req) => {
       );
     }
 
+    console.log('All validations passed, calling hotel search...');
     const hotelData = await searchHotels(params);
 
+    console.log('Hotel search completed successfully');
     return new Response(JSON.stringify(hotelData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in hotel search function:', error);
+    console.error('Error in hotel search function:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
     let errorMessage = 'Internal server error';
     let statusCode = 500;
@@ -185,8 +227,13 @@ serve(async (req) => {
       // Handle specific error types
       if (error.message.includes('credentials not configured')) {
         statusCode = 503;
+        errorMessage = 'Service temporarily unavailable - API credentials not configured';
       } else if (error.message.includes('Hotel search failed')) {
         statusCode = 502;
+        errorMessage = 'External API error - ' + error.message;
+      } else if (error.message.includes('Failed to get Amadeus token')) {
+        statusCode = 503;
+        errorMessage = 'Authentication service unavailable';
       }
     }
     
