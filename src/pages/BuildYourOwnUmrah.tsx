@@ -23,6 +23,7 @@ import FlightStep from "@/components/FlightStep";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { FlightCartDetails } from "../components/FlightStep";
+import Header from "@/components/Header";
 
 interface CartItem {
   id: string;
@@ -59,6 +60,21 @@ const BuildYourOwnUmrah = () => {
   >([]);
   const [ziarathLoading, setZiarathLoading] = useState(false);
   const [ziarathError, setZiarathError] = useState<string | null>(null);
+  const [makkahCheckin, setMakkahCheckin] = useState("");
+  const [makkahCheckout, setMakkahCheckout] = useState("");
+  const [makkahRooms, setMakkahRooms] = useState([{ guests: 1 }]);
+  const madinahTodayStr = new Date().toISOString().split("T")[0];
+  const madinahMinCheckout = makkahCheckin
+    ? new Date(new Date(makkahCheckin).getTime() + 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0]
+    : madinahTodayStr;
+  const [madinahDateError, setMadinahDateError] = useState<string | null>(null);
+  const [guideOptions, setGuideOptions] = useState<
+    Database["public"]["Tables"]["guide_services"]["Row"][]
+  >([]);
+  const [guideLoading, setGuideLoading] = useState(false);
+  const [guideError, setGuideError] = useState<string | null>(null);
 
   const totalGroupSize =
     adultCount + childWithBedCount + childWithoutBedCount + infantCount;
@@ -122,6 +138,20 @@ const BuildYourOwnUmrah = () => {
       setZiarathLoading(false);
     };
     fetchZiarath();
+
+    const fetchGuides = async () => {
+      setGuideLoading(true);
+      setGuideError(null);
+      const { data, error } = await supabase.from("guide_services").select("*");
+      if (error) {
+        setGuideError("Failed to load guide services.");
+        setGuideOptions([]);
+      } else {
+        setGuideOptions(data || []);
+      }
+      setGuideLoading(false);
+    };
+    fetchGuides();
   }, []);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
@@ -466,6 +496,183 @@ const BuildYourOwnUmrah = () => {
         </h2>
         <p className="text-gray-600">Choose your accommodation in Makkah</p>
       </div>
+      <div className="bg-gray-50 rounded-xl p-4 mb-6 flex flex-col gap-4">
+        <div className="flex flex-row gap-4">
+          <div className="flex flex-col flex-1">
+            <label className="font-medium mb-1 flex items-center gap-1">
+              Check-in Date
+              <span
+                className="align-super text-xs cursor-pointer"
+                title="Check-in time: 4pm"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="#059669"
+                    strokeWidth="2"
+                    fill="#fff"
+                  />
+                  <text
+                    x="12"
+                    y="17"
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="#059669"
+                    fontFamily="Arial"
+                    fontWeight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+              </span>
+            </label>
+            <input
+              type="date"
+              className="border rounded px-3 py-2 w-full"
+              value={makkahCheckin}
+              min={madinahTodayStr}
+              onChange={(e) => {
+                setMakkahCheckin(e.target.value);
+                if (
+                  makkahCheckout &&
+                  e.target.value &&
+                  makkahCheckout <= e.target.value
+                ) {
+                  setMakkahCheckout("");
+                }
+              }}
+            />
+          </div>
+          <div className="flex flex-col flex-1">
+            <label className="font-medium mb-1 flex items-center gap-1">
+              Check-out Date
+              <span
+                className="align-super text-xs cursor-pointer"
+                title="Check-out time: 12pm"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="#059669"
+                    strokeWidth="2"
+                    fill="#fff"
+                  />
+                  <text
+                    x="12"
+                    y="17"
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="#059669"
+                    fontFamily="Arial"
+                    fontWeight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+              </span>
+            </label>
+            <input
+              type="date"
+              className="border rounded px-3 py-2 w-full"
+              value={makkahCheckout}
+              min={madinahMinCheckout}
+              disabled={!makkahCheckin}
+              onChange={(e) => {
+                if (e.target.value <= makkahCheckin) {
+                  setMadinahDateError(
+                    "Checkout must be at least 1 day after check-in",
+                  );
+                } else {
+                  setMadinahDateError(null);
+                }
+                setMakkahCheckout(e.target.value);
+              }}
+            />
+            {madinahDateError && (
+              <span className="text-xs text-red-600 mt-1">
+                {madinahDateError}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col flex-1">
+          <label className="font-medium mb-1 flex items-center gap-2">
+            Rooms & Guests
+            <span className="text-xs text-gray-500">
+              ({makkahRooms.length} room{makkahRooms.length > 1 ? "s" : ""},{" "}
+              {makkahRooms.reduce((sum, r) => sum + r.guests, 0)} guest
+              {makkahRooms.reduce((sum, r) => sum + r.guests, 0) > 1 ? "s" : ""}
+              )
+            </span>
+          </label>
+          {makkahRooms.map((room, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2">
+              <span className="font-semibold">Room {idx + 1}:</span>
+              <span>Guests:</span>
+              <select
+                className="border rounded px-2 py-1"
+                value={room.guests}
+                onChange={(e) => {
+                  const newRooms = [...makkahRooms];
+                  newRooms[idx].guests = Number(e.target.value);
+                  setMakkahRooms(newRooms);
+                }}
+              >
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              {makkahRooms.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setMakkahRooms(makkahRooms.filter((_, i) => i !== idx))
+                  }
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+          {makkahRooms.length < 5 && (
+            <Button
+              size="sm"
+              className="w-full mb-2"
+              onClick={() => setMakkahRooms([...makkahRooms, { guests: 1 }])}
+            >
+              Add Room
+            </Button>
+          )}
+          <Button
+            size="lg"
+            className="w-full bg-primary text-white"
+            onClick={() => {
+              /* TODO: Implement hotel search logic */
+            }}
+          >
+            Search
+          </Button>
+        </div>
+      </div>
       <div className="grid gap-4">
         {[
           {
@@ -566,6 +773,183 @@ const BuildYourOwnUmrah = () => {
           Select Madinah Hotel
         </h2>
         <p className="text-gray-600">Choose your accommodation in Madinah</p>
+      </div>
+      <div className="bg-gray-50 rounded-xl p-4 mb-6 flex flex-col gap-4">
+        <div className="flex flex-row gap-4">
+          <div className="flex flex-col flex-1">
+            <label className="font-medium mb-1 flex items-center gap-1">
+              Check-in Date
+              <span
+                className="align-super text-xs cursor-pointer"
+                title="Check-in time: 4pm"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="#059669"
+                    strokeWidth="2"
+                    fill="#fff"
+                  />
+                  <text
+                    x="12"
+                    y="17"
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="#059669"
+                    fontFamily="Arial"
+                    fontWeight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+              </span>
+            </label>
+            <input
+              type="date"
+              className="border rounded px-3 py-2 w-full"
+              value={makkahCheckin}
+              min={madinahTodayStr}
+              onChange={(e) => {
+                setMakkahCheckin(e.target.value);
+                if (
+                  makkahCheckout &&
+                  e.target.value &&
+                  makkahCheckout <= e.target.value
+                ) {
+                  setMakkahCheckout("");
+                }
+              }}
+            />
+          </div>
+          <div className="flex flex-col flex-1">
+            <label className="font-medium mb-1 flex items-center gap-1">
+              Check-out Date
+              <span
+                className="align-super text-xs cursor-pointer"
+                title="Check-out time: 12pm"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="#059669"
+                    strokeWidth="2"
+                    fill="#fff"
+                  />
+                  <text
+                    x="12"
+                    y="17"
+                    textAnchor="middle"
+                    fontSize="14"
+                    fill="#059669"
+                    fontFamily="Arial"
+                    fontWeight="bold"
+                  >
+                    i
+                  </text>
+                </svg>
+              </span>
+            </label>
+            <input
+              type="date"
+              className="border rounded px-3 py-2 w-full"
+              value={makkahCheckout}
+              min={madinahMinCheckout}
+              disabled={!makkahCheckin}
+              onChange={(e) => {
+                if (e.target.value <= makkahCheckin) {
+                  setMadinahDateError(
+                    "Checkout must be at least 1 day after check-in",
+                  );
+                } else {
+                  setMadinahDateError(null);
+                }
+                setMakkahCheckout(e.target.value);
+              }}
+            />
+            {madinahDateError && (
+              <span className="text-xs text-red-600 mt-1">
+                {madinahDateError}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-col flex-1">
+          <label className="font-medium mb-1 flex items-center gap-2">
+            Rooms & Guests
+            <span className="text-xs text-gray-500">
+              ({makkahRooms.length} room{makkahRooms.length > 1 ? "s" : ""},{" "}
+              {makkahRooms.reduce((sum, r) => sum + r.guests, 0)} guest
+              {makkahRooms.reduce((sum, r) => sum + r.guests, 0) > 1 ? "s" : ""}
+              )
+            </span>
+          </label>
+          {makkahRooms.map((room, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2">
+              <span className="font-semibold">Room {idx + 1}:</span>
+              <span>Guests:</span>
+              <select
+                className="border rounded px-2 py-1"
+                value={room.guests}
+                onChange={(e) => {
+                  const newRooms = [...makkahRooms];
+                  newRooms[idx].guests = Number(e.target.value);
+                  setMakkahRooms(newRooms);
+                }}
+              >
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              {makkahRooms.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setMakkahRooms(makkahRooms.filter((_, i) => i !== idx))
+                  }
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+          ))}
+          {makkahRooms.length < 5 && (
+            <Button
+              size="sm"
+              className="w-full mb-2"
+              onClick={() => setMakkahRooms([...makkahRooms, { guests: 1 }])}
+            >
+              Add Room
+            </Button>
+          )}
+          <Button
+            size="lg"
+            className="w-full bg-primary text-white"
+            onClick={() => {
+              /* TODO: Implement hotel search logic for Madinah */
+            }}
+          >
+            Search
+          </Button>
+        </div>
       </div>
       <div className="grid gap-4">
         {[
@@ -777,94 +1161,95 @@ const BuildYourOwnUmrah = () => {
               </p>
             </div>
             <div className="grid gap-4">
-              {[
-                {
-                  id: "guide-1",
-                  name: "Personal Umrah Guide",
-                  price: 15000,
-                  duration: "Full journey",
-                  languages: "English, Hindi, Urdu",
-                  description: "Premium",
-                },
-                {
-                  id: "guide-2",
-                  name: "Group Guide Service",
-                  price: 8000,
-                  duration: "Full journey",
-                  languages: "English, Hindi",
-                  description: "Popular",
-                  popular: true,
-                },
-                {
-                  id: "guide-3",
-                  name: "Ziarath Guide",
-                  price: 5000,
-                  duration: "Per day",
-                  languages: "English, Arabic",
-                  description: "Essential",
-                },
-              ].map((guide) => (
-                <Card
-                  key={guide.id}
-                  className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                    guide.popular
-                      ? "border-primary shadow-md"
-                      : "border-gray-200 hover:border-primary/30"
-                  }`}
-                >
-                  {guide.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-secondary text-primary px-4 py-1">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                          {guide.name}
-                        </h4>
-                        <p className="text-sm text-primary font-medium mb-2">
-                          {guide.description}
-                        </p>
-                        <div className="space-y-1">
-                          <p className="text-sm text-gray-600">
-                            {guide.duration}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            Languages: {guide.languages}
-                          </p>
+              {guideLoading && (
+                <div className="text-center text-gray-500">
+                  Loading guide services...
+                </div>
+              )}
+              {guideError && (
+                <div className="text-center text-red-500">{guideError}</div>
+              )}
+              {!guideLoading && !guideError && guideOptions.length === 0 && (
+                <div className="text-center text-gray-500">
+                  No guide services available.
+                </div>
+              )}
+              {!guideLoading &&
+                !guideError &&
+                guideOptions.map((guide) => {
+                  // Get price: use min value from service_prices if available, else 0
+                  let price = 0;
+                  if (
+                    guide.service_prices &&
+                    typeof guide.service_prices === "object"
+                  ) {
+                    const prices = Object.values(
+                      guide.service_prices as Record<string, number>,
+                    );
+                    price = prices.length > 0 ? Math.min(...prices) : 0;
+                  }
+                  return (
+                    <Card
+                      key={guide.id}
+                      className="border-2 transition-all duration-200 hover:shadow-lg cursor-pointer"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                              {guide.guide_name}
+                            </h4>
+                            <p className="text-sm text-primary font-medium mb-2">
+                              {guide.description}
+                            </p>
+                            <div className="space-y-1">
+                              {guide.experience && (
+                                <p className="text-sm text-gray-600">
+                                  Experience: {guide.experience}
+                                </p>
+                              )}
+                              {guide.languages && (
+                                <p className="text-sm text-gray-600">
+                                  Languages: {guide.languages.join(", ")}
+                                </p>
+                              )}
+                              {guide.rating && (
+                                <p className="text-sm text-gray-600">
+                                  Rating: {guide.rating}★
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-primary">
+                              ₹{price.toLocaleString()}
+                            </p>
+                            <Button
+                              size="sm"
+                              className="mt-3 bg-primary hover:bg-primary/90"
+                              onClick={() =>
+                                addToCart({
+                                  id: guide.id,
+                                  type: "guide",
+                                  name: guide.guide_name,
+                                  price,
+                                  details: {
+                                    experience: guide.experience,
+                                    languages: guide.languages,
+                                    rating: guide.rating,
+                                  },
+                                })
+                              }
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-primary">
-                          ₹{guide.price.toLocaleString()}
-                        </p>
-                        <Button
-                          size="sm"
-                          className="mt-3 bg-primary hover:bg-primary/90"
-                          onClick={() =>
-                            addToCart({
-                              id: guide.id,
-                              type: "guide",
-                              name: guide.name,
-                              price: guide.price,
-                              details: {
-                                duration: guide.duration,
-                                languages: guide.languages,
-                              },
-                            })
-                          }
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
           </div>
         );
@@ -960,314 +1345,323 @@ const BuildYourOwnUmrah = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="sticky top-0 z-40 bg-white shadow-sm border-b">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(-1)}
-              className="p-2"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="text-center">
-              <h1 className="text-lg font-bold text-gray-900">
-                Build Your Umrah
-              </h1>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs text-primary border-primary"
-                >
-                  Step {activeStep + 1} of {steps.length}
-                </Badge>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCart(true)}
-              className="relative p-2"
-            >
-              <ShoppingCart className="w-5 h-5" />
-              {getTotalItems() > 0 && (
-                <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center p-0">
-                  {getTotalItems()}
-                </Badge>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="bg-white px-4 py-3 border-b">
-        <div className="w-full bg-accent rounded-full h-2">
-          <div
-            className="bg-primary h-2 rounded-full transition-all duration-300"
-            style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
-          ></div>
-        </div>
-      </div>
-
-      {/* Step Navigation */}
-      <div className="bg-white border-b px-3 py-3">
-        <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            const isActive = activeStep === index;
-            const isCompleted = cart.some((item) => {
-              switch (step.id) {
-                case 0:
-                  return item.type === "visa";
-                case 1:
-                  return item.type === "flight";
-                case 2:
-                  return item.type === "hotel";
-                case 3:
-                  return item.type === "hotel";
-                case 4:
-                  return item.type === "transport";
-                case 5:
-                  return item.type === "guide";
-                case 6:
-                  return item.type === "ziarath";
-                default:
-                  return false;
-              }
-            });
-
-            return (
-              <button
-                key={step.id}
-                onClick={() => setActiveStep(index)}
-                className={`flex flex-col items-center px-4 py-3 rounded-xl transition-all duration-200 min-w-[80px] ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-lg"
-                    : isCompleted
-                      ? "bg-accent text-primary border border-accent"
-                      : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                <div className="relative">
-                  <Icon className="w-5 h-5 mb-1" />
-                  {isCompleted && !isActive && (
-                    <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
-                  )}
-                </div>
-                <span className="text-xs font-medium">{step.title}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="px-4 py-6 pb-32">{renderStepContent()}</div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30">
-        <div className="px-4 py-4">
-          {cart.length > 0 && (
-            <div className="mb-4 p-4 bg-accent rounded-xl">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {getTotalItems()} items selected
-                  </p>
-                  <p className="text-xl font-bold text-primary">
-                    ₹{getTotalPrice().toLocaleString()}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowCart(true)}
-                  className="text-primary border-primary"
-                >
-                  View Cart
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <Button
-              variant="outline"
-              className="flex-1 py-6"
-              disabled={activeStep === 0}
-              onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              className="flex-1 bg-primary hover:bg-primary/90 py-6"
-              disabled={activeStep === steps.length - 1}
-              onClick={() =>
-                setActiveStep(Math.min(steps.length - 1, activeStep + 1))
-              }
-            >
-              {activeStep === steps.length - 1 ? "Complete" : "Continue"}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Cart Modal */}
-      {showCart && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-          <div className="bg-white w-full max-h-[85vh] rounded-t-2xl overflow-hidden">
-            <div className="sticky top-0 bg-white border-b px-4 py-4 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-primary">
-                Your Package ({getTotalItems()} items)
-              </h3>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="sticky top-0 z-40 bg-white shadow-sm border-b">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCart(false)}
+                onClick={() => navigate(-1)}
+                className="p-2"
               >
-                <X className="w-5 h-5" />
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="text-center">
+                <h1 className="text-lg font-bold text-gray-900">
+                  Build Your Umrah
+                </h1>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <Badge
+                    variant="outline"
+                    className="text-xs text-primary border-primary"
+                  >
+                    Step {activeStep + 1} of {steps.length}
+                  </Badge>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowCart(true)}
+                className="relative p-2"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {getTotalItems() > 0 && (
+                  <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center p-0">
+                    {getTotalItems()}
+                  </Badge>
+                )}
               </Button>
             </div>
+          </div>
+        </div>
 
-            <div className="overflow-y-auto max-h-[50vh] px-4 py-4">
-              {cart.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">No items in your package yet</p>
+        {/* Progress Bar */}
+        <div className="bg-white px-4 py-3 border-b">
+          <div className="w-full bg-accent rounded-full h-2">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Step Navigation */}
+        <div className="bg-white border-b px-3 py-3">
+          <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = activeStep === index;
+              const isCompleted = cart.some((item) => {
+                switch (step.id) {
+                  case 0:
+                    return item.type === "visa";
+                  case 1:
+                    return item.type === "flight";
+                  case 2:
+                    return item.type === "hotel";
+                  case 3:
+                    return item.type === "hotel";
+                  case 4:
+                    return item.type === "transport";
+                  case 5:
+                    return item.type === "guide";
+                  case 6:
+                    return item.type === "ziarath";
+                  default:
+                    return false;
+                }
+              });
+
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => setActiveStep(index)}
+                  className={`flex flex-col items-center px-4 py-3 rounded-xl transition-all duration-200 min-w-[80px] ${
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-lg"
+                      : isCompleted
+                        ? "bg-accent text-primary border border-accent"
+                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className="relative">
+                    <Icon className="w-5 h-5 mb-1" />
+                    {isCompleted && !isActive && (
+                      <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium">{step.title}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="px-4 py-6 pb-32">{renderStepContent()}</div>
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30">
+          <div className="px-4 py-4">
+            {cart.length > 0 && (
+              <div className="mb-4 p-4 bg-accent rounded-xl">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {getTotalItems()} items selected
+                    </p>
+                    <p className="text-xl font-bold text-primary">
+                      ₹{getTotalPrice().toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCart(true)}
+                    className="text-primary border-primary"
+                  >
+                    View Cart
+                  </Button>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {cart.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex justify-between items-start p-4 bg-gray-50 rounded-xl"
-                    >
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 mb-1">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-600 capitalize mb-2">
-                          {item.type}
-                        </p>
-                        {item.type === "flight" && item.details ? (
-                          <div className="mb-2 text-sm text-gray-700 space-y-1">
-                            <div>
-                              <span className="font-medium">Travelers:</span>{" "}
-                              <span>Adults: {item.details.adults || 0}</span>
-                              {item.details.children ? (
-                                <span>, Children: {item.details.children}</span>
-                              ) : null}
-                              {item.details.infants ? (
-                                <span>, Infants: {item.details.infants}</span>
-                              ) : null}
+              </div>
+            )}
+
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                className="flex-1 py-6"
+                disabled={activeStep === 0}
+                onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                className="flex-1 bg-primary hover:bg-primary/90 py-6"
+                disabled={activeStep === steps.length - 1}
+                onClick={() =>
+                  setActiveStep(Math.min(steps.length - 1, activeStep + 1))
+                }
+              >
+                {activeStep === steps.length - 1 ? "Complete" : "Continue"}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Cart Modal */}
+        {showCart && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+            <div className="bg-white w-full max-h-[85vh] rounded-t-2xl overflow-hidden">
+              <div className="sticky top-0 bg-white border-b px-4 py-4 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-primary">
+                  Your Package ({getTotalItems()} items)
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowCart(false)}
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+
+              <div className="overflow-y-auto max-h-[50vh] px-4 py-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">
+                      No items in your package yet
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {cart.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex justify-between items-start p-4 bg-gray-50 rounded-xl"
+                      >
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 mb-1">
+                            {item.name}
+                          </h4>
+                          <p className="text-sm text-gray-600 capitalize mb-2">
+                            {item.type}
+                          </p>
+                          {item.type === "flight" && item.details ? (
+                            <div className="mb-2 text-sm text-gray-700 space-y-1">
+                              <div>
+                                <span className="font-medium">Travelers:</span>{" "}
+                                <span>Adults: {item.details.adults || 0}</span>
+                                {item.details.children ? (
+                                  <span>
+                                    , Children: {item.details.children}
+                                  </span>
+                                ) : null}
+                                {item.details.infants ? (
+                                  <span>, Infants: {item.details.infants}</span>
+                                ) : null}
+                              </div>
+                              <div>
+                                <span className="font-medium">
+                                  Travel Dates:
+                                </span>{" "}
+                                <span>
+                                  {item.details.departure?.at
+                                    ? new Date(
+                                        item.details.departure.at,
+                                      ).toLocaleDateString()
+                                    : "-"}
+                                  {item.details.arrival?.at &&
+                                  item.details.departure?.at &&
+                                  item.details.arrival.at !==
+                                    item.details.departure.at
+                                    ? ` - ${new Date(item.details.arrival.at).toLocaleDateString()}`
+                                    : ""}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium">
+                                  Fare Breakdown:
+                                </span>{" "}
+                                <span>
+                                  {item.details.adults
+                                    ? `₹${(item.details.adultPrice || 0).toLocaleString()} x ${item.details.adults} adult(s)`
+                                    : null}
+                                  {item.details.children
+                                    ? `, ₹${(item.details.childPrice || 0).toLocaleString()} x ${item.details.children} child(ren)`
+                                    : null}
+                                  {item.details.infants
+                                    ? `, ₹${(item.details.infantPrice || 0).toLocaleString()} x ${item.details.infants} infant(s)`
+                                    : null}
+                                </span>
+                              </div>
                             </div>
-                            <div>
-                              <span className="font-medium">Travel Dates:</span>{" "}
-                              <span>
-                                {item.details.departure?.at
-                                  ? new Date(
-                                      item.details.departure.at,
-                                    ).toLocaleDateString()
-                                  : "-"}
-                                {item.details.arrival?.at &&
-                                item.details.departure?.at &&
-                                item.details.arrival.at !==
-                                  item.details.departure.at
-                                  ? ` - ${new Date(item.details.arrival.at).toLocaleDateString()}`
-                                  : ""}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="font-medium">
-                                Fare Breakdown:
-                              </span>{" "}
-                              <span>
-                                {item.details.adults
-                                  ? `₹${(item.details.adultPrice || 0).toLocaleString()} x ${item.details.adults} adult(s)`
-                                  : null}
-                                {item.details.children
-                                  ? `, ₹${(item.details.childPrice || 0).toLocaleString()} x ${item.details.children} child(ren)`
-                                  : null}
-                                {item.details.infants
-                                  ? `, ₹${(item.details.infantPrice || 0).toLocaleString()} x ${item.details.infants} infant(s)`
-                                  : null}
-                              </span>
-                            </div>
-                          </div>
-                        ) : null}
-                        <p className="font-bold text-primary text-lg">
-                          {item.type === "flight" && item.details
-                            ? `₹${(
-                                (item.details.adults || 0) *
-                                  (item.details.adultPrice || 0) +
-                                (item.details.children || 0) *
-                                  (item.details.childPrice || 0) +
-                                (item.details.infants || 0) *
-                                  (item.details.infantPrice || 0)
-                              ).toLocaleString()}`
-                            : `₹${(item.price * (item.quantity || 1)).toLocaleString()}`}
-                        </p>
+                          ) : null}
+                          <p className="font-bold text-primary text-lg">
+                            {item.type === "flight" && item.details
+                              ? `₹${(
+                                  (item.details.adults || 0) *
+                                    (item.details.adultPrice || 0) +
+                                  (item.details.children || 0) *
+                                    (item.details.childPrice || 0) +
+                                  (item.details.infants || 0) *
+                                    (item.details.infantPrice || 0)
+                                ).toLocaleString()}`
+                              : `₹${(item.price * (item.quantity || 1)).toLocaleString()}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              updateQuantity(item.id, (item.quantity || 1) - 1)
+                            }
+                            className="w-8 h-8 p-0"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </Button>
+                          <span className="text-sm font-medium w-8 text-center">
+                            {item.quantity || 1}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              updateQuantity(item.id, (item.quantity || 1) + 1)
+                            }
+                            className="w-8 h-8 p-0"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromCart(item.id)}
+                            className="text-red-500 w-8 h-8 p-0 ml-2"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            updateQuantity(item.id, (item.quantity || 1) - 1)
-                          }
-                          className="w-8 h-8 p-0"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </Button>
-                        <span className="text-sm font-medium w-8 text-center">
-                          {item.quantity || 1}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            updateQuantity(item.id, (item.quantity || 1) + 1)
-                          }
-                          className="w-8 h-8 p-0"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-red-500 w-8 h-8 p-0 ml-2"
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {cart.length > 0 && (
+                <div className="sticky bottom-0 bg-white border-t px-4 py-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-xl font-semibold">Total</span>
+                    <span className="text-2xl font-bold text-primary">
+                      ₹{getTotalPrice().toLocaleString()}
+                    </span>
+                  </div>
+                  <Button className="w-full bg-primary hover:bg-primary/90 py-6 text-lg">
+                    Proceed to Booking
+                  </Button>
                 </div>
               )}
             </div>
-
-            {cart.length > 0 && (
-              <div className="sticky bottom-0 bg-white border-t px-4 py-6">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-xl font-semibold">Total</span>
-                  <span className="text-2xl font-bold text-primary">
-                    ₹{getTotalPrice().toLocaleString()}
-                  </span>
-                </div>
-                <Button className="w-full bg-primary hover:bg-primary/90 py-6 text-lg">
-                  Proceed to Booking
-                </Button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
