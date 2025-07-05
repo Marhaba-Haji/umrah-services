@@ -55,6 +55,8 @@ async function getAmadeusToken(): Promise<string> {
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Token request failed:', errorText);
     throw new Error(`Failed to get Amadeus token: ${response.statusText}`);
   }
 
@@ -100,11 +102,12 @@ async function searchHotels(params: HotelSearchParams) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Hotel search error:', errorText);
-    throw new Error(`Hotel search failed: ${response.statusText}`);
+    console.error('Hotel search error:', response.status, errorText);
+    throw new Error(`Hotel search failed: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
+  console.log('Hotel search response:', JSON.stringify(data, null, 2));
   return data;
 }
 
@@ -115,6 +118,16 @@ serve(async (req) => {
   }
 
   try {
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { 
+          status: 405, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const params: HotelSearchParams = await req.json();
     
     console.log('Hotel search params:', params);
@@ -130,6 +143,30 @@ serve(async (req) => {
       );
     }
 
+    // Validate date format and ensure checkout is after checkin
+    const checkIn = new Date(params.checkInDate);
+    const checkOut = new Date(params.checkOutDate);
+    
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid date format. Use YYYY-MM-DD format.' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (checkOut <= checkIn) {
+      return new Response(
+        JSON.stringify({ error: 'Check-out date must be after check-in date' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const hotelData = await searchHotels(params);
 
     return new Response(JSON.stringify(hotelData), {
@@ -138,13 +175,29 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in hotel search function:', error);
+    
+    let errorMessage = 'Internal server error';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Handle specific error types
+      if (error.message.includes('credentials not configured')) {
+        statusCode = 503;
+      } else if (error.message.includes('Hotel search failed')) {
+        statusCode = 502;
+      }
+    }
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
-        details: 'Hotel search failed'
+        error: errorMessage,
+        details: 'Hotel search failed',
+        timestamp: new Date().toISOString()
       }),
       { 
-        status: 500, 
+        status: statusCode, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

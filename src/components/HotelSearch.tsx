@@ -92,13 +92,6 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
     return Math.round(inrPrice);
   };
 
-  const getHotelImage = (hotel: AmadeusHotelOffer) => {
-    if (hotel.hotel.media && hotel.hotel.media.length > 0) {
-      return hotel.hotel.media[0].uri;
-    }
-    return "/placeholder.svg";
-  };
-
   const getDistanceText = (city: string) => {
     if (city === "makkah") {
       return "Distance from Haram varies";
