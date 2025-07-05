@@ -142,12 +142,15 @@ export const searchHotels = async (params: HotelSearchParams): Promise<HotelSear
   }
 };
 
-// City codes for major cities
+// Updated city codes for Saudi Arabia - using correct IATA codes
 export const CITY_CODES = {
-  MAKKAH: 'MAC',
-  MADINAH: 'MED',
-  JEDDAH: 'JED',
-  RIYADH: 'RUH',
+  // Try multiple approaches for Makkah/Mecca
+  MAKKAH: 'JED', // Use Jeddah as closest major airport/city to Makkah
+  MADINAH: 'MED', // Madinah
+  JEDDAH: 'JED',  // Jeddah (King Abdulaziz International Airport)
+  RIYADH: 'RUH',  // Riyadh
+  // Alternative approach - try coordinates for Makkah
+  MAKKAH_ALT: 'MAC' // Keep as backup
 } as const;
 
 export type CityCode = typeof CITY_CODES[keyof typeof CITY_CODES];

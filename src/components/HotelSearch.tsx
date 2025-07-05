@@ -51,6 +51,7 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
 
     try {
       const totalGuests = rooms.reduce((sum, room) => sum + room.guests, 0);
+      // Use JED (Jeddah) for Makkah searches as it's the closest major city
       const cityCode = city === "makkah" ? CITY_CODES.MAKKAH : CITY_CODES.MADINAH;
 
       const searchParams: HotelSearchParams = {
@@ -59,7 +60,7 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
         checkOutDate,
         adults: totalGuests,
         roomQuantity: rooms.length,
-        radius: 50, // 50km radius
+        radius: city === "makkah" ? 25 : 50, // Smaller radius for Makkah to focus on nearby hotels
       };
 
       console.log('Searching hotels for:', searchParams);
@@ -71,13 +72,27 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
         toast.success(`Found ${response.data.length} hotels`);
       } else {
         setHotels([]);
-        toast.error("No hotels found for the selected dates");
+        // Try alternative search for Makkah if no results
+        if (city === "makkah") {
+          toast.error("No hotels found near Makkah. This might be due to API limitations with Makkah city searches. Try different dates or check back later.");
+        } else {
+          toast.error("No hotels found for the selected dates");
+        }
       }
       
       setHasSearched(true);
     } catch (error) {
       console.error('Hotel search error:', error);
-      toast.error(error instanceof Error ? error.message : "Failed to search hotels");
+      const errorMessage = error instanceof Error ? error.message : "Failed to search hotels";
+      
+      if (errorMessage.includes('502') || errorMessage.includes('External API')) {
+        toast.error("Hotel search service is temporarily unavailable. Please try again later.");
+      } else if (errorMessage.includes('credentials')) {
+        toast.error("Hotel search service is not properly configured. Please contact support.");
+      } else {
+        toast.error(`Hotel search failed: ${errorMessage}`);
+      }
+      
       setHotels([]);
       setHasSearched(true);
     } finally {
@@ -114,7 +129,7 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
             Searching Hotels...
           </>
         ) : (
-          "Search Hotels"
+          `Search Hotels in ${city === "makkah" ? "Makkah" : "Madinah"}`
         )}
       </Button>
 
@@ -125,7 +140,26 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
               <div className="text-center text-gray-500">
                 <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                 <p>No hotels found for the selected dates and criteria.</p>
-                <p className="text-sm mt-2">Try adjusting your search parameters.</p>
+                {city === "makkah" && (
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg text-left">
+                    <h4 className="font-semibold text-blue-800 mb-2">Searching for Makkah Hotels</h4>
+                    <p className="text-sm text-blue-700">
+                      We're using advanced search methods including geographic coordinates to find hotels near the Haram. 
+                      If no results appear, it may be due to:
+                    </p>
+                    <ul className="text-sm text-blue-700 mt-2 ml-4 list-disc">
+                      <li>Limited availability for selected dates</li>
+                      <li>API restrictions for Makkah region</li>
+                      <li>High demand during peak seasons</li>
+                    </ul>
+                    <p className="text-sm text-blue-700 mt-2">
+                      Try adjusting your dates or check back later.
+                    </p>
+                  </div>
+                )}
+                {city === "madinah" && (
+                  <p className="text-sm mt-2">Try adjusting your search parameters or dates.</p>
+                )}
               </div>
             </Card>
           ) : (

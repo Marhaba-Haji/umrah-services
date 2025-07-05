@@ -83,27 +83,80 @@ async function searchHotels(params: HotelSearchParams) {
   console.log('Getting Amadeus token...');
   const token = await getAmadeusToken();
   
+  // For Makkah/Mecca, try different approaches
+  let searchParams = params;
+  
+  // If searching for Makkah, try multiple strategies
+  if (params.cityCode === 'JED' && params.hotelName === undefined) {
+    // First try: Search by geographic coordinates for Makkah
+    const makkahLat = 21.4225;
+    const makkahLon = 39.8262;
+    
+    const url = new URL('https://test.api.amadeus.com/v3/shopping/hotel-offers');
+    
+    // Use latitude/longitude instead of city code for better Makkah results
+    url.searchParams.append('latitude', makkahLat.toString());
+    url.searchParams.append('longitude', makkahLon.toString());
+    url.searchParams.append('checkInDate', params.checkInDate);
+    url.searchParams.append('checkOutDate', params.checkOutDate);
+    url.searchParams.append('adults', params.adults.toString());
+    
+    if (params.roomQuantity) {
+      url.searchParams.append('roomQuantity', params.roomQuantity.toString());
+    }
+    
+    // Use a smaller radius for Makkah to focus on hotels near Haram
+    url.searchParams.append('radius', '10');
+    url.searchParams.append('radiusUnit', 'KM');
+    
+    console.log('Makkah hotel search URL (lat/lon):', url.toString());
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Makkah hotel search response (lat/lon):', {
+        dataKeys: Object.keys(data),
+        dataCount: data.data?.length || 0,
+        hasWarnings: !!data.warnings,
+        warnings: data.warnings
+      });
+      
+      if (data.data && data.data.length > 0) {
+        return data;
+      }
+    } else {
+      console.warn('Lat/lon search failed, trying city code approach');
+    }
+  }
+  
+  // Fallback or regular city code search
   const url = new URL('https://test.api.amadeus.com/v3/shopping/hotel-offers');
   
   // Add required parameters
-  url.searchParams.append('cityCode', params.cityCode);
-  url.searchParams.append('checkInDate', params.checkInDate);
-  url.searchParams.append('checkOutDate', params.checkOutDate);
-  url.searchParams.append('adults', params.adults.toString());
+  url.searchParams.append('cityCode', searchParams.cityCode);
+  url.searchParams.append('checkInDate', searchParams.checkInDate);
+  url.searchParams.append('checkOutDate', searchParams.checkOutDate);
+  url.searchParams.append('adults', searchParams.adults.toString());
   
   // Add optional parameters
-  if (params.roomQuantity) {
-    url.searchParams.append('roomQuantity', params.roomQuantity.toString());
+  if (searchParams.roomQuantity) {
+    url.searchParams.append('roomQuantity', searchParams.roomQuantity.toString());
   }
-  if (params.radius) {
-    url.searchParams.append('radius', params.radius.toString());
+  if (searchParams.radius) {
+    url.searchParams.append('radius', searchParams.radius.toString());
   }
-  if (params.hotelName) {
-    url.searchParams.append('hotelName', params.hotelName);
+  if (searchParams.hotelName) {
+    url.searchParams.append('hotelName', searchParams.hotelName);
   }
 
-  console.log('Hotel search URL:', url.toString());
-  console.log('Request headers will include Authorization: Bearer [token]');
+  console.log('Hotel search URL (city code):', url.toString());
 
   const response = await fetch(url.toString(), {
     method: 'GET',
@@ -121,11 +174,11 @@ async function searchHotels(params: HotelSearchParams) {
       headers: Object.fromEntries(response.headers.entries()),
       body: errorText
     });
-    throw new Error(`Hotel search failed: ${response.status} ${response.statusText}`);
+    throw new Error(`Hotel search failed: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   const data = await response.json();
-  console.log('Hotel search response received:', {
+  console.log('Hotel search response (city code):', {
     dataKeys: Object.keys(data),
     dataCount: data.data?.length || 0,
     hasWarnings: !!data.warnings,
