@@ -1,14 +1,33 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { Eye, Edit, Trash2, Plus, Plane } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { Eye, Edit, Trash2, Plus, Plane } from "lucide-react";
 
 interface GroupFlight {
   id: number;
@@ -27,42 +46,42 @@ interface GroupFlight {
 
 const GroupFlightsManager = () => {
   const [flights, setFlights] = useState<GroupFlight[]>([
-    { 
-      id: 1, 
-      sector: 'Karachi - Jeddah', 
-      airline: 'Saudi Airlines', 
-      flightNumber: 'SV-714', 
-      price: '$450', 
-      duration: '3h 30m',
-      layoverDuration: 'Direct',
-      luggageLimit: '23kg + 7kg',
-      flightType: 'Direct',
-      departureTime: '14:30',
-      arrivalTime: '16:00',
-      status: 'Active'
-    }
+    {
+      id: 1,
+      sector: "Karachi - Jeddah",
+      airline: "Saudi Airlines",
+      flightNumber: "SV-714",
+      price: "$450",
+      duration: "3h 30m",
+      layoverDuration: "Direct",
+      luggageLimit: "23kg + 7kg",
+      flightType: "Direct",
+      departureTime: "14:30",
+      arrivalTime: "16:00",
+      status: "Active",
+    },
   ]);
-  
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingFlight, setEditingFlight] = useState<GroupFlight | null>(null);
 
   const form = useForm({
     defaultValues: {
-      sector: '',
-      airline: '',
-      flightNumber: '',
-      price: '',
-      duration: '',
-      layoverDuration: '',
-      luggageLimit: '',
-      flightType: 'Direct',
-      departureTime: '',
-      arrivalTime: '',
-      status: 'Active'
-    }
+      sector: "",
+      airline: "",
+      flightNumber: "",
+      price: "",
+      duration: "",
+      layoverDuration: "",
+      luggageLimit: "",
+      flightType: "Direct",
+      departureTime: "",
+      arrivalTime: "",
+      status: "Active",
+    },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = (data: unknown) => {
     const newFlight: GroupFlight = {
       id: editingFlight ? editingFlight.id : Date.now(),
       sector: data.sector,
@@ -75,11 +94,15 @@ const GroupFlightsManager = () => {
       flightType: data.flightType,
       departureTime: data.departureTime,
       arrivalTime: data.arrivalTime,
-      status: data.status
+      status: data.status,
     };
 
     if (editingFlight) {
-      setFlights(flights.map(flight => flight.id === editingFlight.id ? newFlight : flight));
+      setFlights(
+        flights.map((flight) =>
+          flight.id === editingFlight.id ? newFlight : flight,
+        ),
+      );
     } else {
       setFlights([...flights, newFlight]);
     }
@@ -96,7 +119,7 @@ const GroupFlightsManager = () => {
   };
 
   const handleDelete = (id: number) => {
-    setFlights(flights.filter(flight => flight.id !== id));
+    setFlights(flights.filter((flight) => flight.id !== id));
   };
 
   return (
@@ -105,17 +128,27 @@ const GroupFlightsManager = () => {
         <h3 className="text-xl font-semibold">Group Flights Management</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingFlight(null); form.reset(); }}>
+            <Button
+              onClick={() => {
+                setEditingFlight(null);
+                form.reset();
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Flight
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingFlight ? 'Edit Group Flight' : 'Add New Group Flight'}</DialogTitle>
+              <DialogTitle>
+                {editingFlight ? "Edit Group Flight" : "Add New Group Flight"}
+              </DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -124,7 +157,10 @@ const GroupFlightsManager = () => {
                       <FormItem>
                         <FormLabel>Flight Sector</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Karachi - Jeddah" {...field} />
+                          <Input
+                            placeholder="e.g., Karachi - Jeddah"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -137,7 +173,10 @@ const GroupFlightsManager = () => {
                       <FormItem>
                         <FormLabel>Airline</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Saudi Airlines" {...field} />
+                          <Input
+                            placeholder="e.g., Saudi Airlines"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -223,7 +262,10 @@ const GroupFlightsManager = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Flight Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select flight type" />
@@ -231,7 +273,9 @@ const GroupFlightsManager = () => {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="Direct">Direct</SelectItem>
-                            <SelectItem value="Connecting">Connecting</SelectItem>
+                            <SelectItem value="Connecting">
+                              Connecting
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -275,7 +319,10 @@ const GroupFlightsManager = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -294,9 +341,13 @@ const GroupFlightsManager = () => {
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">
-                    {editingFlight ? 'Update Flight' : 'Create Flight'}
+                    {editingFlight ? "Update Flight" : "Create Flight"}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -321,24 +372,32 @@ const GroupFlightsManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {flights.map(flight => (
+                {flights.map((flight) => (
                   <tr key={flight.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <div>
                         <div className="font-medium">{flight.airline}</div>
-                        <div className="text-sm text-gray-500">{flight.flightNumber}</div>
+                        <div className="text-sm text-gray-500">
+                          {flight.flightNumber}
+                        </div>
                       </div>
                     </td>
                     <td className="p-2">{flight.sector}</td>
                     <td className="p-2">
                       <div>
                         <div>{flight.duration}</div>
-                        <div className="text-sm text-gray-500">{flight.flightType}</div>
+                        <div className="text-sm text-gray-500">
+                          {flight.flightType}
+                        </div>
                       </div>
                     </td>
                     <td className="p-2">{flight.price}</td>
                     <td className="p-2">
-                      <Badge variant={flight.status === 'Active' ? 'default' : 'secondary'}>
+                      <Badge
+                        variant={
+                          flight.status === "Active" ? "default" : "secondary"
+                        }
+                      >
                         {flight.status}
                       </Badge>
                     </td>
@@ -347,10 +406,18 @@ const GroupFlightsManager = () => {
                         <Button size="sm" variant="outline">
                           <Eye className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(flight)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(flight)}
+                        >
                           <Edit className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(flight.id)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(flight.id)}
+                        >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>

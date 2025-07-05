@@ -1,40 +1,44 @@
-import React, { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import React, { useEffect, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!
+  import.meta.env.VITE_SUPABASE_ANON_KEY!,
 );
 
 const STATUS_OPTIONS = [
-  { value: 'new', label: 'New' },
-  { value: 'contacted', label: 'Contacted' },
-  { value: 'closed', label: 'Closed' },
+  { value: "new", label: "New" },
+  { value: "contacted", label: "Contacted" },
+  { value: "closed", label: "Closed" },
 ];
 
 export default function HotelEnquiriesManager() {
-  const [enquiries, setEnquiries] = useState<any[]>([]);
+  const [enquiries, setEnquiries] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const fetchEnquiries = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('hotel_enquiries')
-      .select('*')
-      .order('submitted_at', { ascending: false });
+      .from("hotel_enquiries")
+      .select("*")
+      .order("submitted_at", { ascending: false });
     if (error) setError(error.message);
     else setEnquiries(data || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchEnquiries(); }, []);
+  useEffect(() => {
+    fetchEnquiries();
+  }, []);
 
   const handleStatusChange = async (id: string, status: string) => {
-    await supabase.from('hotel_enquiries').update({ status }).eq('id', id);
-    setEnquiries(enquiries => enquiries.map(e => e.id === id ? { ...e, status } : e));
+    await supabase.from("hotel_enquiries").update({ status }).eq("id", id);
+    setEnquiries((enquiries) =>
+      enquiries.map((e) => (e.id === id ? { ...e, status } : e)),
+    );
   };
 
   if (loading) return <div>Loading...</div>;
@@ -61,9 +65,13 @@ export default function HotelEnquiriesManager() {
             </tr>
           </thead>
           <tbody>
-            {enquiries.map(e => (
+            {enquiries.map((e) => (
               <tr key={e.id} className="border-b">
-                <td className="p-2 border">{e.submitted_at ? new Date(e.submitted_at).toLocaleString() : ''}</td>
+                <td className="p-2 border">
+                  {e.submitted_at
+                    ? new Date(e.submitted_at).toLocaleString()
+                    : ""}
+                </td>
                 <td className="p-2 border">{e.hotel_name}</td>
                 <td className="p-2 border">{e.name}</td>
                 <td className="p-2 border">{e.email}</td>
@@ -71,16 +79,26 @@ export default function HotelEnquiriesManager() {
                 <td className="p-2 border">{e.phone}</td>
                 <td className="p-2 border">{e.check_in}</td>
                 <td className="p-2 border">{e.check_out}</td>
-                <td className="p-2 border">{Array.isArray(e.rooms) ? e.rooms.map((r, i) => `Room ${i+1}: ${r.guests} guests`).join(', ') : ''}</td>
-                <td className="p-2 border max-w-xs truncate" title={e.message}>{e.message}</td>
+                <td className="p-2 border">
+                  {Array.isArray(e.rooms)
+                    ? e.rooms
+                        .map((r, i) => `Room ${i + 1}: ${r.guests} guests`)
+                        .join(", ")
+                    : ""}
+                </td>
+                <td className="p-2 border max-w-xs truncate" title={e.message}>
+                  {e.message}
+                </td>
                 <td className="p-2 border">
                   <select
                     value={e.status}
-                    onChange={ev => handleStatusChange(e.id, ev.target.value)}
+                    onChange={(ev) => handleStatusChange(e.id, ev.target.value)}
                     className="border rounded px-1 py-0.5"
                   >
-                    {STATUS_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 </td>
@@ -91,4 +109,4 @@ export default function HotelEnquiriesManager() {
       </div>
     </div>
   );
-} 
+}

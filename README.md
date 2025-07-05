@@ -71,3 +71,15 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## TypeScript Coding Policy
+
+To ensure code quality and maintainability, this project follows a strict TypeScript policy:
+
+- **Never use the `any` type.**
+- **Always use explicit types** for variables, function parameters, and return values.
+- If a type cannot be inferred or is ambiguous, **use `unknown`** or **define a new interface/type** as appropriate.
+- For complex or ambiguous data, **prefer creating a type or interface** rather than using `any`.
+- If a third-party library returns `any`, **wrap it with a type-safe abstraction** or cast to a more specific type.
+
+This policy helps prevent linter errors (such as `@typescript-eslint/no-explicit-any`) and ensures a robust, type-safe codebase.

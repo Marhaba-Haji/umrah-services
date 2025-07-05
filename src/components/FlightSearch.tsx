@@ -1387,6 +1387,11 @@ const FlightDetails = ({ offer }: { offer: AmadeusFlightOffer }) => {
   if (!offer)
     return <div className="text-gray-500">Details not available.</div>;
 
+  // Debug output for automation
+  // Remove or comment out after debugging
+  // Shows the raw offer data for diagnosis
+  const debug = false; // set to true to enable
+
   // Pricing by traveler type
   const getPrice = (type: string) => {
     const pricing = offer.travelerPricings?.find(
@@ -1402,6 +1407,9 @@ const FlightDetails = ({ offer }: { offer: AmadeusFlightOffer }) => {
   const getBaggage = (
     segments: AmadeusFlightOffer["itineraries"][number]["segments"],
   ) => {
+    if (!segments || segments.length === 0) {
+      return <div className="text-gray-500">No baggage info available.</div>;
+    }
     return segments.map(
       (
         seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
@@ -1420,8 +1428,8 @@ const FlightDetails = ({ offer }: { offer: AmadeusFlightOffer }) => {
   };
 
   // Segments
-  const onwardSegments = offer.itineraries[0]?.segments || [];
-  const returnSegments = offer.itineraries[1]?.segments || [];
+  const onwardSegments = offer.itineraries?.[0]?.segments || [];
+  const returnSegments = offer.itineraries?.[1]?.segments || [];
 
   // Layover calculation
   const getLayover = (
@@ -1439,201 +1447,236 @@ const FlightDetails = ({ offer }: { offer: AmadeusFlightOffer }) => {
   };
 
   return (
-    <Tabs defaultValue="onward" className="w-full mt-2">
-      <TabsList className="mb-4">
-        <TabsTrigger value="onward">Onward Segments</TabsTrigger>
-        {returnSegments.length > 0 && (
-          <TabsTrigger value="return">Return Segments</TabsTrigger>
-        )}
-        <TabsTrigger value="price">Price</TabsTrigger>
-        <TabsTrigger value="baggage">Baggage</TabsTrigger>
-      </TabsList>
-      <TabsContent value="onward">
-        <div className="mb-2 font-semibold text-gray-800">Onward Segments</div>
-        <div className="space-y-3">
-          {onwardSegments.map(
-            (
-              seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-              idx: number,
-            ) => (
-              <div key={seg.id} className="border rounded p-3 bg-gray-50">
-                <div className="flex flex-wrap gap-2 items-center mb-1">
-                  <span className="font-semibold text-emerald-700">
-                    {seg.carrierCode} {seg.number}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Aircraft:{" "}
-                    {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
-                      seg.aircraft.code}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-                  <div>
-                    <span className="font-semibold">From:</span>{" "}
-                    {seg.departure.iataCode}{" "}
-                    {seg.departure.terminal ? `T${seg.departure.terminal}` : ""}{" "}
-                    <span className="text-gray-400">
-                      ({new Date(seg.departure.at).toLocaleString()})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">To:</span>{" "}
-                    {seg.arrival.iataCode}{" "}
-                    {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
-                    <span className="text-gray-400">
-                      ({new Date(seg.arrival.at).toLocaleString()})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Duration:</span>{" "}
-                    {seg.duration.replace("PT", "").toLowerCase()}
-                  </div>
-                </div>
-                {idx > 0 && (
-                  <div className="text-xs text-blue-600 mt-1">
-                    {getLayover(onwardSegments[idx - 1], seg)}
-                  </div>
-                )}
-              </div>
-            ),
+    <div>
+      {debug && (
+        <pre className="text-xs text-red-500 overflow-x-auto max-h-40">
+          {JSON.stringify(offer, null, 2)}
+        </pre>
+      )}
+      <Tabs defaultValue="onward" className="w-full mt-2">
+        <TabsList className="mb-4">
+          <TabsTrigger value="onward">Onward Segments</TabsTrigger>
+          {returnSegments.length > 0 && (
+            <TabsTrigger value="return">Return Segments</TabsTrigger>
           )}
-        </div>
-      </TabsContent>
-      <TabsContent value="return">
-        <div className="mb-2 font-semibold text-gray-800">Return Segments</div>
-        <div className="space-y-3">
-          {returnSegments.map(
-            (
-              seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-              idx: number,
-            ) => (
-              <div key={seg.id} className="border rounded p-3 bg-gray-50">
-                <div className="flex flex-wrap gap-2 items-center mb-1">
-                  <span className="font-semibold text-emerald-700">
-                    {seg.carrierCode} {seg.number}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    Aircraft:{" "}
-                    {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
-                      seg.aircraft.code}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-                  <div>
-                    <span className="font-semibold">From:</span>{" "}
-                    {seg.departure.iataCode}{" "}
-                    {seg.departure.terminal ? `T${seg.departure.terminal}` : ""}{" "}
-                    <span className="text-gray-400">
-                      ({new Date(seg.departure.at).toLocaleString()})
-                    </span>
+          <TabsTrigger value="price">Price</TabsTrigger>
+          <TabsTrigger value="baggage">Baggage</TabsTrigger>
+        </TabsList>
+        <TabsContent value="onward">
+          <div className="mb-2 font-semibold text-gray-800">
+            Onward Segments
+          </div>
+          {onwardSegments.length === 0 ? (
+            <div className="text-gray-500">No onward segments available.</div>
+          ) : (
+            <div className="space-y-3">
+              {onwardSegments.map(
+                (
+                  seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
+                  idx: number,
+                ) => (
+                  <div key={seg.id} className="border rounded p-3 bg-gray-50">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                      <span className="font-semibold text-emerald-700">
+                        {seg.carrierCode} {seg.number}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Aircraft:{" "}
+                        {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
+                          seg.aircraft.code}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-700">
+                      <div>
+                        <span className="font-semibold">From:</span>{" "}
+                        {seg.departure.iataCode}{" "}
+                        {seg.departure.terminal
+                          ? `T${seg.departure.terminal}`
+                          : ""}{" "}
+                        <span className="text-gray-400">
+                          ({new Date(seg.departure.at).toLocaleString()})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">To:</span>{" "}
+                        {seg.arrival.iataCode}{" "}
+                        {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
+                        <span className="text-gray-400">
+                          ({new Date(seg.arrival.at).toLocaleString()})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">Duration:</span>{" "}
+                        {seg.duration.replace("PT", "").toLowerCase()}
+                      </div>
+                    </div>
+                    {idx > 0 && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        {getLayover(onwardSegments[idx - 1], seg)}
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <span className="font-semibold">To:</span>{" "}
-                    {seg.arrival.iataCode}{" "}
-                    {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
-                    <span className="text-gray-400">
-                      ({new Date(seg.arrival.at).toLocaleString()})
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Duration:</span>{" "}
-                    {seg.duration.replace("PT", "").toLowerCase()}
-                  </div>
-                </div>
-                {idx > 0 && (
-                  <div className="text-xs text-blue-600 mt-1">
-                    {getLayover(returnSegments[idx - 1], seg)}
-                  </div>
-                )}
-              </div>
-            ),
+                ),
+              )}
+            </div>
           )}
-        </div>
-      </TabsContent>
-      <TabsContent value="price">
-        <div className="mb-2 font-semibold text-gray-800">Price Breakdown</div>
-        <div className="flex gap-6 mb-4">
-          <div className="text-xs text-gray-600">
-            Adult:{" "}
-            <span className="font-medium text-gray-900">
-              ₹
-              {offer.travelerPricings
-                ? currencyToInr(
-                    offer.travelerPricings.find(
-                      (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                        p.travelerType === "ADULT",
-                    )?.price.total || "0",
-                    offer.travelerPricings.find(
-                      (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                        p.travelerType === "ADULT",
-                    )?.price.currency || "INR",
-                  ).toLocaleString()
-                : "-"}
-            </span>
+        </TabsContent>
+        <TabsContent value="return">
+          <div className="mb-2 font-semibold text-gray-800">
+            Return Segments
           </div>
-          <div className="text-xs text-gray-600">
-            Child:{" "}
-            <span className="font-medium text-gray-900">
-              ₹
-              {offer.travelerPricings
-                ? currencyToInr(
-                    offer.travelerPricings.find(
-                      (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                        p.travelerType === "CHILD",
-                    )?.price.total || "0",
-                    offer.travelerPricings.find(
-                      (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                        p.travelerType === "CHILD",
-                    )?.price.currency || "INR",
-                  ).toLocaleString()
-                : "-"}
-            </span>
+          {returnSegments.length === 0 ? (
+            <div className="text-gray-500">No return segments available.</div>
+          ) : (
+            <div className="space-y-3">
+              {returnSegments.map(
+                (
+                  seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
+                  idx: number,
+                ) => (
+                  <div key={seg.id} className="border rounded p-3 bg-gray-50">
+                    <div className="flex flex-wrap gap-2 items-center mb-1">
+                      <span className="font-semibold text-emerald-700">
+                        {seg.carrierCode} {seg.number}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        Aircraft:{" "}
+                        {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
+                          seg.aircraft.code}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-700">
+                      <div>
+                        <span className="font-semibold">From:</span>{" "}
+                        {seg.departure.iataCode}{" "}
+                        {seg.departure.terminal
+                          ? `T${seg.departure.terminal}`
+                          : ""}{" "}
+                        <span className="text-gray-400">
+                          ({new Date(seg.departure.at).toLocaleString()})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">To:</span>{" "}
+                        {seg.arrival.iataCode}{" "}
+                        {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
+                        <span className="text-gray-400">
+                          ({new Date(seg.arrival.at).toLocaleString()})
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">Duration:</span>{" "}
+                        {seg.duration.replace("PT", "").toLowerCase()}
+                      </div>
+                    </div>
+                    {idx > 0 && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        {getLayover(returnSegments[idx - 1], seg)}
+                      </div>
+                    )}
+                  </div>
+                ),
+              )}
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="price">
+          <div className="mb-2 font-semibold text-gray-800">
+            Price Breakdown
           </div>
-          <div className="text-xs text-gray-600">
-            Infant:{" "}
-            <span className="font-medium text-gray-900">
-              ₹
-              {offer.travelerPricings
-                ? currencyToInr(
-                    (
-                      offer.travelerPricings.find(
-                        (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                          p.travelerType === "HELD_INFANT",
-                      ) ||
-                      offer.travelerPricings.find(
-                        (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                          p.travelerType === "INFANT",
-                      )
-                    )?.price.total || "0",
-                    (
-                      offer.travelerPricings.find(
-                        (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                          p.travelerType === "HELD_INFANT",
-                      ) ||
-                      offer.travelerPricings.find(
-                        (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                          p.travelerType === "INFANT",
-                      )
-                    )?.price.currency || "INR",
-                  ).toLocaleString()
-                : "-"}
-            </span>
+          {offer.travelerPricings && offer.travelerPricings.length > 0 ? (
+            <div className="flex gap-6 mb-4">
+              <div className="text-xs text-gray-600">
+                Adult:{" "}
+                <span className="font-medium text-gray-900">
+                  ₹
+                  {offer.travelerPricings
+                    ? currencyToInr(
+                        offer.travelerPricings.find(
+                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
+                            p.travelerType === "ADULT",
+                        )?.price.total || "0",
+                        offer.travelerPricings.find(
+                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
+                            p.travelerType === "ADULT",
+                        )?.price.currency || "INR",
+                      ).toLocaleString()
+                    : "-"}
+                </span>
+              </div>
+              <div className="text-xs text-gray-600">
+                Child:{" "}
+                <span className="font-medium text-gray-900">
+                  ₹
+                  {offer.travelerPricings
+                    ? currencyToInr(
+                        offer.travelerPricings.find(
+                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
+                            p.travelerType === "CHILD",
+                        )?.price.total || "0",
+                        offer.travelerPricings.find(
+                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
+                            p.travelerType === "CHILD",
+                        )?.price.currency || "INR",
+                      ).toLocaleString()
+                    : "-"}
+                </span>
+              </div>
+              <div className="text-xs text-gray-600">
+                Infant:{" "}
+                <span className="font-medium text-gray-900">
+                  ₹
+                  {offer.travelerPricings
+                    ? currencyToInr(
+                        (
+                          offer.travelerPricings.find(
+                            (
+                              p: AmadeusFlightOffer["travelerPricings"][number],
+                            ) => p.travelerType === "HELD_INFANT",
+                          ) ||
+                          offer.travelerPricings.find(
+                            (
+                              p: AmadeusFlightOffer["travelerPricings"][number],
+                            ) => p.travelerType === "INFANT",
+                          )
+                        )?.price.total || "0",
+                        (
+                          offer.travelerPricings.find(
+                            (
+                              p: AmadeusFlightOffer["travelerPricings"][number],
+                            ) => p.travelerType === "HELD_INFANT",
+                          ) ||
+                          offer.travelerPricings.find(
+                            (
+                              p: AmadeusFlightOffer["travelerPricings"][number],
+                            ) => p.travelerType === "INFANT",
+                          )
+                        )?.price.currency || "INR",
+                      ).toLocaleString()
+                    : "-"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-500">No price breakdown available.</div>
+          )}
+        </TabsContent>
+        <TabsContent value="baggage">
+          <div className="mb-2 font-semibold text-gray-800">
+            Baggage Information
           </div>
-        </div>
-      </TabsContent>
-      <TabsContent value="baggage">
-        <div className="mb-2 font-semibold text-gray-800">
-          Baggage Information
-        </div>
-        <div>{getBaggage([...onwardSegments, ...returnSegments])}</div>
-      </TabsContent>
-    </Tabs>
+          <div>
+            {getBaggage([...(onwardSegments || []), ...(returnSegments || [])])}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

@@ -1,26 +1,25 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Star, Filter } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Star, Filter } from "lucide-react";
 
 interface UmrahPackageFiltersProps {
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: unknown) => void;
 }
 
 const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
   const [priceRange, setPriceRange] = useState([1000, 5000]);
-  const [duration, setDuration] = useState('');
+  const [duration, setDuration] = useState("");
   const [makkahDistance, setMakkahDistance] = useState([0, 2000]);
   const [madinahDistance, setMadinahDistance] = useState([0, 2000]);
-  const [flightIncluded, setFlightIncluded] = useState('');
+  const [flightIncluded, setFlightIncluded] = useState("");
   const [makkahStars, setMakkahStars] = useState<number[]>([]);
   const [madinahStars, setMadinahStars] = useState<number[]>([]);
-  const [mealPlan, setMealPlan] = useState('');
+  const [mealPlan, setMealPlan] = useState("");
 
   const handleFiltersChange = () => {
     const filters = {
@@ -31,23 +30,27 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
       flightIncluded,
       makkahStars,
       madinahStars,
-      mealPlan
+      mealPlan,
     };
     onFiltersChange(filters);
   };
 
-  const handleStarRatingChange = (stars: number, type: 'makkah' | 'madinah', checked: boolean) => {
-    if (type === 'makkah') {
+  const handleStarRatingChange = (
+    stars: number,
+    type: "makkah" | "madinah",
+    checked: boolean,
+  ) => {
+    if (type === "makkah") {
       if (checked) {
         setMakkahStars([...makkahStars, stars]);
       } else {
-        setMakkahStars(makkahStars.filter(s => s !== stars));
+        setMakkahStars(makkahStars.filter((s) => s !== stars));
       }
     } else {
       if (checked) {
         setMadinahStars([...madinahStars, stars]);
       } else {
-        setMadinahStars(madinahStars.filter(s => s !== stars));
+        setMadinahStars(madinahStars.filter((s) => s !== stars));
       }
     }
   };
@@ -173,11 +176,20 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
                 <Checkbox
                   id={`makkah-${stars}`}
                   checked={makkahStars.includes(stars)}
-                  onCheckedChange={(checked) => handleStarRatingChange(stars, 'makkah', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleStarRatingChange(stars, "makkah", checked as boolean)
+                  }
                 />
-                <Label htmlFor={`makkah-${stars}`} className="flex items-center">
-                  {stars} {Array.from({ length: stars }, (_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <Label
+                  htmlFor={`makkah-${stars}`}
+                  className="flex items-center"
+                >
+                  {stars}{" "}
+                  {Array.from({ length: stars }, (_, i) => (
+                    <Star
+                      key={i}
+                      className="w-3 h-3 fill-yellow-400 text-yellow-400"
+                    />
                   ))}
                 </Label>
               </div>
@@ -196,11 +208,20 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
                 <Checkbox
                   id={`madinah-${stars}`}
                   checked={madinahStars.includes(stars)}
-                  onCheckedChange={(checked) => handleStarRatingChange(stars, 'madinah', checked as boolean)}
+                  onCheckedChange={(checked) =>
+                    handleStarRatingChange(stars, "madinah", checked as boolean)
+                  }
                 />
-                <Label htmlFor={`madinah-${stars}`} className="flex items-center">
-                  {stars} {Array.from({ length: stars }, (_, i) => (
-                    <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                <Label
+                  htmlFor={`madinah-${stars}`}
+                  className="flex items-center"
+                >
+                  {stars}{" "}
+                  {Array.from({ length: stars }, (_, i) => (
+                    <Star
+                      key={i}
+                      className="w-3 h-3 fill-yellow-400 text-yellow-400"
+                    />
                   ))}
                 </Label>
               </div>
@@ -234,7 +255,7 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
         </div>
 
         {/* Apply Filters Button */}
-        <Button 
+        <Button
           onClick={handleFiltersChange}
           className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
         >
@@ -242,17 +263,17 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
         </Button>
 
         {/* Clear Filters */}
-        <Button 
+        <Button
           variant="outline"
           onClick={() => {
             setPriceRange([1000, 5000]);
-            setDuration('');
+            setDuration("");
             setMakkahDistance([0, 2000]);
             setMadinahDistance([0, 2000]);
-            setFlightIncluded('');
+            setFlightIncluded("");
             setMakkahStars([]);
             setMadinahStars([]);
-            setMealPlan('');
+            setMealPlan("");
           }}
           className="w-full border-gray-300 text-gray-600"
         >

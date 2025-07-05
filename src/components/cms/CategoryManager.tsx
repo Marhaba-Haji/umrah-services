@@ -1,17 +1,35 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useForm } from 'react-hook-form';
-import { Edit, Trash2, Plus, Folder, FolderOpen } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { Edit, Trash2, Plus, Folder, FolderOpen } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Category {
   id: string;
@@ -35,13 +53,13 @@ const CategoryManager = () => {
 
   const form = useForm({
     defaultValues: {
-      name: '',
-      slug: '',
-      description: '',
-      parent_id: '',
+      name: "",
+      slug: "",
+      description: "",
+      parent_id: "",
       sort_order: 0,
       is_active: true,
-    }
+    },
   });
 
   useEffect(() => {
@@ -51,20 +69,22 @@ const CategoryManager = () => {
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
-        .from('categories')
-        .select(`
+        .from("categories")
+        .select(
+          `
           *
-        `)
-        .order('sort_order');
+        `,
+        )
+        .order("sort_order");
 
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error("Error fetching categories:", error);
       toast({
         title: "Error",
         description: "Failed to fetch categories",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -74,11 +94,11 @@ const CategoryManager = () => {
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "");
   };
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: unknown) => {
     try {
       const categoryData = {
         name: data.name,
@@ -92,13 +112,13 @@ const CategoryManager = () => {
       let result;
       if (editingCategory) {
         result = await supabase
-          .from('categories')
+          .from("categories")
           .update(categoryData)
-          .eq('id', editingCategory.id)
+          .eq("id", editingCategory.id)
           .select();
       } else {
         result = await supabase
-          .from('categories')
+          .from("categories")
           .insert([categoryData])
           .select();
       }
@@ -107,7 +127,7 @@ const CategoryManager = () => {
 
       toast({
         title: "Success",
-        description: `Category ${editingCategory ? 'updated' : 'created'} successfully`,
+        description: `Category ${editingCategory ? "updated" : "created"} successfully`,
       });
 
       setIsDialogOpen(false);
@@ -115,11 +135,11 @@ const CategoryManager = () => {
       form.reset();
       fetchCategories();
     } catch (error) {
-      console.error('Error saving category:', error);
+      console.error("Error saving category:", error);
       toast({
         title: "Error",
         description: "Failed to save category",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -129,8 +149,8 @@ const CategoryManager = () => {
     form.reset({
       name: category.name,
       slug: category.slug,
-      description: category.description || '',
-      parent_id: category.parent_id || '',
+      description: category.description || "",
+      parent_id: category.parent_id || "",
       sort_order: category.sort_order,
       is_active: category.is_active,
     });
@@ -138,13 +158,10 @@ const CategoryManager = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this category?')) return;
+    if (!confirm("Are you sure you want to delete this category?")) return;
 
     try {
-      const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase.from("categories").delete().eq("id", id);
 
       if (error) throw error;
 
@@ -152,19 +169,19 @@ const CategoryManager = () => {
         title: "Success",
         description: "Category deleted successfully",
       });
-      
+
       fetchCategories();
     } catch (error) {
-      console.error('Error deleting category:', error);
+      console.error("Error deleting category:", error);
       toast({
         title: "Error",
         description: "Failed to delete category",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
-  const parentCategories = categories.filter(cat => !cat.parent_id);
+  const parentCategories = categories.filter((cat) => !cat.parent_id);
 
   if (loading) {
     return (
@@ -180,17 +197,27 @@ const CategoryManager = () => {
         <h3 className="text-xl font-semibold">Category Management</h3>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => { setEditingCategory(null); form.reset(); }}>
+            <Button
+              onClick={() => {
+                setEditingCategory(null);
+                form.reset();
+              }}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Category
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{editingCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
+              <DialogTitle>
+                {editingCategory ? "Edit Category" : "Add New Category"}
+              </DialogTitle>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -227,7 +254,10 @@ const CategoryManager = () => {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Category description" {...field} />
+                        <Textarea
+                          placeholder="Category description"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -241,7 +271,10 @@ const CategoryManager = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Parent Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select parent" />
@@ -267,7 +300,14 @@ const CategoryManager = () => {
                       <FormItem>
                         <FormLabel>Sort Order</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="0" {...field} onChange={e => field.onChange(Number(e.target.value))} />
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -297,9 +337,13 @@ const CategoryManager = () => {
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit">
-                    {editingCategory ? 'Update Category' : 'Create Category'}
+                    {editingCategory ? "Update Category" : "Create Category"}
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -324,11 +368,15 @@ const CategoryManager = () => {
                 </tr>
               </thead>
               <tbody>
-                {categories.map(category => (
+                {categories.map((category) => (
                   <tr key={category.id} className="border-b hover:bg-gray-50">
                     <td className="p-2">
                       <div className="flex items-center space-x-2">
-                        {category.parent_id ? <Folder className="w-4 h-4" /> : <FolderOpen className="w-4 h-4" />}
+                        {category.parent_id ? (
+                          <Folder className="w-4 h-4" />
+                        ) : (
+                          <FolderOpen className="w-4 h-4" />
+                        )}
                         <span>{category.name}</span>
                       </div>
                     </td>
@@ -336,7 +384,8 @@ const CategoryManager = () => {
                     <td className="p-2">
                       {category.parent_id ? (
                         <Badge variant="outline">
-                          {categories.find(c => c.id === category.parent_id)?.name || 'Unknown'}
+                          {categories.find((c) => c.id === category.parent_id)
+                            ?.name || "Unknown"}
                         </Badge>
                       ) : (
                         <span className="text-gray-400">Root</span>
@@ -344,16 +393,26 @@ const CategoryManager = () => {
                     </td>
                     <td className="p-2">{category.sort_order}</td>
                     <td className="p-2">
-                      <Badge variant={category.is_active ? 'default' : 'secondary'}>
-                        {category.is_active ? 'Active' : 'Inactive'}
+                      <Badge
+                        variant={category.is_active ? "default" : "secondary"}
+                      >
+                        {category.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </td>
                     <td className="p-2">
                       <div className="flex space-x-1">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(category)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(category)}
+                        >
                           <Edit className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleDelete(category.id)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(category.id)}
+                        >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
