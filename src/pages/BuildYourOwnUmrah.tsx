@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { FlightCartDetails } from "../components/FlightStep";
 import Header from "@/components/Header";
+import HotelSearch from "@/components/HotelSearch";
 
 interface CartItem {
   id: string;
@@ -662,106 +663,16 @@ const BuildYourOwnUmrah = () => {
               Add Room
             </Button>
           )}
-          <Button
-            size="lg"
-            className="w-full bg-primary text-white"
-            onClick={() => {
-              /* TODO: Implement hotel search logic */
-            }}
-          >
-            Search
-          </Button>
         </div>
       </div>
-      <div className="grid gap-4">
-        {[
-          {
-            id: "makkah-1",
-            name: "Dar Al Eiman Royal",
-            price: 8500,
-            rating: 4.5,
-            distance: "200m from Haram",
-            description: "Comfort",
-          },
-          {
-            id: "makkah-2",
-            name: "Pullman ZamZam Makkah",
-            price: 15000,
-            rating: 5,
-            distance: "100m from Haram",
-            description: "Premium",
-            popular: true,
-          },
-        ].map((hotel) => (
-          <Card
-            key={hotel.id}
-            className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-              hotel.popular
-                ? "border-primary shadow-md"
-                : "border-gray-200 hover:border-primary/30"
-            }`}
-          >
-            {hotel.popular && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-secondary text-primary px-4 py-1">
-                  Recommended
-                </Badge>
-              </div>
-            )}
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                    {hotel.name}
-                  </h4>
-                  <p className="text-sm text-primary font-medium mb-2">
-                    {hotel.description}
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      {[...Array(Math.floor(hotel.rating))].map((_, i) => (
-                        <span key={i} className="text-yellow-400">
-                          ★
-                        </span>
-                      ))}
-                      <span className="text-sm text-gray-600 ml-1">
-                        {hotel.rating}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">{hotel.distance}</p>
-                    <p className="text-xs text-gray-500">per night</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-primary">
-                    ₹{hotel.price.toLocaleString()}
-                  </p>
-                  <Button
-                    size="sm"
-                    className="mt-3 bg-primary hover:bg-primary/90"
-                    onClick={() =>
-                      addToCart({
-                        id: hotel.id,
-                        type: "hotel",
-                        name: `${hotel.name} - Makkah`,
-                        price: hotel.price,
-                        details: {
-                          rating: hotel.rating,
-                          distance: hotel.distance,
-                          city: "Makkah",
-                        },
-                      })
-                    }
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      
+      <HotelSearch
+        city="makkah"
+        checkInDate={makkahCheckin}
+        checkOutDate={makkahCheckout}
+        rooms={makkahRooms}
+        onHotelSelect={addToCart}
+      />
     </div>
   );
 
@@ -940,106 +851,16 @@ const BuildYourOwnUmrah = () => {
               Add Room
             </Button>
           )}
-          <Button
-            size="lg"
-            className="w-full bg-primary text-white"
-            onClick={() => {
-              /* TODO: Implement hotel search logic for Madinah */
-            }}
-          >
-            Search
-          </Button>
         </div>
       </div>
-      <div className="grid gap-4">
-        {[
-          {
-            id: "madinah-1",
-            name: "Anwar Al Madinah Movenpick",
-            price: 7500,
-            rating: 4.5,
-            distance: "300m from Masjid Nabawi",
-            description: "Comfort",
-          },
-          {
-            id: "madinah-2",
-            name: "Shaza Al Madinah",
-            price: 12000,
-            rating: 5,
-            distance: "150m from Masjid Nabawi",
-            description: "Premium",
-            popular: true,
-          },
-        ].map((hotel) => (
-          <Card
-            key={hotel.id}
-            className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-              hotel.popular
-                ? "border-primary shadow-md"
-                : "border-gray-200 hover:border-primary/30"
-            }`}
-          >
-            {hotel.popular && (
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-secondary text-primary px-4 py-1">
-                  Recommended
-                </Badge>
-              </div>
-            )}
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                    {hotel.name}
-                  </h4>
-                  <p className="text-sm text-primary font-medium mb-2">
-                    {hotel.description}
-                  </p>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      {[...Array(Math.floor(hotel.rating))].map((_, i) => (
-                        <span key={i} className="text-yellow-400">
-                          ★
-                        </span>
-                      ))}
-                      <span className="text-sm text-gray-600 ml-1">
-                        {hotel.rating}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600">{hotel.distance}</p>
-                    <p className="text-xs text-gray-500">per night</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-primary">
-                    ₹{hotel.price.toLocaleString()}
-                  </p>
-                  <Button
-                    size="sm"
-                    className="mt-3 bg-primary hover:bg-primary/90"
-                    onClick={() =>
-                      addToCart({
-                        id: hotel.id,
-                        type: "hotel",
-                        name: `${hotel.name} - Madinah`,
-                        price: hotel.price,
-                        details: {
-                          rating: hotel.rating,
-                          distance: hotel.distance,
-                          city: "Madinah",
-                        },
-                      })
-                    }
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      
+      <HotelSearch
+        city="madinah"
+        checkInDate={makkahCheckin}
+        checkOutDate={makkahCheckout}
+        rooms={makkahRooms}
+        onHotelSelect={addToCart}
+      />
     </div>
   );
 
