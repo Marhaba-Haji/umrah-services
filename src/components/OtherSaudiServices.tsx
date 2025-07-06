@@ -2,9 +2,17 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 import { useCurrency } from "./Header";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 const OtherSaudiServices = () => {
   const { currency } = useCurrency();
@@ -27,9 +35,8 @@ const OtherSaudiServices = () => {
       const { data, error } = await supabase
         .from("saudi_visas")
         .select(
-          "id, visa_category, description, visa_validity, stay_validity, processing_time, price, requirements",
+          "id, visa_type, visa_category, description, visa_validity, stay_validity, processing_time, price, requirements, featured_image, approval_rate, visa_format, agency_fees, embassy_fees, number_of_entries",
         )
-        // .in('visa_category', ['Family Visit Visa', 'Tourist Visa', 'Business Visa']) // TEMP: fetch all
         .order("visa_category");
       console.log("Visa fetch:", { data, error });
       if (!error && data) setVisaServices(data);
@@ -54,7 +61,7 @@ const OtherSaudiServices = () => {
             approval.
           </p>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto overflow-visible">
           {loading ? (
             <div className="col-span-3 text-center py-8">
               Loading visa options...
@@ -84,58 +91,91 @@ const OtherSaudiServices = () => {
                 return (
                   <Card
                     key={service.id || index}
-                    className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105"
+                    className="bg-white shadow-lg hover:shadow-xl transition-all hover:transform hover:scale-105 flex flex-col overflow-visible"
                   >
-                    <CardHeader className="text-center pb-4">
-                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-2xl">🛂</span>
+                    {service.featured_image && (
+                      <div className="relative z-0 overflow-visible">
+                        <img
+                          src={service.featured_image}
+                          alt={service.visa_type || service.visa_category}
+                          className="w-full h-40 object-cover object-top rounded-t-lg"
+                          loading="lazy"
+                        />
+                        <div className="absolute top-2 left-2 flex flex-col gap-1">
+                          {service.visa_format && (
+                            <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                              {service.visa_format}
+                            </span>
+                          )}
+                          {service.approval_rate && (
+                            <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                              {service.approval_rate}% Approval
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <CardTitle className="text-xl font-bold text-gray-900 mb-2">
-                        {service.visa_category}
-                      </CardTitle>
-                      <p className="text-gray-600 text-sm">
-                        {service.description}
-                      </p>
+                    )}
+                    <CardHeader className="pb-4 flex-1">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-xl font-bold text-gray-900">
+                          {service.visa_type}
+                        </CardTitle>
+                        <span className="font-bold text-blue-600 text-lg flex items-start">
+                          {currencySymbol}
+                          {convertedPrice.toLocaleString()}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="ml-1 cursor-pointer text-blue-500 relative z-10">
+                                  <Info size={14} />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipPrimitive.Portal>
+                                <TooltipContent className="max-w-xs text-left z-[9999]">
+                                  <div className="mb-1">
+                                    <b>Agency Fees:</b>{" "}
+                                    {service.agency_fees
+                                      ? `₹${Number(service.agency_fees).toLocaleString()}`
+                                      : "-"}
+                                  </div>
+                                  <div>
+                                    <b>Embassy Fees:</b>{" "}
+                                    {service.embassy_fees
+                                      ? `₹${Number(service.embassy_fees).toLocaleString()}`
+                                      : "-"}
+                                  </div>
+                                </TooltipContent>
+                              </TooltipPrimitive.Portal>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </span>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 mb-6">
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">⏰ Validity:</span>
+                          <span className="text-gray-500">
+                            ⏰ Visa Validity:
+                          </span>
                           <span className="font-medium">
-                            {service.visa_validity || service.stay_validity}
+                            {service.visa_validity}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">🚀 Processing:</span>
+                          <span className="text-gray-500">
+                            🗓️ Stay Validity:
+                          </span>
                           <span className="font-medium">
-                            {service.processing_time}
+                            {service.stay_validity}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">💰 Price:</span>
-                          <span className="font-bold text-blue-600">
-                            From {currencySymbol}
-                            {convertedPrice.toLocaleString()}
+                          <span className="text-gray-500">🔢 Entry Count:</span>
+                          <span className="font-medium">
+                            {service.number_of_entries || "-"}
                           </span>
                         </div>
                       </div>
-                      {requirementsArr.length > 0 && (
-                        <ul className="space-y-2 mb-6">
-                          {requirementsArr.map(
-                            (feature: string, featureIndex: number) => (
-                              <li
-                                key={featureIndex}
-                                className="flex items-center space-x-2"
-                              >
-                                <span className="text-blue-500 text-sm">✓</span>
-                                <span className="text-sm text-gray-700">
-                                  {feature}
-                                </span>
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      )}
                       <Link to="/other-visas" className="block w-full">
                         <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                           Apply Now

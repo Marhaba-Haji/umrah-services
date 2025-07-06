@@ -8,8 +8,12 @@ const Footer = () => {
           {/* Company Info */}
           <div className="md:col-span-1">
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">🕌</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-lg flex items-center justify-center overflow-hidden">
+                <img
+                  src="/lovable-uploads/223b8d47-2e7e-4988-b125-a3f521fb817b.png"
+                  alt="Marhaba Haji Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div>
                 <h3 className="text-xl font-bold">Marhaba Haji</h3>
@@ -39,7 +43,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <a
-                  href="#services"
+                  href="/services"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Our Services
@@ -47,28 +51,34 @@ const Footer = () => {
               </li>
               <li>
                 <a
-                  href="#how-it-works"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  How It Works
-                </a>
-              </li>
-
-              <li>
-                <a
-                  href="#faq"
+                  href="/faq"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   FAQ
                 </a>
               </li>
-
               <li>
                 <a
                   href="/contact"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Contact Us
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/about"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/careers"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  Careers
                 </a>
               </li>
             </ul>
@@ -171,22 +181,6 @@ const Footer = () => {
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   Travel Terms & Responsibilities
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/about"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/careers"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Careers
                 </a>
               </li>
             </ul>

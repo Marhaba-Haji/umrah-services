@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { useCurrency } from './Header';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { useCurrency } from "./Header";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const ServicesSection = () => {
   const { currency } = useCurrency();
@@ -14,17 +14,17 @@ const ServicesSection = () => {
   const exchangeRates = {
     USD: 0.012,
     INR: 1,
-    SAR: 0.045
+    SAR: 0.045,
   };
 
   // Currency symbols
   const currencySymbols = {
-    USD: '$',
-    INR: '₹',
-    SAR: 'ر.س'
+    USD: "$",
+    INR: "₹",
+    SAR: "ر.س",
   };
 
-  const currencySymbol = currencySymbols[currency] || '₹';
+  const currencySymbol = currencySymbols[currency] || "₹";
   const rate = exchangeRates[currency] || 1;
 
   // State for dynamic prices
@@ -38,33 +38,45 @@ const ServicesSection = () => {
       setLoading(true);
       const [basic, premium, express] = await Promise.all([
         supabase
-          .from('saudi_visas')
-          .select('price')
-          .eq('visa_type', 'Umrah Visa')
-          .eq('visa_category', 'Standard')
-          .eq('status', 'active')
+          .from("saudi_visas")
+          .select("price")
+          .eq("visa_type", "Umrah Visa")
+          .eq("visa_category", "Standard")
+          .eq("status", "active")
           .limit(1)
           .single(),
         supabase
-          .from('saudi_visas')
-          .select('price')
-          .eq('visa_type', 'Umrah Visa')
-          .eq('visa_category', 'Premium')
-          .eq('status', 'active')
+          .from("saudi_visas")
+          .select("price")
+          .eq("visa_type", "Umrah Visa")
+          .eq("visa_category", "Premium")
+          .eq("status", "active")
           .limit(1)
           .single(),
         supabase
-          .from('saudi_visas')
-          .select('price')
-          .eq('visa_type', 'Umrah Visa')
-          .eq('visa_category', 'Express')
-          .eq('status', 'active')
+          .from("saudi_visas")
+          .select("price")
+          .eq("visa_type", "Umrah Visa")
+          .eq("visa_category", "Express")
+          .eq("status", "active")
           .limit(1)
           .single(),
       ]);
-      setBasicVisaPrice(!basic.error && basic.data && typeof basic.data.price === 'number' ? basic.data.price : null);
-      setPremiumVisaPrice(!premium.error && premium.data && typeof premium.data.price === 'number' ? premium.data.price : null);
-      setExpressVisaPrice(!express.error && express.data && typeof express.data.price === 'number' ? express.data.price : null);
+      setBasicVisaPrice(
+        !basic.error && basic.data && typeof basic.data.price === "number"
+          ? basic.data.price
+          : null,
+      );
+      setPremiumVisaPrice(
+        !premium.error && premium.data && typeof premium.data.price === "number"
+          ? premium.data.price
+          : null,
+      );
+      setExpressVisaPrice(
+        !express.error && express.data && typeof express.data.price === "number"
+          ? express.data.price
+          : null,
+      );
       setLoading(false);
     }
     fetchVisaPrices();
@@ -82,17 +94,15 @@ const ServicesSection = () => {
         "90 days validity",
         "Standard processing",
         "Document verification",
-        "Email support"
+        "Email support",
       ],
-      limitations: [
-        "No hotel booking assistance",
-        "Standard approval rate"
-      ],
-      popular: false
+      limitations: ["No hotel booking assistance", "Standard approval rate"],
+      popular: false,
     },
     {
       title: "Premium Umrah Visa",
-      description: "Enhanced service with hotel booking and higher approval rate",
+      description:
+        "Enhanced service with hotel booking and higher approval rate",
       duration: "3-5 days",
       validity: "90 days",
       approvalRate: "99%",
@@ -103,10 +113,10 @@ const ServicesSection = () => {
         "Priority processing",
         "Higher approval rate",
         "Dedicated support",
-        "Document review assistance"
+        "Document review assistance",
       ],
       limitations: [],
-      popular: true
+      popular: true,
     },
     {
       title: "Express Umrah Visa",
@@ -122,11 +132,11 @@ const ServicesSection = () => {
         "Same-day document review",
         "Priority consultation",
         "90 days validity",
-        "1 day hotel booking included"
+        "1 day hotel booking included",
       ],
       limitations: [],
-      popular: false
-    }
+      popular: false,
+    },
   ];
 
   return (
@@ -137,8 +147,8 @@ const ServicesSection = () => {
             Our Umrah Visa Services
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Choose the perfect visa service for your spiritual journey. All packages include 
-            expert guidance and guaranteed processing.
+            Choose the perfect visa service for your spiritual journey. All
+            packages include expert guidance and guaranteed processing.
           </p>
         </div>
 
@@ -148,7 +158,11 @@ const ServicesSection = () => {
             if (index === 0) {
               // Basic Umrah Visa: use dynamic price
               if (loading) {
-                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+                priceDisplay = (
+                  <span className="animate-pulse text-gray-400">
+                    Loading...
+                  </span>
+                );
               } else if (basicVisaPrice !== null) {
                 const converted = Math.round(basicVisaPrice * rate);
                 priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
@@ -158,7 +172,11 @@ const ServicesSection = () => {
             } else if (index === 1) {
               // Premium Umrah Visa: use dynamic price
               if (loading) {
-                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+                priceDisplay = (
+                  <span className="animate-pulse text-gray-400">
+                    Loading...
+                  </span>
+                );
               } else if (premiumVisaPrice !== null) {
                 const converted = Math.round(premiumVisaPrice * rate);
                 priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
@@ -168,7 +186,11 @@ const ServicesSection = () => {
             } else if (index === 2) {
               // Express Umrah Visa: use dynamic price
               if (loading) {
-                priceDisplay = <span className="animate-pulse text-gray-400">Loading...</span>;
+                priceDisplay = (
+                  <span className="animate-pulse text-gray-400">
+                    Loading...
+                  </span>
+                );
               } else if (expressVisaPrice !== null) {
                 const converted = Math.round(expressVisaPrice * rate);
                 priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
@@ -177,7 +199,10 @@ const ServicesSection = () => {
               }
             }
             return (
-              <Card key={index} className={`relative h-full flex flex-col ${service.popular ? 'ring-2 ring-emerald-500 shadow-xl transform scale-105' : 'shadow-lg'}`}>
+              <Card
+                key={index}
+                className={`relative h-full flex flex-col ${service.popular ? "ring-2 ring-emerald-500 shadow-xl transform scale-105" : "shadow-lg"}`}
+              >
                 {service.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-emerald-500 text-white px-3 py-1">
@@ -185,12 +210,14 @@ const ServicesSection = () => {
                     </Badge>
                   </div>
                 )}
-                
+
                 <CardHeader className="text-center pb-3 flex-shrink-0">
                   <CardTitle className="text-xl font-bold text-gray-900 mb-2">
                     {service.title}
                   </CardTitle>
-                  <p className="text-gray-600 text-sm mb-3">{service.description}</p>
+                  <p className="text-gray-600 text-sm mb-3">
+                    {service.description}
+                  </p>
                   <div className="space-y-2">
                     <div className="text-2xl font-bold text-emerald-600">
                       {priceDisplay}
@@ -203,26 +230,44 @@ const ServicesSection = () => {
                   </div>
                 </CardHeader>
 
-                <CardContent className="flex-1 flex flex-col">
+                <CardContent className="flex-1 flex flex-col justify-center items-center">
                   <div className="mb-4">
-                    <h4 className="font-semibold text-green-700 mb-2 text-sm">✓ What's Included:</h4>
+                    <h4 className="font-semibold text-green-700 mb-2 text-sm">
+                      ✓ What's Included:
+                    </h4>
                     <ul className="space-y-1 mb-3">
                       {service.features.map((feature, featureIndex) => (
-                        <li key={featureIndex} className="flex items-start space-x-2">
-                          <span className="text-emerald-500 mt-0.5 text-xs">✓</span>
-                          <span className="text-gray-700 text-xs">{feature}</span>
+                        <li
+                          key={featureIndex}
+                          className="flex items-start space-x-2"
+                        >
+                          <span className="text-emerald-500 mt-0.5 text-xs">
+                            ✓
+                          </span>
+                          <span className="text-gray-700 text-xs">
+                            {feature}
+                          </span>
                         </li>
                       ))}
                     </ul>
-                    
+
                     {service.limitations.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-orange-700 mb-2 text-sm">⚠️ Limitations:</h4>
+                        <h4 className="font-semibold text-orange-700 mb-2 text-sm">
+                          ⚠️ Limitations:
+                        </h4>
                         <ul className="space-y-1">
                           {service.limitations.map((limitation, limitIndex) => (
-                            <li key={limitIndex} className="flex items-start space-x-2">
-                              <span className="text-orange-500 mt-0.5 text-xs">•</span>
-                              <span className="text-gray-600 text-xs">{limitation}</span>
+                            <li
+                              key={limitIndex}
+                              className="flex items-start space-x-2"
+                            >
+                              <span className="text-orange-500 mt-0.5 text-xs">
+                                •
+                              </span>
+                              <span className="text-gray-600 text-xs">
+                                {limitation}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -230,14 +275,26 @@ const ServicesSection = () => {
                     )}
                   </div>
 
-                  <Button 
-                    className={`w-full mt-auto ${service.popular 
-                      ? 'bg-emerald-600 hover:bg-emerald-700' 
-                      : 'bg-gray-900 hover:bg-gray-800'
+                  <Button
+                    className={`w-full mt-auto flex items-center justify-center ${
+                      service.popular
+                        ? "bg-emerald-600 hover:bg-emerald-700"
+                        : "bg-gray-900 hover:bg-gray-800"
                     }`}
                     size="lg"
                   >
-                    <Link to={['Family Visit Visa', 'Tourist Visa', 'Business Visa'].includes(service.title) ? "/other-visas" : "/apply-umrah-visa-online"} className="block w-full h-full">
+                    <Link
+                      to={
+                        [
+                          "Family Visit Visa",
+                          "Tourist Visa",
+                          "Business Visa",
+                        ].includes(service.title)
+                          ? "/other-visas"
+                          : "/apply-umrah-visa-online"
+                      }
+                      className="flex items-center justify-center w-full h-full"
+                    >
                       Apply Now
                     </Link>
                   </Button>

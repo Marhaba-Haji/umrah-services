@@ -39,6 +39,8 @@ const Terms = lazy(() => import("./pages/Terms"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Refund = lazy(() => import("./pages/Refund"));
 const TravelTerms = lazy(() => import("./pages/TravelTerms"));
+const Support = lazy(() => import("./pages/Support"));
+const Careers = lazy(() => import("./pages/Careers"));
 
 const Loader = () => (
   <div style={{ textAlign: "center", marginTop: "3rem" }}>Loading...</div>
@@ -103,6 +105,8 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/cancellation-and-refund" element={<Refund />} />
               <Route path="/travel-terms" element={<TravelTerms />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/careers" element={<Careers />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

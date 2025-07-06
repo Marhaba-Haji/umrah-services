@@ -66,29 +66,23 @@ const TrustIndicators = () => {
 
         {/* Additional Trust Elements */}
         <div className="mt-12 text-center max-w-full md:max-w-2xl mx-auto">
-          <div className="flex flex-wrap sm:inline-flex items-center gap-4 sm:space-x-8 bg-white rounded-2xl px-4 py-4 shadow-lg border border-gray-100 w-full min-w-0 overflow-x-auto">
-            <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-6 bg-white rounded-2xl px-8 py-6 shadow-lg border border-gray-100 w-full min-w-0 mx-auto">
+            <div className="flex items-center gap-2">
               <span className="text-2xl">🔒</span>
               <span className="text-sm font-medium text-gray-700">
                 SSL Secured
               </span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <span className="text-2xl">💳</span>
               <span className="text-sm font-medium text-gray-700">
                 Secure Payments
               </span>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <span className="text-2xl">🌍</span>
               <span className="text-sm font-medium text-gray-700">
                 Global Network
-              </span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl">📞</span>
-              <span className="text-sm font-medium text-gray-700">
-                24/7 Support
               </span>
             </div>
           </div>
