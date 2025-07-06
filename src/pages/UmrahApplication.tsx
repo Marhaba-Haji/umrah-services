@@ -36,12 +36,11 @@ interface VisaOption {
 }
 
 function generateUUID() {
-  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
-    (
-      c ^
-      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
-    ).toString(16),
-  );
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 const UmrahApplication = () => {
@@ -68,24 +67,6 @@ const UmrahApplication = () => {
       transportType: "",
     },
   ]);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    nationality: "",
-    passportNumber: "",
-    passportIssue: "",
-    passportExpiry: "",
-    dateOfBirth: "",
-    gender: "",
-    email: "",
-    phone: "",
-    departureDate: "",
-    returnDate: "",
-    departureCity: "",
-    hotelMakkah: "",
-    hotelMadinah: "",
-    transportType: "",
-  });
   const [passportDateError, setPassportDateError] = useState("");
   const [passportExpiryAlert, setPassportExpiryAlert] = useState("");
   const [dateError, setDateError] = useState("");
@@ -107,7 +88,6 @@ const UmrahApplication = () => {
     madinahHotel: "",
     general: "",
   });
-  const [sameAsFirst, setSameAsFirst] = useState(false);
   const [visaType, setVisaType] = useState("express");
   const [visaOptions, setVisaOptions] = useState<VisaOption[]>([]);
   const [loadingVisas, setLoadingVisas] = useState(true);
@@ -369,6 +349,123 @@ const UmrahApplication = () => {
     </div>
   );
 
+  const renderStep4 = () => (
+    <div className="space-y-6">
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">Payment</h3>
+
+      <Card className="bg-emerald-50 border-emerald-200">
+        <CardContent className="p-6">
+          <h4 className="text-lg font-semibold text-emerald-800 mb-4">
+            Application Summary
+          </h4>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span>Visa Type:</span>
+              <span className="font-semibold capitalize">{visaType}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Visa Fee per Traveler:</span>
+              <span className="font-semibold">
+                ₹{selectedVisaPrice?.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Number of Travelers:</span>
+              <span className="font-semibold">{travelerCount}</span>
+            </div>
+            <hr className="my-2 border-emerald-300" />
+            <div className="flex justify-between text-lg font-bold text-emerald-800">
+              <span>Total Visa Amount:</span>
+              <span>₹{totalVisaPrice?.toLocaleString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="text-center">
+        <UmrahVisaPayment
+          visaType={visaType}
+          amount={totalVisaPrice}
+          processingTime={
+            visaOptions.find(
+              (v) =>
+                v &&
+                v.visa_category &&
+                v.visa_category.toLowerCase() === visaType,
+            )?.processing_time || ""
+          }
+          visaApplicationId={applicationId}
+          onProceedToPayment={async () => {
+            let cid = customerId;
+            if (!cid) {
+              cid = generateUUID();
+              setCustomerId(cid);
+              localStorage.setItem("customer_id", cid);
+            }
+            
+            const t = travelers[currentTraveler];
+            const payload = {
+              customer_id: cid,
+              first_name: t.firstName,
+              last_name: t.lastName,
+              nationality: t.nationality,
+              passport_number: t.passportNumber,
+              passport_issue: t.passportIssue,
+              passport_expiry: t.passportExpiry,
+              date_of_birth: t.dateOfBirth,
+              gender: t.gender,
+              email: t.email,
+              phone: t.phone,
+              departure_date: t.departureDate,
+              return_date: t.returnDate,
+              transport_type: t.transportType,
+              visa_type: visaType,
+              status: "pending",
+            };
+            
+            try {
+              if (applicationId) {
+                // Update existing application
+                const { data, error } = await supabase
+                  .from("visa_applications")
+                  .update(payload)
+                  .eq("id", applicationId)
+                  .select()
+                  .single();
+
+                if (error) throw error;
+                return applicationId;
+              } else {
+                // Create new application
+                const { data, error } = await supabase
+                  .from("visa_applications")
+                  .insert([payload])
+                  .select()
+                  .single();
+
+                if (error) throw error;
+                if (data && data.id) {
+                  setApplicationId(data.id);
+                  return data.id;
+                }
+              }
+              throw new Error("Failed to create visa application");
+            } catch (error: any) {
+              console.error("Error saving application:", error);
+              throw error;
+            }
+          }}
+          onPaymentSuccess={() => {
+            toast({
+              title: "Payment Successful!",
+              description: "Your visa application has been submitted and payment completed successfully. You will receive a confirmation email shortly.",
+            });
+          }}
+        />
+      </div>
+    </div>
+  );
+
   useEffect(() => {
     async function fetchVisaOptions() {
       setLoadingVisas(true);
@@ -381,7 +478,7 @@ const UmrahApplication = () => {
       if (data) {
         const order = ["Standard", "Premium", "Express"];
         setVisaOptions(
-          order.map((cat) => data.find((v) => v.visa_category === cat)),
+          order.map((cat) => data.find((v) => v.visa_category === cat)).filter(Boolean),
         );
       } else {
         setVisaOptions([]);
@@ -502,31 +599,6 @@ const UmrahApplication = () => {
       }));
     };
     reader.readAsDataURL(file);
-    const cid = customerId;
-    if (!applicationId) {
-      const app = await saveApplication({ customer_id: cid });
-      if (app && app.id) setApplicationId(app.id);
-    }
-    if (applicationId) {
-      const filePath = `orders/${applicationId}/${field}-${Date.now()}-${file.name}`;
-      const { data, error } = await supabase.storage
-        .from("visa-applications")
-        .upload(filePath, file, { upsert: true });
-      if (error && error.status === 403) {
-        toast({
-          title: "Access Denied",
-          description:
-            "You do not have permission to submit or update visa applications. Please contact support.",
-          variant: "destructive",
-        });
-      }
-      if (!error && data && data.path) {
-        await supabase
-          .from("visa_applications")
-          .update({ [`${field}_url`]: data.path })
-          .eq("id", applicationId);
-      }
-    }
   };
 
   const handleTravelerCountChange = (value: string) => {
@@ -538,31 +610,6 @@ const UmrahApplication = () => {
       return arr.slice(0, count);
     });
     setCurrentTraveler(0);
-  };
-
-  const handleSameAsFirstChange = (checked: boolean) => {
-    setSameAsFirst(checked);
-    if (checked && currentTraveler > 0) {
-      setTravelers((prev) => {
-        const updated = [...prev];
-        updated[currentTraveler] = {
-          ...updated[currentTraveler],
-          departureDate: travelers[0].departureDate,
-          returnDate: travelers[0].returnDate,
-          departureCity: travelers[0].departureCity,
-          hotelMakkah: travelers[0].hotelMakkah,
-          hotelMadinah: travelers[0].hotelMadinah,
-          transportType: travelers[0].transportType,
-        };
-        return updated;
-      });
-      setUploadPreviews((prev) => ({
-        ...prev,
-        flight: uploadPreviews.flight,
-        makkahHotel: uploadPreviews.makkahHotel,
-        madinahHotel: uploadPreviews.madinahHotel,
-      }));
-    }
   };
 
   const validateCurrentStep = () => {
@@ -658,33 +705,33 @@ const UmrahApplication = () => {
       const phone = travelers[currentTraveler].phone;
       cid = localStorage.getItem("customer_id");
       if (!cid && phone) {
-        const { data, error } = await supabase
-          .from("visa_applications")
-          .select("customer_id")
-          .eq("phone", phone)
-          .limit(1)
-          .single();
-        if (error && error.status === 403) {
-          toast({
-            title: "Access Denied",
-            description:
-              "You do not have permission to access visa applications. Please contact support.",
-            variant: "destructive",
-          });
-        }
-        if (data && data.customer_id) {
-          cid = data.customer_id;
-        } else {
+        try {
+          const { data, error } = await supabase
+            .from("visa_applications")
+            .select("customer_id")
+            .eq("phone", phone)
+            .limit(1)
+            .maybeSingle();
+          
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching customer:', error);
+          }
+          
+          if (data && data.customer_id) {
+            cid = data.customer_id;
+          } else {
+            cid = generateUUID();
+          }
+          localStorage.setItem("customer_id", cid);
+        } catch (error) {
+          console.error('Error with customer lookup:', error);
           cid = generateUUID();
+          localStorage.setItem("customer_id", cid);
         }
-        localStorage.setItem("customer_id", cid);
       }
       setCustomerId(cid);
     }
 
-    if (allRequiredFieldsFilled()) {
-      await saveApplication({ customer_id: cid });
-    }
     if (currentStep < 4) setCurrentStep(currentStep + 1);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -701,153 +748,6 @@ const UmrahApplication = () => {
   const totalVisaPrice = selectedVisaPrice * travelerCount;
 
   const isPdf = (dataUrl: string) => dataUrl.startsWith("data:application/pdf");
-
-  const saveApplication = async (extra: Record<string, unknown> = {}) => {
-    if (savingRef.current) return;
-    savingRef.current = true;
-    const t = travelers[currentTraveler];
-    const payload = {
-      id: applicationId || undefined,
-      customer_id: extra.customer_id || customerId,
-      first_name: t.firstName,
-      last_name: t.lastName,
-      nationality: t.nationality,
-      passport_number: t.passportNumber,
-      passport_issue: t.passportIssue,
-      passport_expiry: t.passportExpiry,
-      date_of_birth: t.dateOfBirth,
-      gender: t.gender,
-      email: t.email,
-      phone: t.phone,
-      departure_date: t.departureDate,
-      return_date: t.returnDate,
-      transport_type: t.transportType,
-      visa_type: visaType,
-      status: "pending",
-      ...extra,
-    };
-    let data, error;
-    if (payload.id) {
-      ({ data, error } = await supabase
-        .from("visa_applications")
-        .upsert([payload], { onConflict: "id" })
-        .single());
-    } else {
-      ({ data, error } = await supabase
-        .from("visa_applications")
-        .insert([payload])
-        .single());
-    }
-    if (error && error.status === 403) {
-      toast({
-        title: "Access Denied",
-        description:
-          "You do not have permission to submit or update visa applications. Please contact support.",
-        variant: "destructive",
-      });
-    }
-    if (data && data.id) setApplicationId(data.id);
-    savingRef.current = false;
-    return data;
-  };
-
-  const renderStep4 = () => (
-    <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Payment</h3>
-
-      <Card className="bg-emerald-50 border-emerald-200">
-        <CardContent className="p-6">
-          <h4 className="text-lg font-semibold text-emerald-800 mb-4">
-            Application Summary
-          </h4>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span>Visa Type:</span>
-              <span className="font-semibold capitalize">{visaType}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Visa Fee per Traveler:</span>
-              <span className="font-semibold">
-                ₹{selectedVisaPrice?.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>Number of Travelers:</span>
-              <span className="font-semibold">{travelerCount}</span>
-            </div>
-            <hr className="my-2 border-emerald-300" />
-            <div className="flex justify-between text-lg font-bold text-emerald-800">
-              <span>Total Visa Amount:</span>
-              <span>₹{totalVisaPrice?.toLocaleString()}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="text-center">
-        <UmrahVisaPayment
-          visaType={visaType}
-          amount={totalVisaPrice}
-          processingTime={
-            visaOptions.find(
-              (v) =>
-                v &&
-                v.visa_category &&
-                v.visa_category.toLowerCase() === visaType,
-            )?.processing_time || ""
-          }
-          visaApplicationId={applicationId}
-          onProceedToPayment={async () => {
-            let cid = customerId;
-            if (!cid) {
-              cid = generateUUID();
-              setCustomerId(cid);
-              localStorage.setItem("customer_id", cid);
-            }
-            
-            const t = travelers[currentTraveler];
-            const payload = {
-              id: applicationId || undefined,
-              customer_id: cid,
-              first_name: t.firstName,
-              last_name: t.lastName,
-              nationality: t.nationality,
-              passport_number: t.passportNumber,
-              passport_issue: t.passportIssue,
-              passport_expiry: t.passportExpiry,
-              date_of_birth: t.dateOfBirth,
-              gender: t.gender,
-              email: t.email,
-              phone: t.phone,
-              departure_date: t.departureDate,
-              return_date: t.returnDate,
-              transport_type: t.transportType,
-              visa_type: visaType,
-              status: "pending",
-            };
-            
-            try {
-              const data = await saveApplication(payload);
-              if (data && data.id) {
-                setApplicationId(data.id);
-                return data.id;
-              }
-              throw new Error("Failed to create visa application");
-            } catch (error) {
-              console.error("Error saving application:", error);
-              throw error;
-            }
-          }}
-          onPaymentSuccess={() => {
-            toast({
-              title: "Payment Successful!",
-              description: "Your visa application has been submitted and payment completed successfully. You will receive a confirmation email shortly.",
-            });
-          }}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">

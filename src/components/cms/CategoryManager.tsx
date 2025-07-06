@@ -1,65 +1,40 @@
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { Edit, Trash2, Plus, Folder, FolderOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, Edit, Trash2 } from "lucide-react";
 
 interface Category {
   id: string;
   name: string;
   slug: string;
-  description: string | null;
-  parent_id: string | null;
-  sort_order: number;
-  is_active: boolean;
-  created_at: string;
-  parent?: Category;
-  children?: Category[];
+  description?: string;
+  parent_id?: string;
+  sort_order?: number;
+  is_active?: boolean;
 }
 
 const CategoryManager = () => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm({
-    defaultValues: {
-      name: "",
-      slug: "",
-      description: "",
-      parent_id: "",
-      sort_order: 0,
-      is_active: true,
-    },
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    parent_id: '',
+    sort_order: 0,
+    is_active: true
   });
 
   useEffect(() => {
@@ -67,363 +42,257 @@ const CategoryManager = () => {
   }, []);
 
   const fetchCategories = async () => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from("categories")
-        .select(
-          `
-          *
-        `,
-        )
-        .order("sort_order");
+        .from('categories')
+        .select('*')
+        .order('sort_order');
 
       if (error) throw error;
-      setCategories(data || []);
+      
+      const typedCategories = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        slug: item.slug,
+        description: item.description,
+        parent_id: item.parent_id,
+        sort_order: item.sort_order,
+        is_active: item.is_active
+      }));
+      
+      setCategories(typedCategories);
     } catch (error) {
-      console.error("Error fetching categories:", error);
+      console.error('Error fetching categories:', error);
       toast({
         title: "Error",
         description: "Failed to fetch categories",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const generateSlug = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  };
-
-  const onSubmit = async (data: unknown) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
       const categoryData = {
-        name: data.name,
-        slug: data.slug || generateSlug(data.name),
-        description: data.description || null,
-        parent_id: data.parent_id || null,
-        sort_order: data.sort_order || 0,
-        is_active: data.is_active,
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description || null,
+        parent_id: formData.parent_id || null,
+        sort_order: formData.sort_order,
+        is_active: formData.is_active
       };
 
-      let result;
-      if (editingCategory) {
-        result = await supabase
-          .from("categories")
+      if (isEditing && selectedCategory) {
+        const { error } = await supabase
+          .from('categories')
           .update(categoryData)
-          .eq("id", editingCategory.id)
-          .select();
+          .eq('id', selectedCategory.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Category updated successfully"
+        });
       } else {
-        result = await supabase
-          .from("categories")
-          .insert([categoryData])
-          .select();
+        const { error } = await supabase
+          .from('categories')
+          .insert([categoryData]);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Category created successfully"
+        });
       }
 
-      if (result.error) throw result.error;
-
-      toast({
-        title: "Success",
-        description: `Category ${editingCategory ? "updated" : "created"} successfully`,
-      });
-
-      setIsDialogOpen(false);
-      setEditingCategory(null);
-      form.reset();
+      resetForm();
       fetchCategories();
     } catch (error) {
-      console.error("Error saving category:", error);
+      console.error('Error saving category:', error);
       toast({
         title: "Error",
         description: "Failed to save category",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      slug: '',
+      description: '',
+      parent_id: '',
+      sort_order: 0,
+      is_active: true
+    });
+    setSelectedCategory(null);
+    setIsEditing(false);
   };
 
   const handleEdit = (category: Category) => {
-    setEditingCategory(category);
-    form.reset({
+    setSelectedCategory(category);
+    setFormData({
       name: category.name,
       slug: category.slug,
-      description: category.description || "",
-      parent_id: category.parent_id || "",
-      sort_order: category.sort_order,
-      is_active: category.is_active,
+      description: category.description || '',
+      parent_id: category.parent_id || '',
+      sort_order: category.sort_order || 0,
+      is_active: category.is_active || true
     });
-    setIsDialogOpen(true);
+    setIsEditing(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
-
+  const handleDelete = async (categoryId: string) => {
+    if (!confirm('Are you sure you want to delete this category?')) return;
+    
     try {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
 
       if (error) throw error;
-
+      
       toast({
         title: "Success",
-        description: "Category deleted successfully",
+        description: "Category deleted successfully"
       });
-
+      
       fetchCategories();
     } catch (error) {
-      console.error("Error deleting category:", error);
+      console.error('Error deleting category:', error);
       toast({
         title: "Error",
         description: "Failed to delete category",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
-  const parentCategories = categories.filter((cat) => !cat.parent_id);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold">Category Management</h3>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditingCategory(null);
-                form.reset();
-              }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Category
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingCategory ? "Edit Category" : "Add New Category"}
-              </DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Category name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="slug"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Slug</FormLabel>
-                        <FormControl>
-                          <Input placeholder="category-slug" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Category description"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="parent_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Parent Category</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select parent" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="">None</SelectItem>
-                            {parentCategories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sort_order"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sort Order</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormItem className="flex items-center space-x-2 pt-6">
-                    <FormField
-                      control={form.control}
-                      name="is_active"
-                      render={({ field }) => (
-                        <>
-                          <FormControl>
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={field.onChange}
-                              className="rounded"
-                            />
-                          </FormControl>
-                          <FormLabel>Active</FormLabel>
-                        </>
-                      )}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit">
-                    {editingCategory ? "Update Category" : "Create Category"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Category Manager</h2>
+        <Button onClick={() => setIsEditing(false)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Category
+        </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Name</th>
-                  <th className="text-left p-2">Slug</th>
-                  <th className="text-left p-2">Parent</th>
-                  <th className="text-left p-2">Sort Order</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((category) => (
-                  <tr key={category.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <div className="flex items-center space-x-2">
-                        {category.parent_id ? (
-                          <Folder className="w-4 h-4" />
-                        ) : (
-                          <FolderOpen className="w-4 h-4" />
-                        )}
-                        <span>{category.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-2 text-gray-600">{category.slug}</td>
-                    <td className="p-2">
-                      {category.parent_id ? (
-                        <Badge variant="outline">
-                          {categories.find((c) => c.id === category.parent_id)
-                            ?.name || "Unknown"}
-                        </Badge>
-                      ) : (
-                        <span className="text-gray-400">Root</span>
-                      )}
-                    </td>
-                    <td className="p-2">{category.sort_order}</td>
-                    <td className="p-2">
-                      <Badge
-                        variant={category.is_active ? "default" : "secondary"}
-                      >
-                        {category.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(category)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(category.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? 'Edit Category' : 'Create New Category'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="sort_order">Sort Order</Label>
+                <Input
+                  id="sort_order"
+                  type="number"
+                  value={formData.sort_order}
+                  onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value) || 0})}
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={(checked) => setFormData({...formData, is_active: checked})}
+                />
+                <Label htmlFor="is_active">Active</Label>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit">
+                  {isEditing ? 'Update Category' : 'Create Category'}
+                </Button>
+                {isEditing && (
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Categories</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {categories.map((category) => (
+                <div key={category.id} className="flex items-center justify-between p-4 border rounded">
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{category.name}</h3>
+                    <p className="text-sm text-gray-600">{category.slug}</p>
+                    <Badge variant={category.is_active ? 'default' : 'secondary'}>
+                      {category.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(category)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(category.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
