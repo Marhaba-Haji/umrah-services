@@ -1,434 +1,298 @@
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { Eye, Edit, Trash2, Plus, Plane } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, Edit, Trash2 } from "lucide-react";
 
 interface GroupFlight {
-  id: number;
+  id: string;
   sector: string;
   airline: string;
-  flightNumber: string;
-  price: string;
+  flight_number: string;
+  price: number;
   duration: string;
-  layoverDuration: string;
-  luggageLimit: string;
-  flightType: string;
-  departureTime: string;
-  arrivalTime: string;
+  layover_duration?: string;
+  luggage_limit?: string;
+  flight_type: string;
+  departure_time: string;
+  arrival_time: string;
   status: string;
 }
 
 const GroupFlightsManager = () => {
-  const [flights, setFlights] = useState<GroupFlight[]>([
-    {
-      id: 1,
-      sector: "Karachi - Jeddah",
-      airline: "Saudi Airlines",
-      flightNumber: "SV-714",
-      price: "$450",
-      duration: "3h 30m",
-      layoverDuration: "Direct",
-      luggageLimit: "23kg + 7kg",
-      flightType: "Direct",
-      departureTime: "14:30",
-      arrivalTime: "16:00",
-      status: "Active",
-    },
-  ]);
+  const [flights, setFlights] = useState<GroupFlight[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedFlight, setSelectedFlight] = useState<GroupFlight | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const { toast } = useToast();
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingFlight, setEditingFlight] = useState<GroupFlight | null>(null);
-
-  const form = useForm({
-    defaultValues: {
-      sector: "",
-      airline: "",
-      flightNumber: "",
-      price: "",
-      duration: "",
-      layoverDuration: "",
-      luggageLimit: "",
-      flightType: "Direct",
-      departureTime: "",
-      arrivalTime: "",
-      status: "Active",
-    },
+  const [formData, setFormData] = useState({
+    sector: '',
+    airline: '',
+    flight_number: '',
+    price: 0,
+    duration: '',
+    layover_duration: '',
+    luggage_limit: '',
+    flight_type: 'direct',
+    departure_time: '',
+    arrival_time: '',
+    status: 'active'
   });
 
-  const onSubmit = (data: unknown) => {
-    const newFlight: GroupFlight = {
-      id: editingFlight ? editingFlight.id : Date.now(),
-      sector: data.sector,
-      airline: data.airline,
-      flightNumber: data.flightNumber,
-      price: data.price,
-      duration: data.duration,
-      layoverDuration: data.layoverDuration,
-      luggageLimit: data.luggageLimit,
-      flightType: data.flightType,
-      departureTime: data.departureTime,
-      arrivalTime: data.arrivalTime,
-      status: data.status,
-    };
+  useEffect(() => {
+    fetchFlights();
+  }, []);
 
-    if (editingFlight) {
-      setFlights(
-        flights.map((flight) =>
-          flight.id === editingFlight.id ? newFlight : flight,
-        ),
-      );
-    } else {
-      setFlights([...flights, newFlight]);
+  const fetchFlights = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('group_flights')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      const typedFlights = (data || []).map(item => ({
+        id: item.id,
+        sector: item.sector,
+        airline: item.airline,
+        flight_number: item.flight_number,
+        price: item.price,
+        duration: item.duration,
+        layover_duration: item.layover_duration,
+        luggage_limit: item.luggage_limit,
+        flight_type: item.flight_type,
+        departure_time: item.departure_time,
+        arrival_time: item.arrival_time,
+        status: item.status
+      }));
+      
+      setFlights(typedFlights);
+    } catch (error) {
+      console.error('Error fetching flights:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch flights",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    setIsDialogOpen(false);
-    setEditingFlight(null);
-    form.reset();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const flightData = {
+        sector: formData.sector,
+        airline: formData.airline,
+        flight_number: formData.flight_number,
+        price: formData.price,
+        duration: formData.duration,
+        layover_duration: formData.layover_duration || null,
+        luggage_limit: formData.luggage_limit || null,
+        flight_type: formData.flight_type,
+        departure_time: formData.departure_time,
+        arrival_time: formData.arrival_time,
+        status: formData.status
+      };
+
+      if (isEditing && selectedFlight) {
+        const { error } = await supabase
+          .from('group_flights')
+          .update(flightData)
+          .eq('id', selectedFlight.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Flight updated successfully"
+        });
+      } else {
+        const { error } = await supabase
+          .from('group_flights')
+          .insert([flightData]);
+
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Flight created successfully"
+        });
+      }
+
+      resetForm();
+      fetchFlights();
+    } catch (error) {
+      console.error('Error saving flight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save flight",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      sector: '',
+      airline: '',
+      flight_number: '',
+      price: 0,
+      duration: '',
+      layover_duration: '',
+      luggage_limit: '',
+      flight_type: 'direct',
+      departure_time: '',
+      arrival_time: '',
+      status: 'active'
+    });
+    setSelectedFlight(null);
+    setIsEditing(false);
   };
 
   const handleEdit = (flight: GroupFlight) => {
-    setEditingFlight(flight);
-    form.reset(flight);
-    setIsDialogOpen(true);
+    setSelectedFlight(flight);
+    setFormData({
+      sector: flight.sector,
+      airline: flight.airline,
+      flight_number: flight.flight_number,
+      price: flight.price,
+      duration: flight.duration,
+      layover_duration: flight.layover_duration || '',
+      luggage_limit: flight.luggage_limit || '',
+      flight_type: flight.flight_type,
+      departure_time: flight.departure_time,
+      arrival_time: flight.arrival_time,
+      status: flight.status
+    });
+    setIsEditing(true);
   };
 
-  const handleDelete = (id: number) => {
-    setFlights(flights.filter((flight) => flight.id !== id));
+  const handleDelete = async (flightId: string) => {
+    if (!confirm('Are you sure you want to delete this flight?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('group_flights')
+        .delete()
+        .eq('id', flightId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Flight deleted successfully"
+      });
+      
+      fetchFlights();
+    } catch (error) {
+      console.error('Error deleting flight:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete flight",
+        variant: "destructive"
+      });
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold">Group Flights Management</h3>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setEditingFlight(null);
-                form.reset();
-              }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Flight
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>
-                {editingFlight ? "Edit Group Flight" : "Add New Group Flight"}
-              </DialogTitle>
-            </DialogHeader>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="sector"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Flight Sector</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Karachi - Jeddah"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="airline"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Airline</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Saudi Airlines"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="flightNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Flight Number</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., SV-714" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Price</FormLabel>
-                        <FormControl>
-                          <Input placeholder="₹450" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="duration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Flight Duration</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g., 3h 30m" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="layoverDuration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Layover Duration</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Direct or 2h 30m" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="luggageLimit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Luggage Limit</FormLabel>
-                        <FormControl>
-                          <Input placeholder="23kg + 7kg" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="flightType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Flight Type</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select flight type" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Direct">Direct</SelectItem>
-                            <SelectItem value="Connecting">
-                              Connecting
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="departureTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Departure Time</FormLabel>
-                        <FormControl>
-                          <Input placeholder="14:30" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="arrivalTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Arrival Time</FormLabel>
-                        <FormControl>
-                          <Input placeholder="16:00" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Suspended">Suspended</SelectItem>
-                          <SelectItem value="Cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit">
-                    {editingFlight ? "Update Flight" : "Create Flight"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Group Flights Manager</h2>
+        <Button onClick={() => setIsEditing(false)}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Flight
+        </Button>
       </div>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Flight Details</th>
-                  <th className="text-left p-2">Sector</th>
-                  <th className="text-left p-2">Duration</th>
-                  <th className="text-left p-2">Price</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {flights.map((flight) => (
-                  <tr key={flight.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <div>
-                        <div className="font-medium">{flight.airline}</div>
-                        <div className="text-sm text-gray-500">
-                          {flight.flightNumber}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2">{flight.sector}</td>
-                    <td className="p-2">
-                      <div>
-                        <div>{flight.duration}</div>
-                        <div className="text-sm text-gray-500">
-                          {flight.flightType}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2">{flight.price}</td>
-                    <td className="p-2">
-                      <Badge
-                        variant={
-                          flight.status === "Active" ? "default" : "secondary"
-                        }
-                      >
-                        {flight.status}
-                      </Badge>
-                    </td>
-                    <td className="p-2">
-                      <div className="flex space-x-1">
-                        <Button size="sm" variant="outline">
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(flight)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(flight.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>{isEditing ? 'Edit Flight' : 'Create New Flight'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="sector">Sector</Label>
+                <Input
+                  id="sector"
+                  value={formData.sector}
+                  onChange={(e) => setFormData({...formData, sector: e.target.value})}
+                  placeholder="e.g., Delhi - Jeddah"
+                />
+              </div>
+              <div>
+                <Label htmlFor="airline">Airline</Label>
+                <Input
+                  id="airline"
+                  value={formData.airline}
+                  onChange={(e) => setFormData({...formData, airline: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="flight_number">Flight Number</Label>
+                <Input
+                  id="flight_number"
+                  value={formData.flight_number}
+                  onChange={(e) => setFormData({...formData, flight_number: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="price">Price</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Group Flights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {flights.map((flight) => (
+                <div key={flight.id} className="flex items-center justify-between p-4 border rounded">
+                  <div>
+                    <h3 className="font-semibold">{flight.sector}</h3>
+                    <p className="text-sm text-gray-600">{flight.airline} - {flight.flight_number}</p>
+                    <p className="text-sm">₹{flight.price.toLocaleString()}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => handleEdit(flight)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(flight.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

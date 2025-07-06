@@ -47,14 +47,10 @@ serve(async (req) => {
   }
 
   try {
+    // Create Supabase client with service role key for bypassing RLS
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-      },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const payuMerchantKey = Deno.env.get("PAYU_MERCHANT_KEY");
@@ -67,6 +63,8 @@ serve(async (req) => {
     // Handle payment initiation
     if (!requestBody.payuResponse) {
       const paymentRequest: PaymentRequest = requestBody;
+
+      console.log("Processing payment request:", paymentRequest);
 
       // Generate transaction ID
       const txnid = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -102,6 +100,8 @@ serve(async (req) => {
         transactionData.visa_application_id = paymentRequest.visaApplicationId;
       }
 
+      console.log("Creating payment transaction:", transactionData);
+
       const { data: transaction, error: transactionError } =
         await supabaseClient
           .from("payment_transactions")
@@ -110,10 +110,13 @@ serve(async (req) => {
           .single();
 
       if (transactionError) {
+        console.error("Transaction creation error:", transactionError);
         throw new Error(
           `Failed to create payment transaction: ${transactionError.message}`,
         );
       }
+
+      console.log("Transaction created successfully:", transaction);
 
       const paymentData = {
         key: payuMerchantKey,
@@ -148,6 +151,8 @@ serve(async (req) => {
     // Handle payment verification
     const { payuResponse, merchantTransactionId } =
       requestBody as PaymentVerificationRequest;
+
+    console.log("Processing payment verification:", { payuResponse, merchantTransactionId });
 
     // Verify hash
     const reverseHashString = `${payuSalt}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
@@ -186,6 +191,7 @@ serve(async (req) => {
       .single();
 
     if (updateError) {
+      console.error("Transaction update error:", updateError);
       throw new Error(
         `Failed to update payment transaction: ${updateError.message}`,
       );
@@ -235,10 +241,12 @@ serve(async (req) => {
       },
     );
   } catch (error) {
+    console.error("PayU payment processing error:", error);
+    
     try {
       const supabaseClient = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       );
       await supabaseClient.from("function_error_logs").insert({
         function_name: "payu-payment-process",
@@ -248,8 +256,11 @@ serve(async (req) => {
     } catch (logError) {
       console.error("Failed to log error to DB:", logError);
     }
-    console.error("PayU payment processing error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message || "Payment processing failed"
+    }), {
       status: 500,
       headers: {
         ...corsHeaders,
