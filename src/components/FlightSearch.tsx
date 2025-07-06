@@ -1,1681 +1,477 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  CalendarIcon,
-  Search,
-  Plane,
-  Clock,
-  Plus,
-  Minus,
-  ArrowRightLeft,
-  User,
-  MapPin,
-  Briefcase,
-} from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
-import { searchFlights, AmadeusFlightOffer } from "@/services/flightService";
-import airportsData from "../../public/airports.json";
-import { AmadeusAPI } from "@/utils/amadeusApi";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import React, { useState, useEffect } from 'react';
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon } from "lucide-react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Listbox } from '@headlessui/react'
+import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
+import { supabase } from "@/integrations/supabase/client";
+import { Search } from 'lucide-react';
 
-export interface FlightSearchParams {
+interface FlightSearchParams {
+  tripType: "ONE_WAY" | "ROUND_TRIP" | "MULTI_CITY";
   originLocationCode: string;
   destinationLocationCode: string;
-  departureDate: Date | undefined;
-  returnDate?: Date | undefined;
+  departureDate: Date;
+  returnDate?: Date;
   adults: number;
   children: number;
   infants: number;
   travelClass: "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST";
-  tripType: "ONE_WAY" | "ROUND_TRIP" | "MULTI_CITY";
   nonStop: boolean;
 }
 
-export interface FlightOffer {
+interface Airport {
+  iataCode: string;
+  name: string;
+  address: {
+    cityName: string;
+    countryCode: string;
+  };
+}
+
+interface AmadeusFlightOffer {
   id: string;
-  airline: string;
-  flightNumber: string;
-  departure: {
-    iataCode: string;
-    terminal?: string;
-    at: string;
-  };
-  arrival: {
-    iataCode: string;
-    terminal?: string;
-    at: string;
-  };
-  duration: string;
-  stops: number;
+  itineraries: any[];
   price: {
     total: string;
     currency: string;
   };
-  cabin: string;
-  aircraft?: string;
-  rawOffer: AmadeusFlightOffer;
+  dictionaries?: {
+    locations: { [key: string]: any };
+    aircraft: { [key: string]: any };
+  };
 }
 
-interface FlightSearchProps {
-  onFlightSelect: (
-    flight: FlightOffer,
-    searchParams: FlightSearchParams,
-  ) => void;
-  className?: string;
-}
-
-interface SearchFormProps {
-  searchParams: FlightSearchParams;
-  setSearchParams: React.Dispatch<React.SetStateAction<FlightSearchParams>>;
-  handleSearch: () => void;
-  fromQuery: string;
-  setFromQuery: React.Dispatch<React.SetStateAction<string>>;
-  fromSuggestions: Array<{
-    code: string;
-    city: string;
-    country: string;
-    name: string;
-  }>;
-  fromLoading: boolean;
-  fromError: string | null;
-  onFromSelect: (code: string, label: string) => void;
-  toQuery: string;
-  setToQuery: React.Dispatch<React.SetStateAction<string>>;
-  fromPopoverOpen: boolean;
-  setFromPopoverOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  getTotalPassengers: () => number;
-  swapLocations: () => void;
-  [key: string]: unknown;
-}
-
-type Airport = { code: string; city: string; country: string; name: string };
-
-function SearchForm({
-  searchParams,
-  setSearchParams,
-  handleSearch,
-  fromQuery,
-  setFromQuery,
-  fromSuggestions,
-  fromLoading,
-  fromError,
-  onFromSelect,
-  toQuery,
-  setToQuery,
-  fromPopoverOpen,
-  setFromPopoverOpen,
-  getTotalPassengers,
-  swapLocations,
-  ...rest
-}: SearchFormProps) {
-  const [departurePopoverOpen, setDeparturePopoverOpen] = useState(false);
-  const [returnPopoverOpen, setReturnPopoverOpen] = useState(false);
-
-  return (
-    <form
-      className="w-full max-w-md mx-auto bg-white rounded-2xl shadow p-4 flex flex-col gap-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSearch();
-      }}
-    >
-      {/* Trip Type and Class Dropdowns in the same row */}
-      <div className="flex gap-2 mb-1">
-        <Select
-          value={searchParams.tripType}
-          onValueChange={(value) =>
-            setSearchParams((prev) => ({ ...prev, tripType: value }))
-          }
-        >
-          <SelectTrigger className="flex-1 h-10 rounded-lg border border-gray-200 bg-gray-50 text-base font-medium">
-            <SelectValue placeholder="Trip Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ROUND_TRIP">Round trip</SelectItem>
-            <SelectItem value="ONE_WAY">One way</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={searchParams.travelClass}
-          onValueChange={(value) =>
-            setSearchParams((prev) => ({ ...prev, travelClass: value }))
-          }
-        >
-          <SelectTrigger className="flex-1 h-10 rounded-lg border border-gray-200 bg-gray-50 text-base font-medium">
-            <SelectValue placeholder="Class" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ECONOMY">Economy</SelectItem>
-            <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
-            <SelectItem value="BUSINESS">Business</SelectItem>
-            <SelectItem value="FIRST">First Class</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      {/* From/To fields with swap button between */}
-      <div className="bg-gray-50 rounded-xl flex flex-col divide-y divide-gray-200 mb-1">
-        <div className="flex items-center px-3 py-2">
-          <MapPin className="w-5 h-5 mr-2 text-gray-400" />
-          <Popover open={fromPopoverOpen} onOpenChange={setFromPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Input
-                type="text"
-                value={fromQuery}
-                onChange={(e) => setFromQuery(e.target.value)}
-                placeholder="From"
-                className="flex-1 h-8 border-none bg-transparent focus:ring-0 focus:border-none p-0 text-base"
-                autoComplete="off"
-                tabIndex={0}
-                onFocus={() => setFromPopoverOpen(true)}
-                onClick={() => setFromPopoverOpen(true)}
-              />
-            </PopoverTrigger>
-            {fromPopoverOpen && (
-              <PopoverContent className="w-[320px] p-0 max-h-72 overflow-auto">
-                <input
-                  type="text"
-                  value={fromQuery}
-                  onChange={(e) => setFromQuery(e.target.value)}
-                  placeholder="Type city or airport"
-                  className="w-full px-4 py-2 border-b"
-                  autoFocus
-                />
-                {fromLoading ? (
-                  <div className="p-4 text-center text-gray-500">
-                    Loading...
-                  </div>
-                ) : fromError ? (
-                  <div className="p-4 text-center text-red-500">
-                    {fromError}
-                  </div>
-                ) : fromSuggestions.length === 0 && fromQuery.length >= 2 ? (
-                  <div className="p-4 text-center text-gray-500">
-                    No airports found
-                  </div>
-                ) : (
-                  fromSuggestions.map((a: Airport) => (
-                    <button
-                      key={a.code}
-                      className="w-full text-left px-4 py-2 hover:bg-emerald-50 focus:bg-emerald-100 focus:outline-none"
-                      onClick={() => {
-                        setSearchParams((prev) => ({
-                          ...prev,
-                          originLocationCode: a.code,
-                        }));
-                        setFromQuery(`${a.city} (${a.code})`);
-                        setFromPopoverOpen(false);
-                      }}
-                      type="button"
-                      aria-label={`Select ${a.city} (${a.code})`}
-                    >
-                      <span className="font-semibold">{a.code}</span> - {a.city}
-                      , {a.country}{" "}
-                      <span className="block text-gray-500 text-[10px]">
-                        {a.name}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </PopoverContent>
-            )}
-          </Popover>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={swapLocations}
-            className="h-8 w-8 p-0 rounded-full mx-2"
-            aria-label="Swap locations"
-          >
-            <ArrowRightLeft className="w-5 h-5 text-gray-400" />
-          </Button>
-        </div>
-        <div className="flex items-center px-3 py-2">
-          <MapPin className="w-5 h-5 mr-2 text-gray-400" />
-          <Select
-            value={searchParams.destinationLocationCode}
-            onValueChange={(val) => {
-              setSearchParams((prev) => ({
-                ...prev,
-                destinationLocationCode: val,
-              }));
-              let label = "";
-              switch (val) {
-                case "JED":
-                  label = "Jeddah (JED)";
-                  break;
-                case "MED":
-                  label = "Madinah (MED)";
-                  break;
-                case "RUH":
-                  label = "Riyadh (RUH)";
-                  break;
-                case "DMM":
-                  label = "Dammam (DMM)";
-                  break;
-                case "TIF":
-                  label = "Taif (TIF)";
-                  break;
-                default:
-                  label = val;
-              }
-              setToQuery(label);
-            }}
-          >
-            <SelectTrigger className="flex-1 h-8 border-none bg-transparent focus:ring-0 focus:border-none p-0 text-base">
-              <SelectValue placeholder="To" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="JED">Jeddah (JED)</SelectItem>
-              <SelectItem value="MED">Madinah (MED)</SelectItem>
-              <SelectItem value="RUH">Riyadh (RUH)</SelectItem>
-              <SelectItem value="DMM">Dammam (DMM)</SelectItem>
-              <SelectItem value="TIF">Taif (TIF)</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      {/* Date and Passengers row */}
-      <div className="flex gap-2 mb-1">
-        <div className="flex-1">
-          <Popover
-            open={departurePopoverOpen}
-            onOpenChange={setDeparturePopoverOpen}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "h-10 w-full justify-start text-left font-normal text-base px-3",
-                  !searchParams.departureDate && "text-muted-foreground",
-                )}
-                onClick={() => setDeparturePopoverOpen(true)}
-              >
-                <CalendarIcon className="mr-2 h-5 w-5" />
-                {searchParams.departureDate
-                  ? format(searchParams.departureDate, "d MMM")
-                  : "Date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={searchParams.departureDate}
-                onSelect={(date) => {
-                  setSearchParams((prev) => ({ ...prev, departureDate: date }));
-                  setDeparturePopoverOpen(false);
-                }}
-                disabled={(date) => date < new Date()}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        {searchParams.tripType === "ROUND_TRIP" && (
-          <div className="flex-1">
-            <Popover
-              open={returnPopoverOpen}
-              onOpenChange={setReturnPopoverOpen}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "h-10 w-full justify-start text-left font-normal text-base px-3",
-                    !searchParams.returnDate && "text-muted-foreground",
-                  )}
-                  onClick={() => setReturnPopoverOpen(true)}
-                >
-                  <CalendarIcon className="mr-2 h-5 w-5" />
-                  {searchParams.returnDate
-                    ? format(searchParams.returnDate, "d MMM")
-                    : "Return"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={searchParams.returnDate}
-                  onSelect={(date) => {
-                    setSearchParams((prev) => ({ ...prev, returnDate: date }));
-                    setReturnPopoverOpen(false);
-                  }}
-                  disabled={(date) =>
-                    !searchParams.departureDate ||
-                    date <= searchParams.departureDate
-                  }
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
-        {searchParams.tripType !== "ROUND_TRIP" && (
-          <div className="flex-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-10 w-full flex items-center gap-1 rounded-lg border border-gray-200 bg-white text-base font-medium"
-                >
-                  <User className="w-5 h-5 mr-1 text-gray-500" />
-                  {getTotalPassengers()} Travellers
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4 flex flex-col gap-2">
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Adults</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        adults: Math.max(1, prev.adults - 1),
-                      }))
-                    }
-                    disabled={searchParams.adults <= 1}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">{searchParams.adults}</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        adults: Math.min(9, prev.adults + 1),
-                      }))
-                    }
-                    disabled={searchParams.adults >= 9}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Children</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        children: Math.max(0, prev.children - 1),
-                      }))
-                    }
-                    disabled={searchParams.children <= 0}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">
-                    {searchParams.children}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        children: Math.min(9, prev.children + 1),
-                      }))
-                    }
-                    disabled={searchParams.children >= 9}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Infants</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        infants: Math.max(0, prev.infants - 1),
-                      }))
-                    }
-                    disabled={searchParams.infants <= 0}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">
-                    {searchParams.infants}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        infants: Math.min(prev.adults, prev.infants + 1),
-                      }))
-                    }
-                    disabled={searchParams.infants >= searchParams.adults}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        )}
-      </div>
-      {searchParams.tripType === "ROUND_TRIP" && (
-        <div className="flex mb-1">
-          <div className="flex-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-10 w-full flex items-center gap-1 rounded-lg border border-gray-200 bg-white text-base font-medium"
-                >
-                  <User className="w-5 h-5 mr-1 text-gray-500" />
-                  {getTotalPassengers()} Travellers
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4 flex flex-col gap-2">
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Adults</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        adults: Math.max(1, prev.adults - 1),
-                      }))
-                    }
-                    disabled={searchParams.adults <= 1}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">{searchParams.adults}</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        adults: Math.min(9, prev.adults + 1),
-                      }))
-                    }
-                    disabled={searchParams.adults >= 9}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Children</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        children: Math.max(0, prev.children - 1),
-                      }))
-                    }
-                    disabled={searchParams.children <= 0}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">
-                    {searchParams.children}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        children: Math.min(9, prev.children + 1),
-                      }))
-                    }
-                    disabled={searchParams.children >= 9}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="w-16">Infants</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        infants: Math.max(0, prev.infants - 1),
-                      }))
-                    }
-                    disabled={searchParams.infants <= 0}
-                  >
-                    <Minus />
-                  </Button>
-                  <span className="w-6 text-center">
-                    {searchParams.infants}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    onClick={() =>
-                      setSearchParams((prev) => ({
-                        ...prev,
-                        infants: Math.min(prev.adults, prev.infants + 1),
-                      }))
-                    }
-                    disabled={searchParams.infants >= searchParams.adults}
-                  >
-                    <Plus />
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-      )}
-      {/* Direct flights checkbox */}
-      <div className="flex items-center mb-1">
-        <input
-          type="checkbox"
-          id="direct-flights"
-          checked={searchParams.nonStop}
-          onChange={(e) =>
-            setSearchParams((prev) => ({ ...prev, nonStop: e.target.checked }))
-          }
-          className="mr-2"
-        />
-        <label htmlFor="direct-flights" className="text-base">
-          Direct flights
-        </label>
-      </div>
-      {/* Search button */}
-      <Button
-        type="submit"
-        className="w-full h-12 rounded-xl text-lg font-semibold mt-1"
-      >
-        Search
-      </Button>
-    </form>
-  );
-}
-
-const currencyToInr = (amount: string, currency: string) => {
-  const n = parseFloat(amount);
-  switch (currency) {
-    case "USD":
-      return Math.round(n * 83.5);
-    case "SAR":
-      return Math.round(n * 22.3);
-    case "EUR":
-      return Math.round(n * 90);
-    case "INR":
-      return Math.round(n);
-    default:
-      return Math.round(n); // fallback
-  }
-};
-
-const FlightSearch: React.FC<FlightSearchProps> = ({
-  onFlightSelect,
-  className,
-}) => {
+const FlightSearch: React.FC = () => {
   const [searchParams, setSearchParams] = useState<FlightSearchParams>({
+    tripType: "ROUND_TRIP",
     originLocationCode: "",
     destinationLocationCode: "",
-    departureDate: undefined,
-    returnDate: undefined,
+    departureDate: new Date(),
+    returnDate: new Date(),
     adults: 1,
     children: 0,
     infants: 0,
     travelClass: "ECONOMY",
-    tripType: "ROUND_TRIP",
     nonStop: false,
   });
 
-  const [flightResults, setFlightResults] = useState<FlightOffer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchPerformed, setSearchPerformed] = useState(false);
-  const { toast } = useToast();
-
   const [airports, setAirports] = useState<Airport[]>([]);
-  const [fromQuery, setFromQuery] = useState("");
-  const [toQuery, setToQuery] = useState("");
-  const [fromSuggestions, setFromSuggestions] = useState<Airport[]>([]);
-  const [toSuggestions, setToSuggestions] = useState<Airport[]>([]);
-  const [showFromSuggestions, setShowFromSuggestions] = useState(false);
-  const [showToSuggestions, setShowToSuggestions] = useState(false);
-
-  // Add state for calendar popovers
-  const [departurePopoverOpen, setDeparturePopoverOpen] = useState(false);
-  const [returnPopoverOpen, setReturnPopoverOpen] = useState(false);
-
-  const [expandedFlightId, setExpandedFlightId] = useState<string | null>(null);
-
-  const [fromLoading, setFromLoading] = useState(false);
-  const [fromError, setFromError] = useState<string | null>(null);
-
-  const [sortOption, setSortOption] = useState<"best" | "cheapest" | "fastest">(
-    "best",
-  );
-
-  const [searchDialogOpen, setSearchDialogOpen] = useState(false);
-
-  const [minLoaderVisible, setMinLoaderVisible] = useState(false);
-
-  const [fromPopoverOpen, setFromPopoverOpen] = useState(false);
-
-  const amadeus = new AmadeusAPI(
-    import.meta.env.VITE_AMADEUS_API_KEY,
-    import.meta.env.VITE_AMADEUS_API_SECRET,
-  );
+  const [originAirports, setOriginAirports] = useState<Airport[]>([]);
+  const [destinationAirports, setDestinationAirports] = useState<Airport[]>([]);
+  const [isOriginDropdownOpen, setIsOriginDropdownOpen] = useState(false);
+  const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] = useState(false);
+  const [flightOffers, setFlightOffers] = useState<AmadeusFlightOffer[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    setAirports(airportsData);
+    const fetchAirports = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('airports')
+          .select(`
+            iataCode,
+            name,
+            address
+          `);
+
+        if (error) throw error;
+        setAirports(data as Airport[]);
+      } catch (error) {
+        console.error('Error fetching airports:', error);
+      }
+    };
+
+    fetchAirports();
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    if (fromQuery.length >= 2) {
-      setFromLoading(true);
-      setFromError(null);
-      amadeus
-        .getAirportInfo(fromQuery)
-        .then((data) => {
-          if (!active) return;
-          setFromSuggestions(
-            (data.data || []).map((a: Airport) => ({
-              code: a.iataCode,
-              city: a.address?.cityName || "",
-              country: a.address?.countryName || "",
-              name: a.name || "",
-            })),
-          );
-          setShowFromSuggestions(true);
-        })
-        .catch((err) => {
-          if (!active) return;
-          setFromError("Error loading airports");
-          setFromSuggestions([]);
-          setShowFromSuggestions(false);
-        })
-        .finally(() => {
-          if (active) setFromLoading(false);
-        });
-    } else {
-      setFromSuggestions([]);
-      setShowFromSuggestions(false);
-      setFromError(null);
-    }
-    return () => {
-      active = false;
-    };
-  }, [fromQuery]);
-
-  useEffect(() => {
-    if (toQuery.length >= 2) {
-      const q = toQuery.toLowerCase();
-      setToSuggestions(
-        airports
-          .filter(
-            (a) =>
-              a.code.toLowerCase().includes(q) ||
-              a.city.toLowerCase().includes(q) ||
-              a.name.toLowerCase().includes(q),
-          )
-          .slice(0, 8),
-      );
-      setShowToSuggestions(true);
-    } else {
-      setToSuggestions([]);
-      setShowToSuggestions(false);
-    }
-  }, [toQuery, airports]);
-
-  useEffect(() => {
-    if (fromQuery.length >= 2) {
-      setFromPopoverOpen(true);
-    } else {
-      setFromPopoverOpen(false);
-    }
-  }, [fromQuery]);
-
-  useEffect(() => {
-    if (!searchParams.destinationLocationCode) {
-      setSearchParams((prev) => ({ ...prev, destinationLocationCode: "JED" }));
-      setToQuery("Jeddah (JED)");
-    }
-  }, []);
-
-  const transformAmadeusToFlightOffer = (
-    amadeusOffer: AmadeusFlightOffer,
-    carriers: Record<string, string>,
-    aircraft: Record<string, string>,
-  ): FlightOffer => {
-    const firstSegment = amadeusOffer.itineraries[0].segments[0];
-    const lastSegment =
-      amadeusOffer.itineraries[0].segments[
-        amadeusOffer.itineraries[0].segments.length - 1
-      ];
-
-    const carrierCode = firstSegment.carrierCode;
-    const airlineName = carriers[carrierCode] || carrierCode;
-
-    const aircraftCode = firstSegment.aircraft.code;
-    const aircraftName = aircraft[aircraftCode] || aircraftCode;
-
-    const stops = amadeusOffer.itineraries[0].segments.length - 1;
-
-    // Get cabin class from traveler pricing
-    const cabin =
-      amadeusOffer.travelerPricings[0]?.fareDetailsBySegment[0]?.cabin ||
-      "ECONOMY";
-
-    return {
-      id: amadeusOffer.id,
-      airline: airlineName,
-      flightNumber: `${carrierCode} ${firstSegment.number}`,
-      departure: {
-        iataCode: firstSegment.departure.iataCode,
-        terminal: firstSegment.departure.terminal,
-        at: firstSegment.departure.at,
-      },
-      arrival: {
-        iataCode: lastSegment.arrival.iataCode,
-        terminal: lastSegment.arrival.terminal,
-        at: lastSegment.arrival.at,
-      },
-      duration: amadeusOffer.itineraries[0].duration,
-      stops: stops,
-      price: {
-        total: amadeusOffer.price.total,
-        currency: amadeusOffer.price.currency,
-      },
-      cabin: cabin,
-      aircraft: aircraftName,
-      rawOffer: amadeusOffer,
-    };
+  const handleOriginChange = (value: string) => {
+    setSearchParams(prev => ({
+      ...prev,
+      originLocationCode: value
+    }));
+    setOriginAirports(
+      airports.filter(airport => airport.name.toLowerCase().includes(value.toLowerCase()))
+    );
+    setIsOriginDropdownOpen(true);
   };
 
-  const handleSearch = async () => {
-    if (
-      !searchParams.originLocationCode ||
-      !searchParams.destinationLocationCode ||
-      !searchParams.departureDate
-    ) {
-      toast({
-        title: "Missing Information",
-        description:
-          "Please fill in departure city, destination city, and departure date.",
-        variant: "destructive",
-      });
-      return;
+  const handleDestinationChange = (value: string) => {
+    setSearchParams(prev => ({
+      ...prev,
+      destinationLocationCode: value
+    }));
+    setDestinationAirports(
+      airports.filter(airport => airport.name.toLowerCase().includes(value.toLowerCase()))
+    );
+    setIsDestinationDropdownOpen(true);
+  };
+
+  const handleDepartureDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSearchParams(prev => ({
+        ...prev,
+        departureDate: date
+      }));
     }
+  };
 
-    setLoading(true);
-    setMinLoaderVisible(true);
-    setTimeout(() => setMinLoaderVisible(false), 500);
-    setSearchPerformed(true);
+  const handleReturnDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSearchParams(prev => ({
+        ...prev,
+        returnDate: date
+      }));
+    }
+  };
 
+  const handleAdultsChange = (value: number) => {
+    setSearchParams(prev => ({
+      ...prev,
+      adults: value
+    }));
+  };
+
+  const handleChildrenChange = (value: number) => {
+    setSearchParams(prev => ({
+      ...prev,
+      children: value
+    }));
+  };
+
+  const handleInfantsChange = (value: number) => {
+    setSearchParams(prev => ({
+      ...prev,
+      infants: value
+    }));
+  };
+
+  const handleTripTypeChange = (value: string) => {
+    setSearchParams(prev => ({
+      ...prev,
+      tripType: value as "ONE_WAY" | "ROUND_TRIP" | "MULTI_CITY"
+    }));
+  };
+
+  const handleNonStopChange = (value: boolean) => {
+    setSearchParams(prev => ({
+      ...prev,
+      nonStop: value
+    }));
+  };
+
+  const handleTravelClassChange = (value: string) => {
+    setSearchParams(prev => ({
+      ...prev,
+      travelClass: value as "ECONOMY" | "PREMIUM_ECONOMY" | "BUSINESS" | "FIRST"
+    }));
+  };
+
+  const handleAirportSelection = (airport: Airport, type: 'origin' | 'destination') => {
+    if (type === 'origin') {
+      setSearchParams(prev => ({
+        ...prev,
+        originLocationCode: airport.iataCode
+      }));
+      setIsOriginDropdownOpen(false);
+    } else {
+      setSearchParams(prev => ({
+        ...prev,
+        destinationLocationCode: airport.iataCode
+      }));
+      setIsDestinationDropdownOpen(false);
+    }
+  };
+
+  const handleSearchFlights = async () => {
+    setIsLoading(true);
     try {
-      const searchRequest = {
-        originLocationCode: searchParams.originLocationCode,
-        destinationLocationCode: searchParams.destinationLocationCode,
-        departureDate: format(searchParams.departureDate, "yyyy-MM-dd"),
-        returnDate: searchParams.returnDate
-          ? format(searchParams.returnDate, "yyyy-MM-dd")
-          : undefined,
-        adults: searchParams.adults,
-        children: searchParams.children > 0 ? searchParams.children : undefined,
-        infants: searchParams.infants > 0 ? searchParams.infants : undefined,
-        travelClass: searchParams.travelClass,
-        nonStop: searchParams.nonStop,
-        max: 10, // Limit results to 10 for better performance
-      };
+      const formattedDepartureDate = searchParams.departureDate.toISOString().split('T')[0];
+      const formattedReturnDate = searchParams.returnDate?.toISOString().split('T')[0];
 
-      console.log("Searching flights with request:", searchRequest);
-      const response = await searchFlights(searchRequest);
-      console.log("Flight search response:", response);
+      const { data, error } = await supabase.functions.invoke('amadeus-flight-offers', {
+        body: {
+          ...searchParams,
+          departureDate: formattedDepartureDate,
+          returnDate: formattedReturnDate,
+        }
+      });
 
-      if (response.data && response.data.length > 0) {
-        const transformedFlights = response.data.map((offer) =>
-          transformAmadeusToFlightOffer(
-            offer,
-            response.dictionaries.carriers,
-            response.dictionaries.aircraft,
-          ),
-        );
-
-        setFlightResults(transformedFlights);
-
-        toast({
-          title: "Search Complete",
-          description: `Found ${transformedFlights.length} flights for your search.`,
-        });
+      if (error) {
+        console.error('Error fetching flight offers:', error);
       } else {
-        setFlightResults([]);
-        toast({
-          title: "No Flights Found",
-          description:
-            "No flights found for your search criteria. Try adjusting your search parameters.",
-          variant: "destructive",
-        });
+        setFlightOffers(data);
       }
     } catch (error) {
-      console.error("Flight search error:", error);
-      setFlightResults([]);
-      toast({
-        title: "Search Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Unable to search flights. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error during flight search:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const formatDuration = (duration: string) => {
-    // Convert PT6H30M to "6h 30m"
-    const match = duration.match(/PT(\d+H)?(\d+M)?/);
-    if (!match) return duration;
-
-    const hours = match[1] ? match[1].replace("H", "h ") : "";
-    const minutes = match[2] ? match[2].replace("M", "m") : "";
-    return `${hours}${minutes}`.trim();
-  };
-
-  const formatTime = (dateTime: string) => {
-    return new Date(dateTime).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
-
-  const swapLocations = () => {
-    setSearchParams((prev) => ({
-      ...prev,
-      originLocationCode: prev.destinationLocationCode,
-      destinationLocationCode: prev.originLocationCode,
-    }));
-  };
-
-  const updatePassengerCount = (
-    type: "adults" | "children" | "infants",
-    change: number,
-  ) => {
-    setSearchParams((prev) => ({
-      ...prev,
-      [type]: Math.max(0, prev[type] + change),
-    }));
-  };
-
-  const getTotalPassengers = () => {
-    return searchParams.adults + searchParams.children + searchParams.infants;
-  };
-
-  // Helper to get duration in minutes from ISO duration string
-  const getDurationMinutes = (duration: string) => {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
-    if (!match) return 0;
-    const hours = match[1] ? parseInt(match[1]) : 0;
-    const minutes = match[2] ? parseInt(match[2]) : 0;
-    return hours * 60 + minutes;
-  };
-
-  // AI-like 'best' sort: normalize price and duration, weight price 60%, duration 40%
-  const sortedFlights = useMemo(() => {
-    if (!flightResults.length) return [];
-    if (sortOption === "cheapest") {
-      return [...flightResults].sort(
-        (a, b) =>
-          currencyToInr(a.price.total, a.price.currency) -
-          currencyToInr(b.price.total, b.price.currency),
-      );
-    }
-    if (sortOption === "fastest") {
-      return [...flightResults].sort(
-        (a, b) =>
-          getDurationMinutes(a.duration) - getDurationMinutes(b.duration),
-      );
-    }
-    // Best: AI-like balance
-    const prices = flightResults.map((f) =>
-      currencyToInr(f.price.total, f.price.currency),
-    );
-    const durations = flightResults.map((f) => getDurationMinutes(f.duration));
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const minDur = Math.min(...durations);
-    const maxDur = Math.max(...durations);
-    return [...flightResults].sort((a, b) => {
-      const aPriceNorm =
-        (currencyToInr(a.price.total, a.price.currency) - minPrice) /
-        (maxPrice - minPrice || 1);
-      const bPriceNorm =
-        (currencyToInr(b.price.total, b.price.currency) - minPrice) /
-        (maxPrice - minPrice || 1);
-      const aDurNorm =
-        (getDurationMinutes(a.duration) - minDur) / (maxDur - minDur || 1);
-      const bDurNorm =
-        (getDurationMinutes(b.duration) - minDur) / (maxDur - minDur || 1);
-      const aScore = aPriceNorm * 0.6 + aDurNorm * 0.4;
-      const bScore = bPriceNorm * 0.6 + bDurNorm * 0.4;
-      return aScore - bScore;
-    });
-  }, [flightResults, sortOption]);
-
-  // Memoize dialog search handler to avoid remounting SearchForm
-  const handleDialogSearch = useCallback(() => {
-    handleSearch();
-    setSearchDialogOpen(false);
-  }, [handleSearch, setSearchDialogOpen]);
-
-  return (
-    <div className={cn("w-full", className)}>
-      {/* Loading animation overlay */}
-      {loading && (
-        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm">
-          <svg
-            className="animate-spin h-12 w-12 text-primary mb-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-            />
-          </svg>
-          <div className="text-lg font-semibold text-primary animate-pulse">
-            Searching flights...
-          </div>
-        </div>
-      )}
-      {searchPerformed && flightResults.length > 0 ? (
-        <>
-          <div className="flex justify-between items-center mb-4">
-            <Dialog open={searchDialogOpen} onOpenChange={setSearchDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="rounded-full px-6 py-2 font-semibold"
-                >
-                  Modify Search
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-full">
-                <DialogTitle>Modify Flight Search</DialogTitle>
-                <div className="mb-4 text-lg font-semibold">Modify Search</div>
-                <SearchForm
-                  searchParams={searchParams}
-                  setSearchParams={setSearchParams}
-                  handleSearch={handleDialogSearch}
-                  fromQuery={fromQuery}
-                  setFromQuery={setFromQuery}
-                  fromSuggestions={fromSuggestions}
-                  fromLoading={fromLoading}
-                  fromError={fromError}
-                  onFromSelect={(code: string, label: string) => {
-                    setSearchParams((prev: FlightSearchParams) => ({
-                      ...prev,
-                      originLocationCode: code,
-                    }));
-                    setFromQuery(label);
-                  }}
-                  toQuery={toQuery}
-                  setToQuery={setToQuery}
-                  fromPopoverOpen={fromPopoverOpen}
-                  setFromPopoverOpen={setFromPopoverOpen}
-                  getTotalPassengers={getTotalPassengers}
-                  swapLocations={swapLocations}
-                />
-              </DialogContent>
-            </Dialog>
-            {/* Sorting dropdown */}
-            <div className="flex items-center">
-              <label className="mr-2 text-sm font-medium text-gray-700">
-                Sort by:
-              </label>
-              <Select
-                value={sortOption}
-                onValueChange={(v) =>
-                  setSortOption(v as "best" | "cheapest" | "fastest")
-                }
-              >
-                <SelectTrigger className="w-[140px] h-10 rounded-full border-gray-300 focus:border-emerald-500 focus:ring-emerald-500">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="best">Best</SelectItem>
-                  <SelectItem value="cheapest">Cheapest</SelectItem>
-                  <SelectItem value="fastest">Fastest</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          {/* Flight Results Section */}
-          {loading || minLoaderVisible ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <div className="relative flex flex-col items-center">
-                <span className="animate-bounce-slow">
-                  <Plane className="w-16 h-16 text-emerald-600 drop-shadow-lg" />
-                </span>
-                <div className="w-32 h-2 bg-gradient-to-r from-emerald-300 via-white to-emerald-300 rounded-full mt-2 opacity-70 animate-pulse" />
-                <span className="mt-4 text-emerald-700 font-semibold text-lg animate-pulse">
-                  Searching for the best flights...
-                </span>
-              </div>
-            </div>
-          ) : flightResults.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Plane className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-              <p>No flights found for your search criteria</p>
-              <p className="text-sm text-gray-400 mt-1">
-                Try adjusting your search parameters
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {sortedFlights.map((flight) => {
-                const isExpanded = expandedFlightId === flight.id;
-                const airlineLogo = `https://content.airhex.com/content/logos/airlines_${flight.flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`;
-                // Extract key details for chips
-                const baggage =
-                  flight.rawOffer?.travelerPricings?.[0]
-                    ?.fareDetailsBySegment?.[0]?.includedCheckedBags?.quantity;
-                const fare =
-                  flight.rawOffer?.travelerPricings?.[0]
-                    ?.fareDetailsBySegment?.[0]?.cabin || "Economy";
-                const aircraft = flight.aircraft || "";
-                return (
-                  <div
-                    key={flight.id}
-                    className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 mb-3 hover:shadow-lg transition-shadow relative"
-                    tabIndex={0}
-                    role="region"
-                    aria-expanded={isExpanded}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                      {/* Airline logo and name */}
-                      <div className="flex items-center gap-2 min-w-[90px]">
-                        <img
-                          src={airlineLogo}
-                          alt={flight.airline}
-                          className="w-10 h-7 object-contain rounded bg-gray-50 border"
-                          onError={(e) =>
-                            (e.currentTarget.src = "/placeholder.svg")
-                          }
-                        />
-                        <div>
-                          <div className="font-semibold text-sm">
-                            {flight.airline}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {flight.flightNumber}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Times + Stops + Duration */}
-                      <div className="flex-1 flex flex-col gap-2 md:flex-row md:gap-4 md:items-stretch md:justify-center">
-                        {/* Onward Segment */}
-                        <div className="flex-1 bg-gray-50 rounded-xl p-3 flex flex-col items-center border border-gray-100">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-xs text-emerald-700">
-                              Onward
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-lg">
-                              {formatTime(flight.departure.at)}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {flight.departure.iataCode}
-                            </span>
-                            <span className="mx-1 text-gray-400">
-                              <Plane className="inline w-4 h-4 rotate-90 md:rotate-0" />
-                            </span>
-                            <span className="font-bold text-lg">
-                              {formatTime(flight.arrival.at)}
-                            </span>
-                            <span className="text-xs text-gray-400">
-                              {flight.arrival.iataCode}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs text-gray-500">
-                              {formatDuration(flight.duration)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              •{" "}
-                              {flight.stops === 0
-                                ? "Direct"
-                                : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
-                            </span>
-                          </div>
-                          <div className="flex gap-2 mt-1 flex-wrap justify-center">
-                            <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                              Baggage: {baggage ?? "N/A"}
-                            </span>
-                            <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                              {fare}
-                            </span>
-                            {aircraft && (
-                              <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                                {aircraft}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        {/* Return Segment (if exists) */}
-                        {flight.rawOffer?.itineraries?.[1] && (
-                          <div className="flex-1 bg-gray-50 rounded-xl p-3 flex flex-col items-center border border-gray-100 mt-2 md:mt-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold text-xs text-emerald-700">
-                                Return
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-bold text-lg">
-                                {formatTime(
-                                  flight.rawOffer.itineraries[1].segments[0]
-                                    .departure.at,
-                                )}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {
-                                  flight.rawOffer.itineraries[1].segments[0]
-                                    .departure.iataCode
-                                }
-                              </span>
-                              <span className="mx-1 text-gray-400">
-                                <Plane className="inline w-4 h-4 rotate-90 md:rotate-0" />
-                              </span>
-                              <span className="font-bold text-lg">
-                                {formatTime(
-                                  flight.rawOffer.itineraries[1].segments[
-                                    flight.rawOffer.itineraries[1].segments
-                                      .length - 1
-                                  ].arrival.at,
-                                )}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {
-                                  flight.rawOffer.itineraries[1].segments[
-                                    flight.rawOffer.itineraries[1].segments
-                                      .length - 1
-                                  ].arrival.iataCode
-                                }
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs text-gray-500">
-                                {formatDuration(
-                                  flight.rawOffer.itineraries[1].duration,
-                                )}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                •{" "}
-                                {flight.rawOffer.itineraries[1].segments
-                                  .length -
-                                  1 ===
-                                0
-                                  ? "Direct"
-                                  : `${flight.rawOffer.itineraries[1].segments.length - 1} stop${flight.rawOffer.itineraries[1].segments.length - 1 > 1 ? "s" : ""}`}
-                              </span>
-                            </div>
-                            <div className="flex gap-2 mt-1 flex-wrap justify-center">
-                              <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                                Baggage:{" "}
-                                {flight.rawOffer.travelerPricings?.[0]
-                                  ?.fareDetailsBySegment?.[1]
-                                  ?.includedCheckedBags?.quantity ?? "N/A"}
-                              </span>
-                              <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                                {flight.rawOffer.travelerPricings?.[0]
-                                  ?.fareDetailsBySegment?.[1]?.cabin || fare}
-                              </span>
-                              {flight.rawOffer.itineraries[1].segments[0]
-                                .aircraft?.code && (
-                                <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-700">
-                                  {
-                                    flight.rawOffer.itineraries[1].segments[0]
-                                      .aircraft.code
-                                  }
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      {/* Price + Select + Details */}
-                      <div className="flex flex-col items-end min-w-[90px] w-full md:w-auto">
-                        <div className="text-lg font-bold text-primary">
-                          ₹{" "}
-                          {currencyToInr(
-                            flight.price.total,
-                            flight.price.currency,
-                          ).toLocaleString()}
-                        </div>
-                        <Button
-                          size="sm"
-                          className="mt-2 w-full md:w-auto"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onFlightSelect(flight, searchParams);
-                          }}
-                        >
-                          Add to Package
-                        </Button>
-                        <button
-                          className="text-xs text-blue-600 mt-1 underline focus:outline-none"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedFlightId(isExpanded ? null : flight.id);
-                          }}
-                          aria-expanded={isExpanded}
-                        >
-                          {isExpanded ? "Hide Details" : "View Details"}
-                        </button>
-                      </div>
-                    </div>
-                    {/* Accordion-style details panel */}
-                    {isExpanded && (
-                      <div className="mt-2 p-2 border-t bg-gray-50 rounded-b-xl max-h-[60vh] overflow-y-auto relative">
-                        <FlightDetails offer={flight.rawOffer} />
-                        <div className="block md:hidden sticky bottom-0 left-0 right-0 bg-gray-50 p-2">
-                          <Button
-                            size="lg"
-                            className="w-full"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onFlightSelect(flight, searchParams);
-                            }}
-                          >
-                            Add to Package
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 px-4 py-4 flex flex-col gap-4">
-          <SearchForm
-            searchParams={searchParams}
-            setSearchParams={setSearchParams}
-            handleSearch={handleSearch}
-            fromQuery={fromQuery}
-            setFromQuery={setFromQuery}
-            fromSuggestions={fromSuggestions}
-            fromLoading={fromLoading}
-            fromError={fromError}
-            onFromSelect={(code: string, label: string) => {
-              setSearchParams((prev: FlightSearchParams) => ({
-                ...prev,
-                originLocationCode: code,
-              }));
-              setFromQuery(label);
-            }}
-            toQuery={toQuery}
-            setToQuery={setToQuery}
-            fromPopoverOpen={fromPopoverOpen}
-            setFromPopoverOpen={setFromPopoverOpen}
-            getTotalPassengers={getTotalPassengers}
-            swapLocations={swapLocations}
-          />
-        </div>
-      )}
+  const renderAirportOption = (airport: Airport) => (
+    <div key={airport.iataCode} className="flex items-center space-x-3 p-2 hover:bg-gray-50 cursor-pointer" onClick={() => handleAirportSelection(airport, originAirports.includes(airport) ? 'origin' : 'destination')}>
+      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+        <span className="text-xs font-semibold text-blue-700">{airport.iataCode}</span>
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-900">{airport.name}</p>
+        <p className="text-xs text-gray-500">{airport.address?.cityName}, {airport.address?.countryCode}</p>
+      </div>
     </div>
   );
-};
 
-const FlightDetails = ({ offer }: { offer: AmadeusFlightOffer }) => {
-  if (!offer)
-    return <div className="text-gray-500">Details not available.</div>;
-
-  // Debug output for automation
-  // Remove or comment out after debugging
-  // Shows the raw offer data for diagnosis
-  const debug = false; // set to true to enable
-
-  // Pricing by traveler type
-  const getPrice = (type: string) => {
-    const pricing = offer.travelerPricings?.find(
-      (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-        p.travelerType === type,
-    );
-    return pricing
-      ? `${pricing.price.currency} ${parseFloat(pricing.price.total).toLocaleString()}`
-      : "N/A";
-  };
-
-  // Baggage info for all segments
-  const getBaggage = (
-    segments: AmadeusFlightOffer["itineraries"][number]["segments"],
-  ) => {
-    if (!segments || segments.length === 0) {
-      return <div className="text-gray-500">No baggage info available.</div>;
+  const getLocationName = (locationCode: string, offer: AmadeusFlightOffer) => {
+    if (offer.dictionaries?.locations && offer.dictionaries.locations[locationCode]) {
+      return offer.dictionaries.locations[locationCode].name || locationCode;
     }
-    return segments.map(
-      (
-        seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-        idx: number,
-      ) => {
-        return (
-          <div key={idx} className="mb-2">
-            <span className="font-semibold">
-              {seg.departure.iataCode} → {seg.arrival.iataCode}:
-            </span>{" "}
-            N/A
-          </div>
-        );
-      },
-    );
+    return locationCode;
   };
 
-  // Segments
-  const onwardSegments = offer.itineraries?.[0]?.segments || [];
-  const returnSegments = offer.itineraries?.[1]?.segments || [];
-
-  // Layover calculation
-  const getLayover = (
-    prev: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-    next: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-  ) => {
-    if (!prev || !next) return null;
-    const prevArrival = new Date(prev.arrival.at);
-    const nextDeparture = new Date(next.departure.at);
-    const diffMs = nextDeparture.getTime() - prevArrival.getTime();
-    if (diffMs <= 0) return null;
-    const hours = Math.floor(diffMs / 3600000);
-    const mins = Math.floor((diffMs % 3600000) / 60000);
-    return `${hours ? hours + "h " : ""}${mins}m layover`;
+  const getAircraftName = (aircraftCode: string, offer: AmadeusFlightOffer) => {
+    if (offer.dictionaries?.aircraft && offer.dictionaries.aircraft[aircraftCode]) {
+      return offer.dictionaries.aircraft[aircraftCode] || aircraftCode;
+    }
+    return aircraftCode;
   };
 
   return (
-    <div>
-      {debug && (
-        <pre className="text-xs text-red-500 overflow-x-auto max-h-40">
-          {JSON.stringify(offer, null, 2)}
-        </pre>
-      )}
-      <Tabs defaultValue="onward" className="w-full mt-2">
-        <TabsList className="mb-4">
-          <TabsTrigger value="onward">Onward Segments</TabsTrigger>
-          {returnSegments.length > 0 && (
-            <TabsTrigger value="return">Return Segments</TabsTrigger>
-          )}
-          <TabsTrigger value="price">Price</TabsTrigger>
-          <TabsTrigger value="baggage">Baggage</TabsTrigger>
-        </TabsList>
-        <TabsContent value="onward">
-          <div className="mb-2 font-semibold text-gray-800">
-            Onward Segments
-          </div>
-          {onwardSegments.length === 0 ? (
-            <div className="text-gray-500">No onward segments available.</div>
-          ) : (
-            <div className="space-y-3">
-              {onwardSegments.map(
-                (
-                  seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-                  idx: number,
-                ) => (
-                  <div key={seg.id} className="border rounded p-3 bg-gray-50">
-                    <div className="flex flex-wrap gap-2 items-center mb-1">
-                      <span className="font-semibold text-emerald-700">
-                        {seg.carrierCode} {seg.number}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Aircraft:{" "}
-                        {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
-                          seg.aircraft.code}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-                      <div>
-                        <span className="font-semibold">From:</span>{" "}
-                        {seg.departure.iataCode}{" "}
-                        {seg.departure.terminal
-                          ? `T${seg.departure.terminal}`
-                          : ""}{" "}
-                        <span className="text-gray-400">
-                          ({new Date(seg.departure.at).toLocaleString()})
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">To:</span>{" "}
-                        {seg.arrival.iataCode}{" "}
-                        {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
-                        <span className="text-gray-400">
-                          ({new Date(seg.arrival.at).toLocaleString()})
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">Duration:</span>{" "}
-                        {seg.duration.replace("PT", "").toLowerCase()}
-                      </div>
-                    </div>
-                    {idx > 0 && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        {getLayover(onwardSegments[idx - 1], seg)}
-                      </div>
-                    )}
-                  </div>
-                ),
-              )}
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Search Flights</h1>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Origin */}
+        <div>
+          <Label htmlFor="origin">Origin</Label>
+          <Input
+            type="text"
+            id="origin"
+            placeholder="Enter origin airport"
+            value={searchParams.originLocationCode}
+            onChange={(e) => handleOriginChange(e.target.value)}
+            onFocus={() => setIsOriginDropdownOpen(true)}
+            onBlur={() => setTimeout(() => setIsOriginDropdownOpen(false), 100)}
+          />
+          {isOriginDropdownOpen && (
+            <div className="absolute z-10 bg-white border rounded shadow mt-1 w-full">
+              {originAirports.map(renderAirportOption)}
             </div>
           )}
-        </TabsContent>
-        <TabsContent value="return">
-          <div className="mb-2 font-semibold text-gray-800">
-            Return Segments
-          </div>
-          {returnSegments.length === 0 ? (
-            <div className="text-gray-500">No return segments available.</div>
-          ) : (
-            <div className="space-y-3">
-              {returnSegments.map(
-                (
-                  seg: AmadeusFlightOffer["itineraries"][number]["segments"][number],
-                  idx: number,
-                ) => (
-                  <div key={seg.id} className="border rounded p-3 bg-gray-50">
-                    <div className="flex flex-wrap gap-2 items-center mb-1">
-                      <span className="font-semibold text-emerald-700">
-                        {seg.carrierCode} {seg.number}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {offer.dictionaries?.carriers?.[seg.carrierCode] || ""}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        Aircraft:{" "}
-                        {offer.dictionaries?.aircraft?.[seg.aircraft.code] ||
-                          seg.aircraft.code}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-gray-700">
-                      <div>
-                        <span className="font-semibold">From:</span>{" "}
-                        {seg.departure.iataCode}{" "}
-                        {seg.departure.terminal
-                          ? `T${seg.departure.terminal}`
-                          : ""}{" "}
-                        <span className="text-gray-400">
-                          ({new Date(seg.departure.at).toLocaleString()})
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">To:</span>{" "}
-                        {seg.arrival.iataCode}{" "}
-                        {seg.arrival.terminal ? `T${seg.arrival.terminal}` : ""}{" "}
-                        <span className="text-gray-400">
-                          ({new Date(seg.arrival.at).toLocaleString()})
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">Duration:</span>{" "}
-                        {seg.duration.replace("PT", "").toLowerCase()}
-                      </div>
-                    </div>
-                    {idx > 0 && (
-                      <div className="text-xs text-blue-600 mt-1">
-                        {getLayover(returnSegments[idx - 1], seg)}
-                      </div>
-                    )}
-                  </div>
-                ),
-              )}
+        </div>
+
+        {/* Destination */}
+        <div>
+          <Label htmlFor="destination">Destination</Label>
+          <Input
+            type="text"
+            id="destination"
+            placeholder="Enter destination airport"
+            value={searchParams.destinationLocationCode}
+            onChange={(e) => handleDestinationChange(e.target.value)}
+            onFocus={() => setIsDestinationDropdownOpen(true)}
+            onBlur={() => setTimeout(() => setIsDestinationDropdownOpen(false), 100)}
+          />
+          {isDestinationDropdownOpen && (
+            <div className="absolute z-10 bg-white border rounded shadow mt-1 w-full">
+              {destinationAirports.map(renderAirportOption)}
             </div>
           )}
-        </TabsContent>
-        <TabsContent value="price">
-          <div className="mb-2 font-semibold text-gray-800">
-            Price Breakdown
-          </div>
-          {offer.travelerPricings && offer.travelerPricings.length > 0 ? (
-            <div className="flex gap-6 mb-4">
-              <div className="text-xs text-gray-600">
-                Adult:{" "}
-                <span className="font-medium text-gray-900">
-                  ₹
-                  {offer.travelerPricings
-                    ? currencyToInr(
-                        offer.travelerPricings.find(
-                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                            p.travelerType === "ADULT",
-                        )?.price.total || "0",
-                        offer.travelerPricings.find(
-                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                            p.travelerType === "ADULT",
-                        )?.price.currency || "INR",
-                      ).toLocaleString()
-                    : "-"}
-                </span>
-              </div>
-              <div className="text-xs text-gray-600">
-                Child:{" "}
-                <span className="font-medium text-gray-900">
-                  ₹
-                  {offer.travelerPricings
-                    ? currencyToInr(
-                        offer.travelerPricings.find(
-                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                            p.travelerType === "CHILD",
-                        )?.price.total || "0",
-                        offer.travelerPricings.find(
-                          (p: AmadeusFlightOffer["travelerPricings"][number]) =>
-                            p.travelerType === "CHILD",
-                        )?.price.currency || "INR",
-                      ).toLocaleString()
-                    : "-"}
-                </span>
-              </div>
-              <div className="text-xs text-gray-600">
-                Infant:{" "}
-                <span className="font-medium text-gray-900">
-                  ₹
-                  {offer.travelerPricings
-                    ? currencyToInr(
-                        (
-                          offer.travelerPricings.find(
-                            (
-                              p: AmadeusFlightOffer["travelerPricings"][number],
-                            ) => p.travelerType === "HELD_INFANT",
-                          ) ||
-                          offer.travelerPricings.find(
-                            (
-                              p: AmadeusFlightOffer["travelerPricings"][number],
-                            ) => p.travelerType === "INFANT",
-                          )
-                        )?.price.total || "0",
-                        (
-                          offer.travelerPricings.find(
-                            (
-                              p: AmadeusFlightOffer["travelerPricings"][number],
-                            ) => p.travelerType === "HELD_INFANT",
-                          ) ||
-                          offer.travelerPricings.find(
-                            (
-                              p: AmadeusFlightOffer["travelerPricings"][number],
-                            ) => p.travelerType === "INFANT",
-                          )
-                        )?.price.currency || "INR",
-                      ).toLocaleString()
-                    : "-"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-500">No price breakdown available.</div>
-          )}
-        </TabsContent>
-        <TabsContent value="baggage">
-          <div className="mb-2 font-semibold text-gray-800">
-            Baggage Information
-          </div>
+        </div>
+
+        {/* Dates */}
+        <div>
+          <Label>Departure Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !searchParams.departureDate ? "text-muted-foreground" : undefined
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {searchParams.departureDate ? (
+                  searchParams.departureDate.toLocaleDateString()
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="center" side="bottom">
+              <Calendar
+                mode="single"
+                selected={searchParams.departureDate}
+                onSelect={handleDepartureDateChange}
+                disabled={(date) =>
+                  date < new Date()
+                }
+                className="rounded-md border"
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {searchParams.tripType === "ROUND_TRIP" && (
           <div>
-            {getBaggage([...(onwardSegments || []), ...(returnSegments || [])])}
+            <Label>Return Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !searchParams.returnDate ? "text-muted-foreground" : undefined
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {searchParams.returnDate ? (
+                    searchParams.returnDate.toLocaleDateString()
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <Calendar
+                  mode="single"
+                  selected={searchParams.returnDate}
+                  onSelect={handleReturnDateChange}
+                  disabled={(date) =>
+                    date < new Date() || date < searchParams.departureDate
+                  }
+                  className="rounded-md border"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+
+        {/* Passengers */}
+        <div>
+          <Label>Adults</Label>
+          <Input
+            type="number"
+            id="adults"
+            value={searchParams.adults}
+            onChange={(e) => handleAdultsChange(parseInt(e.target.value))}
+          />
+        </div>
+
+        <div>
+          <Label>Children</Label>
+          <Input
+            type="number"
+            id="children"
+            value={searchParams.children}
+            onChange={(e) => handleChildrenChange(parseInt(e.target.value))}
+          />
+        </div>
+
+        <div>
+          <Label>Infants</Label>
+          <Input
+            type="number"
+            id="infants"
+            value={searchParams.infants}
+            onChange={(e) => handleInfantsChange(parseInt(e.target.value))}
+          />
+        </div>
+
+        {/* Trip Type */}
+        <div>
+          <Label>Trip Type</Label>
+          <Select onValueChange={handleTripTypeChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select trip type" defaultValue={searchParams.tripType} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ONE_WAY">One Way</SelectItem>
+              <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
+              {/* <SelectItem value="MULTI_CITY">Multi City</SelectItem> */}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Travel Class */}
+        <div>
+          <Label>Travel Class</Label>
+          <Select onValueChange={handleTravelClassChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select travel class" defaultValue={searchParams.travelClass} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ECONOMY">Economy</SelectItem>
+              <SelectItem value="PREMIUM_ECONOMY">Premium Economy</SelectItem>
+              <SelectItem value="BUSINESS">Business</SelectItem>
+              <SelectItem value="FIRST">First</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Non-Stop */}
+        <div>
+          <Label>Non-Stop</Label>
+          <Input
+            type="checkbox"
+            id="nonStop"
+            checked={searchParams.nonStop}
+            onChange={(e) => handleNonStopChange(e.target.checked)}
+          />
+        </div>
+      </div>
+
+      <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSearchFlights} disabled={isLoading}>
+        {isLoading ? (
+          <>
+            <Search className="mr-2 h-4 w-4 animate-spin" />
+            Searching...
+          </>
+        ) : (
+          <>
+            <Search className="mr-2 h-4 w-4" />
+            Search Flights
+          </>
+        )}
+      </Button>
+
+      {flightOffers.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-4">Flight Offers</h2>
+          {flightOffers.map(offer => (
+            <div key={offer.id} className="border rounded p-4 mb-4">
+              {offer.itineraries.map((itinerary: any, index: number) => (
+                <div key={index} className="mb-2">
+                  <h3 className="font-semibold">Itinerary {index + 1}</h3>
+                  {itinerary.segments.map((segment: any, segmentIndex: number) => (
+                    <div key={segmentIndex} className="mb-2">
+                      <p>
+                        {getLocationName(segment.departure.iataCode, offer)} ({segment.departure.iataCode})
+                        {' '}→{' '}
+                        {getLocationName(segment.arrival.iataCode, offer)} ({segment.arrival.iataCode})
+                      </p>
+                      <p>
+                        {new Date(segment.departure.at).toLocaleString()} - {new Date(segment.arrival.at).toLocaleString()}
+                      </p>
+                      <p>Carrier: {segment.carrierCode}</p>
+                      <p>Flight Number: {segment.number}</p>
+                      {/* <p>Aircraft: {getAircraftName(segment.aircraft.code, offer)}</p> */}
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div className="mt-2">
+                <p className="font-bold">Total Price: {offer.price.total} {offer.price.currency}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

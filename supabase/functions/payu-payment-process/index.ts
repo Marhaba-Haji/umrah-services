@@ -44,17 +44,17 @@ serve(async (req) => {
       throw new Error('PayU credentials not configured');
     }
 
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action');
-
-    if (action === 'initiate') {
-      const requestBody: PaymentRequest = await req.json();
+    const requestBody = await req.json();
+    
+    // Handle payment initiation
+    if (!requestBody.payuResponse) {
+      const paymentRequest: PaymentRequest = requestBody;
       
       // Generate transaction ID
       const txnid = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Generate hash
-      const hashString = `${payuMerchantKey}|${txnid}|${requestBody.amount}|${requestBody.productInfo}|${requestBody.customerName}|${requestBody.customerEmail}|||||||||||${payuSalt}`;
+      const hashString = `${payuMerchantKey}|${txnid}|${paymentRequest.amount}|${paymentRequest.productInfo}|${paymentRequest.customerName}|${paymentRequest.customerEmail}|||||||||||${payuSalt}`;
       const hash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(hashString));
       const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -62,15 +62,15 @@ serve(async (req) => {
       const { data: transaction, error: transactionError } = await supabaseClient
         .from('payment_transactions')
         .insert({
-          booking_id: requestBody.bookingId,
+          booking_id: paymentRequest.bookingId,
           merchant_transaction_id: txnid,
-          amount: requestBody.amount,
-          customer_name: requestBody.customerName,
-          customer_email: requestBody.customerEmail,
-          customer_phone: requestBody.customerPhone,
+          amount: paymentRequest.amount,
+          customer_name: paymentRequest.customerName,
+          customer_email: paymentRequest.customerEmail,
+          customer_phone: paymentRequest.customerPhone,
           payu_hash: hashHex,
-          success_url: requestBody.successUrl,
-          failure_url: requestBody.failureUrl,
+          success_url: paymentRequest.successUrl,
+          failure_url: paymentRequest.failureUrl,
           payment_status: 'initiated'
         })
         .select()
@@ -83,13 +83,13 @@ serve(async (req) => {
       const paymentData = {
         key: payuMerchantKey,
         txnid: txnid,
-        amount: requestBody.amount.toString(),
-        productinfo: requestBody.productInfo,
-        firstname: requestBody.customerName,
-        email: requestBody.customerEmail,
-        phone: requestBody.customerPhone,
-        surl: requestBody.successUrl,
-        furl: requestBody.failureUrl,
+        amount: paymentRequest.amount.toString(),
+        productinfo: paymentRequest.productInfo,
+        firstname: paymentRequest.customerName,
+        email: paymentRequest.customerEmail,
+        phone: paymentRequest.customerPhone,
+        surl: paymentRequest.successUrl,
+        furl: paymentRequest.failureUrl,
         hash: hashHex,
         service_provider: 'payu_paisa'
       };
@@ -110,78 +110,65 @@ serve(async (req) => {
       );
     }
 
-    if (action === 'verify') {
-      const requestBody: PaymentVerificationRequest = await req.json();
-      const { payuResponse, merchantTransactionId } = requestBody;
+    // Handle payment verification
+    const { payuResponse, merchantTransactionId } = requestBody as PaymentVerificationRequest;
 
-      // Verify hash
-      const reverseHashString = `${payuSalt}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
-      const reverseHash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(reverseHashString));
-      const reverseHashHex = Array.from(new Uint8Array(reverseHash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Verify hash
+    const reverseHashString = `${payuSalt}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
+    const reverseHash = await crypto.subtle.digest('SHA-512', new TextEncoder().encode(reverseHashString));
+    const reverseHashHex = Array.from(new Uint8Array(reverseHash)).map(b => b.toString(16).padStart(2, '0')).join('');
 
-      const isValidHash = reverseHashHex === payuResponse.hash;
+    const isValidHash = reverseHashHex === payuResponse.hash;
 
-      // Update payment transaction
-      const updateData: any = {
-        payu_transaction_id: payuResponse.txnid,
-        payu_payment_id: payuResponse.mihpayid,
-        payment_status: payuResponse.status.toLowerCase(),
-        payment_method: payuResponse.mode,
-        payment_gateway_response: payuResponse,
-        updated_at: new Date().toISOString()
-      };
+    // Update payment transaction
+    const updateData: any = {
+      payu_transaction_id: payuResponse.txnid,
+      payu_payment_id: payuResponse.mihpayid,
+      payment_status: payuResponse.status.toLowerCase(),
+      payment_method: payuResponse.mode,
+      payment_gateway_response: payuResponse,
+      updated_at: new Date().toISOString()
+    };
 
-      if (payuResponse.status === 'success' && isValidHash) {
-        updateData.completed_at = new Date().toISOString();
-        updateData.payment_status = 'completed';
-      } else if (payuResponse.status === 'failure') {
-        updateData.payment_status = 'failed';
-      }
+    if (payuResponse.status === 'success' && isValidHash) {
+      updateData.completed_at = new Date().toISOString();
+      updateData.payment_status = 'completed';
+    } else if (payuResponse.status === 'failure') {
+      updateData.payment_status = 'failed';
+    }
 
-      const { data: transaction, error: updateError } = await supabaseClient
-        .from('payment_transactions')
-        .update(updateData)
-        .eq('merchant_transaction_id', merchantTransactionId)
-        .select()
-        .single();
+    const { data: transaction, error: updateError } = await supabaseClient
+      .from('payment_transactions')
+      .update(updateData)
+      .eq('merchant_transaction_id', merchantTransactionId)
+      .select()
+      .single();
 
-      if (updateError) {
-        throw new Error(`Failed to update payment transaction: ${updateError.message}`);
-      }
+    if (updateError) {
+      throw new Error(`Failed to update payment transaction: ${updateError.message}`);
+    }
 
-      // Update booking status if payment successful
-      if (payuResponse.status === 'success' && isValidHash && transaction.booking_id) {
-        await supabaseClient
-          .from('bookings')
-          .update({ 
-            payment_status: 'completed',
-            payment_method: 'payu',
-            payment_transaction_id: transaction.id,
-            status: 'confirmed'
-          })
-          .eq('id', transaction.booking_id);
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          verified: isValidHash,
-          status: payuResponse.status,
-          transactionId: transaction.id
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
+    // Update booking status if payment successful
+    if (payuResponse.status === 'success' && isValidHash && transaction.booking_id) {
+      await supabaseClient
+        .from('bookings')
+        .update({ 
+          payment_status: 'completed',
+          payment_method: 'payu',
+          payment_transaction_id: transaction.id,
+          status: 'confirmed'
+        })
+        .eq('id', transaction.booking_id);
     }
 
     return new Response(
-      JSON.stringify({ error: 'Invalid action' }),
+      JSON.stringify({ 
+        success: true, 
+        verified: isValidHash,
+        status: payuResponse.status,
+        transactionId: transaction.id
+      }),
       { 
-        status: 400,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 
