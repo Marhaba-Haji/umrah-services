@@ -1,46 +1,57 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
-import AnimatedCounter from './AnimatedCounter';
-import { useCurrency } from './Header';
-import { supabase } from '@/integrations/supabase/client';
-import type { Database } from '@/integrations/supabase/types';
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
+import AnimatedCounter from "./AnimatedCounter";
+import { useCurrency } from "./Header";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const HeroSection = () => {
-  const [nationality, setNationality] = useState('');
+  const [nationality, setNationality] = useState("");
   const { currency } = useCurrency();
   const [basePriceUSD, setBasePriceUSD] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const popularCountries = ['United States', 'United Kingdom', 'India', 'Pakistan', 'Bangladesh', 'Indonesia', 'Malaysia', 'Turkey', 'Nigeria', 'Egypt'];
-  
+  const popularCountries = [
+    "United States",
+    "United Kingdom",
+    "India",
+    "Pakistan",
+    "Bangladesh",
+    "Indonesia",
+    "Malaysia",
+    "Turkey",
+    "Nigeria",
+    "Egypt",
+  ];
+
   // Currency conversion rates (base USD)
   const exchangeRates = {
     USD: 1,
     INR: 83.5,
-    SAR: 3.75
+    SAR: 3.75,
   };
 
   // Currency symbols
   const currencySymbols = {
-    USD: '$',
-    INR: '₹',
-    SAR: 'ر.س'
+    USD: "$",
+    INR: "₹",
+    SAR: "ر.س",
   };
 
   useEffect(() => {
     async function fetchVisaPrice() {
       setLoading(true);
       const { data, error } = await supabase
-        .from('saudi_visas')
-        .select('price')
-        .eq('visa_type', 'Umrah Visa')
-        .eq('visa_category', 'Standard')
-        .eq('status', 'active')
+        .from("saudi_visas")
+        .select("price")
+        .eq("visa_type", "Umrah Visa")
+        .eq("visa_category", "Standard")
+        .eq("status", "active")
         .limit(1)
         .single();
-      if (!error && data && typeof data.price === 'number') {
+      if (!error && data && typeof data.price === "number") {
         setBasePriceUSD(data.price); // This is actually INR
       } else {
         setBasePriceUSD(null);
@@ -50,15 +61,17 @@ const HeroSection = () => {
     fetchVisaPrice();
   }, []);
 
-  const currencySymbol = currencySymbols[currency] || '$';
+  const currencySymbol = currencySymbols[currency] || "$";
   // If INR, show as is. If USD or SAR, convert from INR.
   let convertedPrice: number | null = null;
   if (basePriceUSD !== null) {
-    if (currency === 'INR') {
+    if (currency === "INR") {
       convertedPrice = basePriceUSD;
     } else {
       // Convert from INR to selected currency
-      const inrToTarget = exchangeRates[currency] ? 1 / exchangeRates['INR'] * exchangeRates[currency] : 1;
+      const inrToTarget = exchangeRates[currency]
+        ? (1 / exchangeRates["INR"]) * exchangeRates[currency]
+        : 1;
       convertedPrice = Math.round(basePriceUSD * inrToTarget);
     }
   }
@@ -74,7 +87,7 @@ I would like to know more about:
 Please provide me with detailed information. JazakAllah Khair!`;
 
     const whatsappUrl = `https://wa.me/919008447887?text=${encodeURIComponent(prefilledMessage)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, "_blank");
   };
 
   return (
@@ -99,28 +112,31 @@ Please provide me with detailed information. JazakAllah Khair!`;
           <div className="order-2 lg:order-1">
             {/* Trust Badge */}
             <div className="flex justify-center lg:justify-start mb-6">
-              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">🕋 99% Visa Approval Rate | ⚡ 2-4 Days Processing</Badge>
+              <Badge className="bg-emerald-100 text-emerald-800 px-4 py-2 text-sm font-medium animate-pulse">
+                🕋 99% Visa Approval Rate | ⚡ 2-4 Days Processing
+              </Badge>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight text-center lg:text-left">
-              Apply for Your{' '}
+              Apply for Your{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-800">
                 Umrah Visa
-              </span>{' '}
+              </span>{" "}
               Online
             </h1>
 
             <p className="text-lg md:text-xl text-gray-600 mb-8 leading-relaxed text-center lg:text-left">
-              🕋 Start your sacred journey to Mecca and Medina. Fast, secure, and hassle-free Umrah visa processing 
-              with guaranteed approval and expert support.
+              🕋 Start your sacred journey to Mecca and Medina. Fast, secure,
+              and hassle-free Umrah visa processing with guaranteed approval and
+              expert support.
             </p>
 
             {/* Animated Trust Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
               <div className="text-center lg:text-left">
                 <div className="text-2xl md:text-3xl mb-1">
-                  <AnimatedCounter end={50000} suffix="+" />
+                  <AnimatedCounter end={1000} suffix="+" />
                 </div>
                 <div className="text-sm text-gray-600">Visas Processed</div>
               </div>
@@ -131,7 +147,9 @@ Please provide me with detailed information. JazakAllah Khair!`;
                 <div className="text-sm text-gray-600">Success Rate</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-2xl md:text-3xl mb-1 text-emerald-600 font-bold">7 Days</div>
+                <div className="text-2xl md:text-3xl mb-1 text-emerald-600 font-bold">
+                  7 Days
+                </div>
                 <div className="text-sm text-gray-600">Support Available</div>
               </div>
               <div className="text-center lg:text-left">
@@ -154,41 +172,63 @@ Please provide me with detailed information. JazakAllah Khair!`;
                 <p className="text-gray-600 mb-6 text-center text-sm md:text-base">
                   Check eligibility and get instant pricing
                 </p>
-                
+
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="nationality" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label
+                      htmlFor="nationality"
+                      className="block text-sm font-medium text-gray-700 mb-2"
+                    >
                       🌍 Your Nationality
                     </label>
-                    <select id="nationality" value={nationality} onChange={e => setNationality(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <select
+                      id="nationality"
+                      value={nationality}
+                      onChange={(e) => setNationality(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    >
                       <option value="">Select your country</option>
-                      {popularCountries.map(country => <option key={country} value={country}>
+                      {popularCountries.map((country) => (
+                        <option key={country} value={country}>
                           {country}
-                        </option>)}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
                   {/* Dynamic Pricing Display */}
                   <div className="bg-emerald-50 p-4 rounded-lg">
                     <div className="text-center">
-                      <p className="text-sm text-emerald-700 mb-1">Starting from</p>
+                      <p className="text-sm text-emerald-700 mb-1">
+                        Starting from
+                      </p>
                       <p className="text-3xl font-bold text-emerald-800">
                         {loading ? (
-                          <span className="animate-pulse text-gray-400">Loading...</span>
+                          <span className="animate-pulse text-gray-400">
+                            Loading...
+                          </span>
                         ) : convertedPrice !== null ? (
                           `${currencySymbol}${convertedPrice.toLocaleString()}`
                         ) : (
                           <span className="text-red-500">N/A</span>
                         )}
                       </p>
-                      <p className="text-xs text-emerald-600">Per person • All inclusive</p>
+                      <p className="text-xs text-emerald-600">
+                        Per person • All inclusive
+                      </p>
                     </div>
                   </div>
 
                   <Link to="/apply-umrah-visa-online">
-                    <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200" size="lg">
-                      🚀 Apply Now - {loading ? (
-                        <span className="animate-pulse text-gray-200">Loading...</span>
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-lg font-medium transform hover:scale-105 transition-all duration-200"
+                      size="lg"
+                    >
+                      🚀 Apply Now -{" "}
+                      {loading ? (
+                        <span className="animate-pulse text-gray-200">
+                          Loading...
+                        </span>
                       ) : convertedPrice !== null ? (
                         `${currencySymbol}${convertedPrice.toLocaleString()}`
                       ) : (
@@ -197,9 +237,9 @@ Please provide me with detailed information. JazakAllah Khair!`;
                     </Button>
                   </Link>
 
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3" 
+                  <Button
+                    variant="outline"
+                    className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-3"
                     size="lg"
                     onClick={handleWhatsAppClick}
                   >

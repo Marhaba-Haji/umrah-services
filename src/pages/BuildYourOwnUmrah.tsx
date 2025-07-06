@@ -25,6 +25,7 @@ import type { Database } from "@/integrations/supabase/types";
 import type { FlightCartDetails } from "../components/FlightStep";
 import Header from "@/components/Header";
 import HotelSearch from "@/components/HotelSearch";
+import Footer from "../components/Footer";
 
 interface CartItem {
   id: string;
@@ -246,15 +247,6 @@ const BuildYourOwnUmrah = () => {
           }}
         />
       </div>
-      <div className="flex justify-center mt-6">
-        <Button
-          className="bg-primary text-white px-8 py-3 text-lg"
-          disabled={!tripDuration || tripDuration < 1}
-          onClick={() => setActiveStep(1)}
-        >
-          Continue
-        </Button>
-      </div>
     </div>
   );
 
@@ -359,14 +351,6 @@ const BuildYourOwnUmrah = () => {
         <span className="text-2xl font-bold text-primary">
           {totalGroupSize}
         </span>
-      </div>
-      <div className="flex justify-center mt-6">
-        <Button
-          className="bg-primary text-white px-8 py-3 text-lg"
-          onClick={() => setActiveStep(2)}
-        >
-          Continue
-        </Button>
       </div>
     </div>
   );
@@ -665,7 +649,7 @@ const BuildYourOwnUmrah = () => {
           )}
         </div>
       </div>
-      
+
       <HotelSearch
         city="makkah"
         checkInDate={makkahCheckin}
@@ -853,7 +837,7 @@ const BuildYourOwnUmrah = () => {
           )}
         </div>
       </div>
-      
+
       <HotelSearch
         city="madinah"
         checkInDate={makkahCheckin}
@@ -1123,9 +1107,12 @@ const BuildYourOwnUmrah = () => {
                           <h4 className="text-lg font-semibold text-gray-900 mb-1">
                             {ziarath.name}
                           </h4>
-                          <p className="text-sm text-primary font-medium mb-2">
-                            {ziarath.description}
-                          </p>
+                          <div
+                            className="text-sm text-primary font-medium mb-2"
+                            dangerouslySetInnerHTML={{
+                              __html: ziarath.description,
+                            }}
+                          />
                           <div className="space-y-1">
                             <p className="text-sm text-gray-600">
                               Duration: {ziarath.duration}
@@ -1173,14 +1160,6 @@ const BuildYourOwnUmrah = () => {
         <div className="sticky top-0 z-40 bg-white shadow-sm border-b">
           <div className="px-4 py-4">
             <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(-1)}
-                className="p-2"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
               <div className="text-center">
                 <h1 className="text-lg font-bold text-gray-900">
                   Build Your Umrah
@@ -1323,6 +1302,8 @@ const BuildYourOwnUmrah = () => {
             </div>
           </div>
         </div>
+
+        <Footer />
 
         {/* Cart Modal */}
         {showCart && (
