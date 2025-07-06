@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,26 @@ import Footer from "../components/Footer";
 import UmrahApplicationSidebar from "../components/UmrahApplicationSidebar";
 import FAQSection from "../components/FAQSection";
 import { supabase } from "@/integrations/supabase/client";
+import UmrahVisaPayment from "../components/UmrahVisaPayment";
+import { format, addDays, parseISO, isAfter, isBefore } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+
+interface VisaOption {
+  visa_category?: string;
+  processing_time?: string;
+  price?: number;
+  approval_rate?: number;
+  // add other fields as needed
+}
+
+function generateUUID() {
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+    (
+      c ^
+      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+    ).toString(16),
+  );
+}
 
 const UmrahApplication = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -91,11 +111,17 @@ const UmrahApplication = () => {
     flight: "",
     makkahHotel: "",
     madinahHotel: "",
+    general: "",
   });
   const [sameAsFirst, setSameAsFirst] = useState(false);
   const [visaType, setVisaType] = useState("express");
-  const [visaOptions, setVisaOptions] = useState<unknown[]>([]);
+  const [visaOptions, setVisaOptions] = useState<VisaOption[]>([]);
   const [loadingVisas, setLoadingVisas] = useState(true);
+  const { toast } = useToast();
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const savingRef = useRef(false);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   const steps = [
     { number: 1, title: "Personal Information", icon: User },
@@ -137,24 +163,31 @@ const UmrahApplication = () => {
       return updated;
     });
     if (field === "passportIssue" || field === "passportExpiry") {
-      // Validate issue < expiry
-      const issue = field === "passportIssue" ? value : formData.passportIssue;
+      const issue =
+        field === "passportIssue"
+          ? value
+          : travelers[currentTraveler].passportIssue;
       const expiry =
-        field === "passportExpiry" ? value : formData.passportExpiry;
-      if (issue && expiry && new Date(issue) >= new Date(expiry)) {
-        setPassportDateError("Passport issue date must be before expiry date.");
-      } else {
-        setPassportDateError("");
+        field === "passportExpiry"
+          ? value
+          : travelers[currentTraveler].passportExpiry;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let dateError = "";
+      if (issue && new Date(issue) > today) {
+        dateError = "Passport issue date cannot be after today.";
+      } else if (issue && expiry && new Date(issue) >= new Date(expiry)) {
+        dateError = "Passport issue date must be before expiry date.";
       }
-      // Validate expiry at least 180 days from today
+      setPassportDateError(dateError);
+      // Validate expiry at least 181 days from today
       if (expiry) {
-        const today = new Date();
         const expiryDate = new Date(expiry);
         const diffDays =
           (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays < 180) {
+        if (diffDays < 181) {
           setPassportExpiryAlert(
-            "Passport expiry date must be at least 180 days from today!",
+            "Passport expiry date must be at least 181 days from today!",
           );
         } else {
           setPassportExpiryAlert("");
@@ -163,36 +196,55 @@ const UmrahApplication = () => {
         setPassportExpiryAlert("");
       }
     }
+    if (field === "dateOfBirth") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (value && new Date(value) > today) {
+        setDateError("Date of birth cannot be after today.");
+      } else {
+        setDateError("");
+      }
+    }
     if (field === "departureDate" || field === "returnDate") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const dep = field === "departureDate" ? value : formData.departureDate;
-      const ret = field === "returnDate" ? value : formData.returnDate;
+      const dep =
+        field === "departureDate"
+          ? value
+          : travelers[currentTraveler].departureDate;
+      const ret =
+        field === "returnDate" ? value : travelers[currentTraveler].returnDate;
       let error = "";
+      // Departure date must be at least tomorrow
+      const tomorrow = addDays(today, 1);
       if (dep) {
         const depDate = new Date(dep);
-        const diffDep =
-          (depDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDep < 3)
-          error = "Departure date must be at least 3 days from today.";
+        if (isBefore(depDate, tomorrow)) {
+          error = "Departure date cannot be before tomorrow.";
+        }
       }
-      if (ret) {
+      // Return date must be at least 1 day after departure date
+      if (dep && ret) {
+        const depDate = new Date(dep);
         const retDate = new Date(ret);
-        const diffRet =
-          (retDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffRet < 3)
-          error = "Return date must be at least 3 days from today.";
+        if (!isAfter(retDate, depDate)) {
+          error = "Return date must be at least 1 day after departure date.";
+        }
       }
       setDateError(error);
     }
   };
 
-  const handleImageUpload = (field: string, file: File | null) => {
+  const handleImageUpload = async (field: string, file: File | null) => {
     if (!file) return;
-    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+    if (
+      !["image/jpeg", "image/png", "image/jpg", "application/pdf"].includes(
+        file.type,
+      )
+    ) {
       setUploadErrors((prev) => ({
         ...prev,
-        [field]: "Only JPG, JPEG, PNG files are allowed.",
+        [field]: "Only JPG, JPEG, PNG, PDF files are allowed.",
       }));
       setUploadPreviews((prev) => ({ ...prev, [field]: "" }));
       return;
@@ -214,6 +266,32 @@ const UmrahApplication = () => {
       }));
     };
     reader.readAsDataURL(file);
+    const cid = customerId;
+    if (!applicationId) {
+      // AUTOMATED SAVE: Save application before first file upload
+      const app = await saveApplication({ customer_id: cid });
+      if (app && app.id) setApplicationId(app.id);
+    }
+    if (applicationId) {
+      const filePath = `orders/${applicationId}/${field}-${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from("visa-applications")
+        .upload(filePath, file, { upsert: true });
+      if (error && error.status === 403) {
+        toast({
+          title: "Access Denied",
+          description:
+            "You do not have permission to submit or update visa applications. Please contact support.",
+          variant: "destructive",
+        });
+      }
+      if (!error && data && data.path) {
+        await supabase
+          .from("visa_applications")
+          .update({ [`${field}_url`]: data.path })
+          .eq("id", applicationId);
+      }
+    }
   };
 
   const handleTravelerCountChange = (value: string) => {
@@ -252,12 +330,134 @@ const UmrahApplication = () => {
     }
   };
 
-  const nextStep = () => {
+  const validateCurrentStep = () => {
+    const errors: Record<string, boolean> = {};
+    let hasError = false;
+    if (currentStep === 1) {
+      const t = travelers[currentTraveler];
+      [
+        "firstName",
+        "lastName",
+        "nationality",
+        "gender",
+        "passportNumber",
+        "passportIssue",
+        "passportExpiry",
+        "dateOfBirth",
+        "phone",
+      ].forEach((f) => {
+        if (!t[f]) {
+          errors[f] = true;
+          hasError = true;
+        }
+      });
+      if (passportDateError || passportExpiryAlert || dateError)
+        hasError = true;
+    }
+    if (currentStep === 2) {
+      const t = travelers[currentTraveler];
+      ["departureDate", "returnDate", "transportType"].forEach((f) => {
+        if (!t[f]) {
+          errors[f] = true;
+          hasError = true;
+        }
+      });
+      if (dateError) hasError = true;
+    }
+    if (currentStep === 3) {
+      [
+        "passportFront",
+        "passportBack",
+        "photo",
+        "flight",
+        "makkahHotel",
+        "madinahHotel",
+      ].forEach((f) => {
+        if (!uploadPreviews[f]) {
+          errors[f] = true;
+          hasError = true;
+        }
+      });
+      if (Object.values(uploadErrors).some(Boolean)) hasError = true;
+    }
+    setFieldErrors(errors);
+    if (hasError) {
+      toast({
+        title: "Please fill all mandatory fields",
+        description: "Some required fields are missing or invalid.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // Add a helper to check if all required fields are filled
+  const allRequiredFieldsFilled = () => {
+    const t = travelers[currentTraveler];
+    return (
+      t.firstName &&
+      t.lastName &&
+      t.nationality &&
+      t.passportNumber &&
+      t.passportIssue &&
+      t.passportExpiry &&
+      t.dateOfBirth &&
+      t.gender &&
+      t.phone &&
+      t.departureDate &&
+      t.returnDate &&
+      t.transportType &&
+      visaType
+    );
+  };
+
+  const nextStep = async () => {
+    if (!validateCurrentStep()) return;
+
+    let cid = customerId;
+    // Only do this on the first step
+    if (currentStep === 1) {
+      const phone = travelers[currentTraveler].phone;
+      cid = localStorage.getItem("customer_id");
+      if (!cid && phone) {
+        // Check DB for existing customer_id for this phone
+        const { data, error } = await supabase
+          .from("visa_applications")
+          .select("customer_id")
+          .eq("phone", phone)
+          .limit(1)
+          .single();
+        if (error && error.status === 403) {
+          toast({
+            title: "Access Denied",
+            description:
+              "You do not have permission to access visa applications. Please contact support.",
+            variant: "destructive",
+          });
+        }
+        if (data && data.customer_id) {
+          cid = data.customer_id;
+        } else {
+          cid = generateUUID();
+        }
+        localStorage.setItem("customer_id", cid);
+      }
+      setCustomerId(cid);
+    }
+
+    // Only save if all required fields are filled
+    if (allRequiredFieldsFilled()) {
+      // AUTOMATED SAVE: Save application after each valid step
+      await saveApplication({ customer_id: cid });
+    }
     if (currentStep < 4) setCurrentStep(currentStep + 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const prevStep = () => {
     if (currentStep > 1) setCurrentStep(currentStep - 1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Get selected visa price from visaOptions
@@ -267,6 +467,59 @@ const UmrahApplication = () => {
   const selectedVisaPrice = selectedVisa ? selectedVisa.price : 0;
   const totalVisaPrice = selectedVisaPrice * travelerCount;
 
+  // Add a helper to check if a file is a PDF
+  const isPdf = (dataUrl: string) => dataUrl.startsWith("data:application/pdf");
+
+  // Helper to upsert application data
+  const saveApplication = async (extra: Record<string, unknown> = {}) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    const t = travelers[currentTraveler];
+    const payload = {
+      id: applicationId || undefined,
+      customer_id: extra.customer_id || customerId,
+      first_name: t.firstName,
+      last_name: t.lastName,
+      nationality: t.nationality,
+      passport_number: t.passportNumber,
+      passport_issue: t.passportIssue,
+      passport_expiry: t.passportExpiry,
+      date_of_birth: t.dateOfBirth,
+      gender: t.gender,
+      email: t.email,
+      phone: t.phone,
+      departure_date: t.departureDate,
+      return_date: t.returnDate,
+      transport_type: t.transportType,
+      visa_type: visaType,
+      status: "pending",
+      ...extra,
+    };
+    let data, error;
+    if (payload.id) {
+      ({ data, error } = await supabase
+        .from("visa_applications")
+        .upsert([payload], { onConflict: "id" })
+        .single());
+    } else {
+      ({ data, error } = await supabase
+        .from("visa_applications")
+        .insert([payload])
+        .single());
+    }
+    if (error && error.status === 403) {
+      toast({
+        title: "Access Denied",
+        description:
+          "You do not have permission to submit or update visa applications. Please contact support.",
+        variant: "destructive",
+      });
+    }
+    if (data && data.id) setApplicationId(data.id);
+    savingRef.current = false;
+    return data;
+  };
+
   const renderStep1 = () => (
     <div className="space-y-6">
       <h3 className="text-xl font-semibold text-gray-900 mb-4">
@@ -275,7 +528,7 @@ const UmrahApplication = () => {
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            First Name *
+            First Name <span className="text-red-600">*</span>
           </label>
           <Input
             value={travelers[currentTraveler].firstName}
@@ -283,11 +536,12 @@ const UmrahApplication = () => {
               handleTravelerInputChange("firstName", e.target.value)
             }
             placeholder="Enter first name"
+            className={fieldErrors.firstName ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Last Name *
+            Last Name <span className="text-red-600">*</span>
           </label>
           <Input
             value={travelers[currentTraveler].lastName}
@@ -295,11 +549,12 @@ const UmrahApplication = () => {
               handleTravelerInputChange("lastName", e.target.value)
             }
             placeholder="Enter last name"
+            className={fieldErrors.lastName ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Nationality *
+            Nationality <span className="text-red-600">*</span>
           </label>
           <Select
             value={travelers[currentTraveler].nationality}
@@ -322,7 +577,7 @@ const UmrahApplication = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Gender *
+            Gender <span className="text-red-600">*</span>
           </label>
           <Select
             value={travelers[currentTraveler].gender}
@@ -341,7 +596,7 @@ const UmrahApplication = () => {
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Passport Number *
+            Passport Number <span className="text-red-600">*</span>
           </label>
           <Input
             value={travelers[currentTraveler].passportNumber}
@@ -349,12 +604,13 @@ const UmrahApplication = () => {
               handleTravelerInputChange("passportNumber", e.target.value)
             }
             placeholder="Enter passport number"
+            className={fieldErrors.passportNumber ? "border-red-500" : ""}
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Passport Issue Date *
+              Passport Issue Date <span className="text-red-600">*</span>
             </label>
             <Input
               type="date"
@@ -362,11 +618,13 @@ const UmrahApplication = () => {
               onChange={(e) =>
                 handleTravelerInputChange("passportIssue", e.target.value)
               }
+              max={format(new Date(), "yyyy-MM-dd")}
+              className={fieldErrors.passportIssue ? "border-red-500" : ""}
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Passport Expiry *
+              Passport Expiry <span className="text-red-600">*</span>
             </label>
             <Input
               type="date"
@@ -374,6 +632,11 @@ const UmrahApplication = () => {
               onChange={(e) =>
                 handleTravelerInputChange("passportExpiry", e.target.value)
               }
+              min={format(
+                new Date(Date.now() + 181 * 24 * 60 * 60 * 1000),
+                "yyyy-MM-dd",
+              )}
+              className={fieldErrors.passportExpiry ? "border-red-500" : ""}
             />
           </div>
         </div>
@@ -389,7 +652,7 @@ const UmrahApplication = () => {
         )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Date of Birth *
+            Date of Birth <span className="text-red-600">*</span>
           </label>
           <Input
             type="date"
@@ -397,6 +660,8 @@ const UmrahApplication = () => {
             onChange={(e) =>
               handleTravelerInputChange("dateOfBirth", e.target.value)
             }
+            max={format(new Date(), "yyyy-MM-dd")}
+            className={fieldErrors.dateOfBirth ? "border-red-500" : ""}
           />
         </div>
         <div>
@@ -408,16 +673,18 @@ const UmrahApplication = () => {
             value={travelers[currentTraveler].email}
             onChange={(e) => handleTravelerInputChange("email", e.target.value)}
             placeholder="Enter email address"
+            className={fieldErrors.email ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number *
+            Phone Number <span className="text-red-600">*</span>
           </label>
           <Input
             value={travelers[currentTraveler].phone}
             onChange={(e) => handleTravelerInputChange("phone", e.target.value)}
             placeholder="Enter phone number"
+            className={fieldErrors.phone ? "border-red-500" : ""}
           />
         </div>
       </div>
@@ -448,7 +715,7 @@ const UmrahApplication = () => {
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Departure Date *
+            Departure Date <span className="text-red-600">*</span>
           </label>
           <Input
             type="date"
@@ -456,12 +723,14 @@ const UmrahApplication = () => {
             onChange={(e) =>
               handleTravelerInputChange("departureDate", e.target.value)
             }
-            disabled={sameAsFirst && currentTraveler > 0}
+            min={format(addDays(new Date(), 1), "yyyy-MM-dd")}
+            placeholder="dd-mmm-yyyy"
+            className={fieldErrors.departureDate ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Return Date *
+            Return Date <span className="text-red-600">*</span>
           </label>
           <Input
             type="date"
@@ -469,7 +738,19 @@ const UmrahApplication = () => {
             onChange={(e) =>
               handleTravelerInputChange("returnDate", e.target.value)
             }
-            disabled={sameAsFirst && currentTraveler > 0}
+            min={
+              travelers[currentTraveler].departureDate
+                ? format(
+                    addDays(
+                      parseISO(travelers[currentTraveler].departureDate),
+                      1,
+                    ),
+                    "yyyy-MM-dd",
+                  )
+                : format(addDays(new Date(), 2), "yyyy-MM-dd")
+            }
+            placeholder="dd-mmm-yyyy"
+            className={fieldErrors.returnDate ? "border-red-500" : ""}
           />
         </div>
         {dateError && (
@@ -477,7 +758,7 @@ const UmrahApplication = () => {
         )}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Departure City *
+            Departure City
           </label>
           <Input
             value={travelers[currentTraveler].departureCity}
@@ -486,11 +767,12 @@ const UmrahApplication = () => {
             }
             placeholder="Enter departure city"
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.departureCity ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Preferred Hotel in Makkah *
+            Preferred Hotel in Makkah
           </label>
           <Input
             value={travelers[currentTraveler].hotelMakkah}
@@ -499,11 +781,12 @@ const UmrahApplication = () => {
             }
             placeholder="Enter hotel name in Makkah"
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.hotelMakkah ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Preferred Hotel in Madinah *
+            Preferred Hotel in Madinah
           </label>
           <Input
             value={travelers[currentTraveler].hotelMadinah}
@@ -512,11 +795,12 @@ const UmrahApplication = () => {
             }
             placeholder="Enter hotel name in Madinah"
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.hotelMadinah ? "border-red-500" : ""}
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Transport Type *
+            Transport Type <span className="text-red-600">*</span>
           </label>
           <Select
             value={travelers[currentTraveler].transportType}
@@ -525,7 +809,9 @@ const UmrahApplication = () => {
             }
             disabled={sameAsFirst && currentTraveler > 0}
           >
-            <SelectTrigger>
+            <SelectTrigger
+              className={fieldErrors.transportType ? "border-red-500" : ""}
+            >
               <SelectValue placeholder="Select transport type" />
             </SelectTrigger>
             <SelectContent>
@@ -535,6 +821,7 @@ const UmrahApplication = () => {
               <SelectItem value="largevan">Large Van (10 pax)</SelectItem>
               <SelectItem value="coaster">Coaster (20 pax)</SelectItem>
               <SelectItem value="bus">Bus (50 pax)</SelectItem>
+              <SelectItem value="haramain">Haramain Train</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -550,35 +837,54 @@ const UmrahApplication = () => {
       <div className="grid md:grid-cols-2 gap-4">
         {/* Passport Front Page */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
-          <h4 className="font-medium mb-1">Passport Front Page *</h4>
+          <h4 className="font-medium mb-1">
+            Passport Front Page <span className="text-red-600">*</span>
+          </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="passportFront"
             onChange={(e) =>
               handleImageUpload("passportFront", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.passportFront ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("passportFront")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
-          {uploadPreviews.passportFront && (
-            <img
-              src={uploadPreviews.passportFront}
-              alt="Passport Front Preview"
-              className="mt-2 w-32 h-20 object-cover rounded border"
-            />
-          )}
+          {uploadPreviews.passportFront &&
+            (isPdf(uploadPreviews.passportFront) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.passportFront}
+                alt="Passport Front Preview"
+                className="mt-2 w-32 h-20 object-cover rounded border"
+              />
+            ))}
           {uploadErrors.passportFront && (
             <div className="text-red-600 text-xs mt-1">
               {uploadErrors.passportFront}
@@ -587,35 +893,54 @@ const UmrahApplication = () => {
         </div>
         {/* Passport Back Page */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
-          <h4 className="font-medium mb-1">Passport Back Page *</h4>
+          <h4 className="font-medium mb-1">
+            Passport Back Page <span className="text-red-600">*</span>
+          </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="passportBack"
             onChange={(e) =>
               handleImageUpload("passportBack", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.passportBack ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("passportBack")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
-          {uploadPreviews.passportBack && (
-            <img
-              src={uploadPreviews.passportBack}
-              alt="Passport Back Preview"
-              className="mt-2 w-32 h-20 object-cover rounded border"
-            />
-          )}
+          {uploadPreviews.passportBack &&
+            (isPdf(uploadPreviews.passportBack) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.passportBack}
+                alt="Passport Back Preview"
+                className="mt-2 w-32 h-20 object-cover rounded border"
+              />
+            ))}
           {uploadErrors.passportBack && (
             <div className="text-red-600 text-xs mt-1">
               {uploadErrors.passportBack}
@@ -624,35 +949,54 @@ const UmrahApplication = () => {
         </div>
         {/* Passport Size Photo */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
-          <h4 className="font-medium mb-1">Passport Size Photo *</h4>
+          <h4 className="font-medium mb-1">
+            Passport Size Photo <span className="text-red-600">*</span>
+          </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="photo"
             onChange={(e) =>
               handleImageUpload("photo", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.photo ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("photo")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
-          {uploadPreviews.photo && (
-            <img
-              src={uploadPreviews.photo}
-              alt="Photo Preview"
-              className="mt-2 w-20 h-20 object-cover rounded-full border"
-            />
-          )}
+          {uploadPreviews.photo &&
+            (isPdf(uploadPreviews.photo) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.photo}
+                alt="Photo Preview"
+                className="mt-2 w-20 h-20 object-cover rounded-full border"
+              />
+            ))}
           {uploadErrors.photo && (
             <div className="text-red-600 text-xs mt-1">
               {uploadErrors.photo}
@@ -661,42 +1005,86 @@ const UmrahApplication = () => {
         </div>
         {/* Flight Booking Confirmation */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
-          <h4 className="font-medium mb-1">Flight Booking Confirmation *</h4>
+          <h4 className="font-medium mb-1">
+            Flight Booking Confirmation <span className="text-red-600">*</span>
+          </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="flight"
             onChange={(e) =>
               handleImageUpload("flight", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.flight ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("flight")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
           {sameAsFirst && currentTraveler > 0 && uploadPreviews.flight ? (
-            <img
-              src={uploadPreviews.flight}
-              alt="Flight Preview"
-              className="mt-2 w-32 h-20 object-cover rounded border"
-            />
-          ) : (
-            uploadPreviews.flight && (
+            isPdf(uploadPreviews.flight) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
               <img
                 src={uploadPreviews.flight}
                 alt="Flight Preview"
                 className="mt-2 w-32 h-20 object-cover rounded border"
               />
             )
+          ) : (
+            uploadPreviews.flight &&
+            (isPdf(uploadPreviews.flight) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.flight}
+                alt="Flight Preview"
+                className="mt-2 w-32 h-20 object-cover rounded border"
+              />
+            ))
           )}
           {uploadErrors.flight && (
             <div className="text-red-600 text-xs mt-1">
@@ -707,43 +1095,86 @@ const UmrahApplication = () => {
         {/* Makkah Hotel Booking Confirmation */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
           <h4 className="font-medium mb-1">
-            Makkah Hotel Booking Confirmation *
+            Makkah Hotel Booking Confirmation{" "}
+            <span className="text-red-600">*</span>
           </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="makkahHotel"
             onChange={(e) =>
               handleImageUpload("makkahHotel", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.makkahHotel ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("makkahHotel")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
           {sameAsFirst && currentTraveler > 0 && uploadPreviews.makkahHotel ? (
-            <img
-              src={uploadPreviews.makkahHotel}
-              alt="Makkah Hotel Preview"
-              className="mt-2 w-32 h-20 object-cover rounded border"
-            />
-          ) : (
-            uploadPreviews.makkahHotel && (
+            isPdf(uploadPreviews.makkahHotel) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
               <img
                 src={uploadPreviews.makkahHotel}
                 alt="Makkah Hotel Preview"
                 className="mt-2 w-32 h-20 object-cover rounded border"
               />
             )
+          ) : (
+            uploadPreviews.makkahHotel &&
+            (isPdf(uploadPreviews.makkahHotel) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.makkahHotel}
+                alt="Makkah Hotel Preview"
+                className="mt-2 w-32 h-20 object-cover rounded border"
+              />
+            ))
           )}
           {uploadErrors.makkahHotel && (
             <div className="text-red-600 text-xs mt-1">
@@ -754,43 +1185,86 @@ const UmrahApplication = () => {
         {/* Madinah Hotel Booking Confirmation */}
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col items-center">
           <h4 className="font-medium mb-1">
-            Madinah Hotel Booking Confirmation *
+            Madinah Hotel Booking Confirmation{" "}
+            <span className="text-red-600">*</span>
           </h4>
           <p className="text-xs text-gray-500 mb-2">
-            JPG, JPEG, PNG only. Max size: {MAX_IMAGE_SIZE_MB}MB.
+            JPG, JPEG, PNG, PDF only. Max size: {MAX_IMAGE_SIZE_MB}MB.
           </p>
           <input
             type="file"
-            accept=".jpg,.jpeg,.png"
+            accept=".jpg,.jpeg,.png,.pdf"
             className="hidden"
             id="madinahHotel"
             onChange={(e) =>
               handleImageUpload("madinahHotel", e.target.files?.[0] || null)
             }
             disabled={sameAsFirst && currentTraveler > 0}
+            className={fieldErrors.madinahHotel ? "border-red-500" : ""}
           />
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById("madinahHotel")?.click()}
-            size="sm"
-            disabled={sameAsFirst && currentTraveler > 0}
-          >
-            Upload
-          </Button>
           {sameAsFirst && currentTraveler > 0 && uploadPreviews.madinahHotel ? (
-            <img
-              src={uploadPreviews.madinahHotel}
-              alt="Madinah Hotel Preview"
-              className="mt-2 w-32 h-20 object-cover rounded border"
-            />
-          ) : (
-            uploadPreviews.madinahHotel && (
+            isPdf(uploadPreviews.madinahHotel) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
               <img
                 src={uploadPreviews.madinahHotel}
                 alt="Madinah Hotel Preview"
                 className="mt-2 w-32 h-20 object-cover rounded border"
               />
             )
+          ) : (
+            uploadPreviews.madinahHotel &&
+            (isPdf(uploadPreviews.madinahHotel) ? (
+              <span className="mt-2 flex flex-col items-center">
+                <svg
+                  width="48"
+                  height="60"
+                  viewBox="0 0 48 60"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <rect width="48" height="60" rx="8" fill="#F87171" />
+                  <text
+                    x="24"
+                    y="38"
+                    textAnchor="middle"
+                    fill="#fff"
+                    fontSize="18"
+                    fontWeight="bold"
+                  >
+                    PDF
+                  </text>
+                </svg>
+                <span className="text-xs text-red-500 mt-1">PDF Preview</span>
+              </span>
+            ) : (
+              <img
+                src={uploadPreviews.madinahHotel}
+                alt="Madinah Hotel Preview"
+                className="mt-2 w-32 h-20 object-cover rounded border"
+              />
+            ))
           )}
           {uploadErrors.madinahHotel && (
             <div className="text-red-600 text-xs mt-1">
@@ -799,6 +1273,11 @@ const UmrahApplication = () => {
           )}
         </div>
       </div>
+      {uploadErrors.general && (
+        <div className="text-red-600 text-sm text-center mt-2">
+          {uploadErrors.general}
+        </div>
+      )}
     </div>
   );
 
@@ -836,19 +1315,50 @@ const UmrahApplication = () => {
       </Card>
 
       <div className="text-center">
-        <Button
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 text-lg font-semibold"
-          onClick={() => {
-            // Integration with payment gateway would go here
-            window.open("https://checkout.stripe.com", "_blank");
+        <UmrahVisaPayment
+          visaType={visaType}
+          amount={totalVisaPrice}
+          processingTime={
+            visaOptions.find(
+              (v) =>
+                v &&
+                v.visa_category &&
+                v.visa_category.toLowerCase() === visaType,
+            )?.processing_time || ""
+          }
+          onProceedToPayment={async () => {
+            // Generate customer/application ID if needed
+            let cid = customerId;
+            if (!cid) {
+              cid = generateUUID();
+              setCustomerId(cid);
+              localStorage.setItem("customer_id", cid);
+            }
+            // Build full payload for the current traveler
+            const t = travelers[currentTraveler];
+            const payload = {
+              id: applicationId || undefined,
+              customer_id: cid,
+              first_name: t.firstName,
+              last_name: t.lastName,
+              nationality: t.nationality,
+              passport_number: t.passportNumber,
+              passport_issue: t.passportIssue,
+              passport_expiry: t.passportExpiry,
+              date_of_birth: t.dateOfBirth,
+              gender: t.gender,
+              email: t.email,
+              phone: t.phone,
+              departure_date: t.departureDate,
+              return_date: t.returnDate,
+              transport_type: t.transportType,
+              visa_type: visaType,
+              status: "pending",
+            };
+            const data = await saveApplication(payload);
+            if (data && data.id) setApplicationId(data.id);
           }}
-        >
-          💳 Pay Now - ₹{totalVisaPrice?.toLocaleString()}
-        </Button>
-        <p className="text-sm text-gray-600 mt-4">
-          🔒 Secure payment powered by Stripe. Your card details are safe and
-          encrypted.
-        </p>
+        />
       </div>
     </div>
   );

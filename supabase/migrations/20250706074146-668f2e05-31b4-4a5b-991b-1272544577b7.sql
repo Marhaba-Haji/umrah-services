@@ -1,4 +1,3 @@
-
 -- Create payment transactions table to track PayU payments
 CREATE TABLE public.payment_transactions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -67,3 +66,8 @@ CREATE TRIGGER update_payment_transactions_updated_at
   BEFORE UPDATE ON public.payment_transactions
   FOR EACH ROW
   EXECUTE FUNCTION update_payment_transactions_updated_at();
+
+-- Add RLS policy to allow all inserts into function_error_logs for error logging from Edge Functions.
+ALTER TABLE public.function_error_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow all inserts" ON public.function_error_logs;
+CREATE POLICY "Allow all inserts" ON public.function_error_logs FOR INSERT WITH CHECK (true);

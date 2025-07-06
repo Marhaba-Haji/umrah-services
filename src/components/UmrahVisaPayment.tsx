@@ -1,32 +1,50 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import PayUCheckout from './PayUCheckout';
-import { FileText, CreditCard, Clock, Shield } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import PayUCheckout from "./PayUCheckout";
+import { FileText, CreditCard, Clock, Shield } from "lucide-react";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "@/components/ui/use-toast";
 
 interface UmrahVisaPaymentProps {
   visaType: string;
   amount: number;
   processingTime: string;
   onPaymentSuccess?: () => void;
+  onProceedToPayment?: () => Promise<void>;
 }
 
 const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
   visaType,
   amount,
   processingTime,
-  onPaymentSuccess
+  onPaymentSuccess,
+  onProceedToPayment,
 }) => {
   const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Create a mock booking ID for demonstration
-  const bookingId = `visa_${Date.now()}`;
+  // Create a valid UUID for booking ID
+  const bookingId = uuidv4();
   const productInfo = `Umrah Visa Processing - ${visaType}`;
 
-  const handleProceedToPayment = () => {
-    setShowCheckout(true);
+  const handleProceedToPayment = async () => {
+    setIsLoading(true);
+    setPaymentError(null);
+    try {
+      if (onProceedToPayment) {
+        await onProceedToPayment();
+      }
+      setShowCheckout(true);
+    } catch (e) {
+      setPaymentError(
+        "Failed to save application. Please check your details and try again.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePaymentSuccess = () => {
@@ -37,7 +55,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
   };
 
   const handlePaymentError = (error: string) => {
-    console.error('Payment error:', error);
+    console.error("Payment error:", error);
     // Optionally show an error message to the user
   };
 
@@ -51,7 +69,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
         >
           ← Back to Visa Details
         </Button>
-        
+
         <PayUCheckout
           bookingId={bookingId}
           amount={amount}
@@ -78,7 +96,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
             <span className="text-gray-600">Visa Type:</span>
             <Badge variant="outline">{visaType}</Badge>
           </div>
-          
+
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Processing Time:</span>
             <div className="flex items-center gap-1">
@@ -86,11 +104,13 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
               <span className="text-sm">{processingTime}</span>
             </div>
           </div>
-          
+
           <div className="border-t pt-3">
             <div className="flex justify-between items-center text-lg font-semibold">
               <span>Total Amount:</span>
-              <span className="text-emerald-600">₹{amount.toLocaleString('en-IN')}</span>
+              <span className="text-emerald-600">
+                ₹{amount.toLocaleString("en-IN")}
+              </span>
             </div>
           </div>
         </div>
@@ -110,6 +130,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
 
         <Button
           onClick={handleProceedToPayment}
+          disabled={isLoading}
           className="w-full bg-emerald-600 hover:bg-emerald-700"
           size="lg"
         >
@@ -117,9 +138,13 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
           Proceed to Payment
         </Button>
 
+        {paymentError && (
+          <p className="text-xs text-red-500 text-center">{paymentError}</p>
+        )}
+
         <p className="text-xs text-gray-500 text-center">
-          Secure payment processing powered by PayU. 
-          Your payment information is encrypted and protected.
+          Secure payment processing powered by PayU. Your payment information is
+          encrypted and protected.
         </p>
       </CardContent>
     </Card>

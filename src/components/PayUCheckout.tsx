@@ -1,12 +1,11 @@
-
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { initiatePayment, redirectToPayU } from '@/services/paymentService';
-import { Loader2, CreditCard, Shield, Check } from 'lucide-react';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { initiatePayment, redirectToPayU } from "@/services/paymentService";
+import { Loader2, CreditCard, Shield, Check } from "lucide-react";
 
 interface PayUCheckoutProps {
   bookingId: string;
@@ -29,12 +28,12 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
   productInfo,
   onSuccess,
   onError,
-  className = ''
+  className = "",
 }) => {
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
-    name: '',
-    email: '',
-    phone: ''
+    name: "",
+    email: "",
+    phone: "",
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Partial<CustomerDetails>>({});
@@ -44,19 +43,19 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
     const newErrors: Partial<CustomerDetails> = {};
 
     if (!customerDetails.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
 
     if (!customerDetails.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerDetails.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = "Please enter a valid email";
     }
 
     if (!customerDetails.phone.trim()) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^[0-9]{10}$/.test(customerDetails.phone.replace(/\D/g, ''))) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number';
+      newErrors.phone = "Phone number is required";
+    } else if (!/^[0-9]{10}$/.test(customerDetails.phone.replace(/\D/g, ""))) {
+      newErrors.phone = "Please enter a valid 10-digit phone number";
     }
 
     setErrors(newErrors);
@@ -64,16 +63,16 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
   };
 
   const handleInputChange = (field: keyof CustomerDetails, value: string) => {
-    setCustomerDetails(prev => ({
+    setCustomerDetails((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: undefined
+        [field]: undefined,
       }));
     }
   };
@@ -83,52 +82,83 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields correctly.",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setIsProcessing(true);
 
-    try {
-      const paymentRequest = {
-        bookingId,
-        amount,
-        customerName: customerDetails.name,
-        customerEmail: customerDetails.email,
-        customerPhone: customerDetails.phone,
-        productInfo
-      };
+    // Build and validate payment payload
+    const paymentRequest = {
+      bookingId,
+      amount,
+      customerName: customerDetails.name,
+      customerEmail: customerDetails.email,
+      customerPhone: customerDetails.phone,
+      productInfo,
+    };
 
+    // Check for missing required fields
+    const missingFields = Object.entries(paymentRequest)
+      .filter(([k, v]) => v === undefined || v === null || v === "")
+      .map(([k]) => k);
+    if (missingFields.length > 0) {
+      toast({
+        title: "Missing Payment Details",
+        description: `Please provide: ${missingFields.join(", ")}`,
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+      return;
+    }
+
+    // Log payload for debugging
+    console.log("[PayU] Payment payload:", paymentRequest);
+
+    try {
       const response = await initiatePayment(paymentRequest);
+      console.log("[PayU] Payment response:", response);
 
       if (response.success && response.paymentData && response.payuUrl) {
         toast({
           title: "Redirecting to Payment",
-          description: "You will be redirected to PayU for secure payment processing.",
+          description:
+            "You will be redirected to PayU for secure payment processing.",
         });
 
         // Store transaction ID in localStorage for verification after return
-        localStorage.setItem('payuTransactionId', response.transactionId || '');
-        
+        localStorage.setItem("payuTransactionId", response.transactionId || "");
+
         // Redirect to PayU
         redirectToPayU(response.paymentData, response.payuUrl);
-        
+
         if (onSuccess) {
           onSuccess();
         }
       } else {
-        throw new Error(response.error || 'Payment initiation failed');
+        const errorMsg =
+          response.error ||
+          "Payment initiation failed. Please try again or contact support.";
+        // Show error to user
+        toast({
+          title: "Payment Error",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        if (onError) {
+          onError(errorMsg);
+        }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Payment processing failed";
+      console.error("[PayU] Payment error:", errorMessage);
       toast({
         title: "Payment Error",
         description: errorMessage,
-        variant: "destructive"
+        variant: "destructive",
       });
-
       if (onError) {
         onError(errorMessage);
       }
@@ -145,7 +175,7 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
           Secure Payment
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Amount: ₹{amount.toLocaleString('en-IN')}
+          Amount: ₹{amount.toLocaleString("en-IN")}
         </p>
       </CardHeader>
 
@@ -157,13 +187,11 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
             type="text"
             placeholder="Enter your full name"
             value={customerDetails.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            className={errors.name ? 'border-red-500' : ''}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            className={errors.name ? "border-red-500" : ""}
             disabled={isProcessing}
           />
-          {errors.name && (
-            <p className="text-sm text-red-500">{errors.name}</p>
-          )}
+          {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
         </div>
 
         <div className="space-y-2">
@@ -173,8 +201,8 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
             type="email"
             placeholder="Enter your email"
             value={customerDetails.email}
-            onChange={(e) => handleInputChange('email', e.target.value)}
-            className={errors.email ? 'border-red-500' : ''}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            className={errors.email ? "border-red-500" : ""}
             disabled={isProcessing}
           />
           {errors.email && (
@@ -189,8 +217,8 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
             type="tel"
             placeholder="Enter your phone number"
             value={customerDetails.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            className={errors.phone ? 'border-red-500' : ''}
+            onChange={(e) => handleInputChange("phone", e.target.value)}
+            className={errors.phone ? "border-red-500" : ""}
             disabled={isProcessing}
           />
           {errors.phone && (
@@ -233,14 +261,14 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
-              Pay ₹{amount.toLocaleString('en-IN')}
+              Pay ₹{amount.toLocaleString("en-IN")}
             </>
           )}
         </Button>
 
         <p className="text-xs text-gray-500 text-center">
-          By proceeding, you agree to our terms and conditions. 
-          You will be redirected to PayU for secure payment processing.
+          By proceeding, you agree to our terms and conditions. You will be
+          redirected to PayU for secure payment processing.
         </p>
       </CardContent>
     </Card>
