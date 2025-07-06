@@ -1,3 +1,4 @@
+
 console.log("PayU Edge Function started");
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -9,7 +10,8 @@ const corsHeaders = {
 };
 
 interface PaymentRequest {
-  bookingId: string;
+  bookingId?: string;
+  visaApplicationId?: string;
   amount: number;
   customerName: string;
   customerEmail: string;
@@ -79,22 +81,31 @@ serve(async (req) => {
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
 
-      // Store payment transaction
+      // Store payment transaction with support for both bookings and visa applications
+      const transactionData: any = {
+        merchant_transaction_id: txnid,
+        amount: paymentRequest.amount,
+        customer_name: paymentRequest.customerName,
+        customer_email: paymentRequest.customerEmail,
+        customer_phone: paymentRequest.customerPhone,
+        payu_hash: hashHex,
+        success_url: paymentRequest.successUrl,
+        failure_url: paymentRequest.failureUrl,
+        payment_status: "initiated",
+      };
+
+      // Add booking_id or visa_application_id based on request
+      if (paymentRequest.bookingId) {
+        transactionData.booking_id = paymentRequest.bookingId;
+      }
+      if (paymentRequest.visaApplicationId) {
+        transactionData.visa_application_id = paymentRequest.visaApplicationId;
+      }
+
       const { data: transaction, error: transactionError } =
         await supabaseClient
           .from("payment_transactions")
-          .insert({
-            booking_id: paymentRequest.bookingId,
-            merchant_transaction_id: txnid,
-            amount: paymentRequest.amount,
-            customer_name: paymentRequest.customerName,
-            customer_email: paymentRequest.customerEmail,
-            customer_phone: paymentRequest.customerPhone,
-            payu_hash: hashHex,
-            success_url: paymentRequest.successUrl,
-            failure_url: paymentRequest.failureUrl,
-            payment_status: "initiated",
-          })
+          .insert(transactionData)
           .select()
           .single();
 
@@ -180,21 +191,33 @@ serve(async (req) => {
       );
     }
 
-    // Update booking status if payment successful
-    if (
-      payuResponse.status === "success" &&
-      isValidHash &&
-      transaction.booking_id
-    ) {
-      await supabaseClient
-        .from("bookings")
-        .update({
-          payment_status: "completed",
-          payment_method: "payu",
-          payment_transaction_id: transaction.id,
-          status: "confirmed",
-        })
-        .eq("id", transaction.booking_id);
+    // Update booking or visa application status based on payment success
+    if (payuResponse.status === "success" && isValidHash) {
+      if (transaction.booking_id) {
+        // Update booking status
+        await supabaseClient
+          .from("bookings")
+          .update({
+            payment_status: "completed",
+            payment_method: "payu",
+            payment_transaction_id: transaction.id,
+            status: "confirmed",
+          })
+          .eq("id", transaction.booking_id);
+      }
+
+      if (transaction.visa_application_id) {
+        // Update visa application status
+        await supabaseClient
+          .from("visa_applications")
+          .update({
+            payment_status: "completed",
+            payment_method: "payu",
+            payment_transaction_id: transaction.id,
+            status: "payment_completed",
+          })
+          .eq("id", transaction.visa_application_id);
+      }
     }
 
     return new Response(
@@ -213,6 +236,10 @@ serve(async (req) => {
     );
   } catch (error) {
     try {
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      );
       await supabaseClient.from("function_error_logs").insert({
         function_name: "payu-payment-process",
         error_message: error?.message || String(error),

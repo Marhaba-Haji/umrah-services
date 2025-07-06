@@ -1,46 +1,59 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import PayUCheckout from "./PayUCheckout";
 import { FileText, CreditCard, Clock, Shield } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 import { toast } from "@/components/ui/use-toast";
 
 interface UmrahVisaPaymentProps {
   visaType: string;
   amount: number;
   processingTime: string;
+  visaApplicationId?: string;
   onPaymentSuccess?: () => void;
-  onProceedToPayment?: () => Promise<void>;
+  onProceedToPayment?: () => Promise<string | null>; // Returns visa application ID
 }
 
 const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
   visaType,
   amount,
   processingTime,
+  visaApplicationId,
   onPaymentSuccess,
   onProceedToPayment,
 }) => {
   const [showCheckout, setShowCheckout] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentVisaApplicationId, setCurrentVisaApplicationId] = useState<string | null>(
+    visaApplicationId || null
+  );
 
-  // Create a valid UUID for booking ID
-  const bookingId = uuidv4();
   const productInfo = `Umrah Visa Processing - ${visaType}`;
 
   const handleProceedToPayment = async () => {
     setIsLoading(true);
     setPaymentError(null);
     try {
+      let applicationId = currentVisaApplicationId;
+      
       if (onProceedToPayment) {
-        await onProceedToPayment();
+        applicationId = await onProceedToPayment();
+        if (applicationId) {
+          setCurrentVisaApplicationId(applicationId);
+        }
       }
+      
+      if (!applicationId) {
+        throw new Error("Failed to create visa application. Please try again.");
+      }
+      
       setShowCheckout(true);
     } catch (e) {
       setPaymentError(
-        "Failed to save application. Please check your details and try again.",
+        e instanceof Error ? e.message : "Failed to save application. Please check your details and try again.",
       );
     } finally {
       setIsLoading(false);
@@ -49,6 +62,10 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
 
   const handlePaymentSuccess = () => {
     setShowCheckout(false);
+    toast({
+      title: "Payment Successful",
+      description: "Your visa application payment has been completed successfully.",
+    });
     if (onPaymentSuccess) {
       onPaymentSuccess();
     }
@@ -56,10 +73,14 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
 
   const handlePaymentError = (error: string) => {
     console.error("Payment error:", error);
-    // Optionally show an error message to the user
+    toast({
+      title: "Payment Failed",
+      description: error,
+      variant: "destructive",
+    });
   };
 
-  if (showCheckout) {
+  if (showCheckout && currentVisaApplicationId) {
     return (
       <div className="space-y-4">
         <Button
@@ -71,7 +92,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
         </Button>
 
         <PayUCheckout
-          bookingId={bookingId}
+          visaApplicationId={currentVisaApplicationId}
           amount={amount}
           productInfo={productInfo}
           onSuccess={handlePaymentSuccess}
@@ -135,7 +156,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
           size="lg"
         >
           <CreditCard className="w-4 h-4 mr-2" />
-          Proceed to Payment
+          {isLoading ? "Processing..." : "Proceed to Payment"}
         </Button>
 
         {paymentError && (

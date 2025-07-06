@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,8 @@ import { initiatePayment, redirectToPayU } from "@/services/paymentService";
 import { Loader2, CreditCard, Shield, Check } from "lucide-react";
 
 interface PayUCheckoutProps {
-  bookingId: string;
+  bookingId?: string;
+  visaApplicationId?: string;
   amount: number;
   productInfo: string;
   onSuccess?: () => void;
@@ -24,6 +26,7 @@ interface CustomerDetails {
 
 const PayUCheckout: React.FC<PayUCheckoutProps> = ({
   bookingId,
+  visaApplicationId,
   amount,
   productInfo,
   onSuccess,
@@ -87,31 +90,28 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
       return;
     }
 
+    // Validate that we have either bookingId or visaApplicationId
+    if (!bookingId && !visaApplicationId) {
+      toast({
+        title: "Configuration Error",
+        description: "Missing booking or visa application reference.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Build and validate payment payload
+    // Build payment payload
     const paymentRequest = {
-      bookingId,
+      ...(bookingId && { bookingId }),
+      ...(visaApplicationId && { visaApplicationId }),
       amount,
       customerName: customerDetails.name,
       customerEmail: customerDetails.email,
       customerPhone: customerDetails.phone,
       productInfo,
     };
-
-    // Check for missing required fields
-    const missingFields = Object.entries(paymentRequest)
-      .filter(([k, v]) => v === undefined || v === null || v === "")
-      .map(([k]) => k);
-    if (missingFields.length > 0) {
-      toast({
-        title: "Missing Payment Details",
-        description: `Please provide: ${missingFields.join(", ")}`,
-        variant: "destructive",
-      });
-      setIsProcessing(false);
-      return;
-    }
 
     // Log payload for debugging
     console.log("[PayU] Payment payload:", paymentRequest);
@@ -140,7 +140,6 @@ const PayUCheckout: React.FC<PayUCheckoutProps> = ({
         const errorMsg =
           response.error ||
           "Payment initiation failed. Please try again or contact support.";
-        // Show error to user
         toast({
           title: "Payment Error",
           description: errorMsg,

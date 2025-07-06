@@ -571,6 +571,30 @@ export type Database = {
           },
         ]
       }
+      function_error_logs: {
+        Row: {
+          created_at: string
+          error_message: string
+          function_name: string
+          id: string
+          request_payload: Json | null
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          function_name: string
+          id?: string
+          request_payload?: Json | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          function_name?: string
+          id?: string
+          request_payload?: Json | null
+        }
+        Relationships: []
+      }
       group_flight_inquiries: {
         Row: {
           contact_email: string | null
@@ -1127,6 +1151,7 @@ export type Database = {
           payu_transaction_id: string | null
           success_url: string | null
           updated_at: string
+          visa_application_id: string | null
         }
         Insert: {
           amount: number
@@ -1148,6 +1173,7 @@ export type Database = {
           payu_transaction_id?: string | null
           success_url?: string | null
           updated_at?: string
+          visa_application_id?: string | null
         }
         Update: {
           amount?: number
@@ -1169,6 +1195,7 @@ export type Database = {
           payu_transaction_id?: string | null
           success_url?: string | null
           updated_at?: string
+          visa_application_id?: string | null
         }
         Relationships: [
           {
@@ -1176,6 +1203,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_visa_application_id_fkey"
+            columns: ["visa_application_id"]
+            isOneToOne: false
+            referencedRelation: "visa_applications"
             referencedColumns: ["id"]
           },
         ]
@@ -1797,6 +1831,107 @@ export type Database = {
         }
         Relationships: []
       }
+      visa_applications: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          date_of_birth: string
+          departure_date: string
+          email: string | null
+          first_name: string
+          flight_url: string | null
+          gender: string
+          id: string
+          last_name: string
+          madinah_hotel_url: string | null
+          makkah_hotel_url: string | null
+          nationality: string
+          passport_back_url: string | null
+          passport_expiry: string
+          passport_front_url: string | null
+          passport_issue: string
+          passport_number: string
+          payment_method: string | null
+          payment_status: string | null
+          payment_transaction_id: string | null
+          phone: string
+          photo_url: string | null
+          return_date: string
+          status: Database["public"]["Enums"]["visa_application_status"] | null
+          transport_type: string
+          updated_at: string | null
+          visa_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          date_of_birth: string
+          departure_date: string
+          email?: string | null
+          first_name: string
+          flight_url?: string | null
+          gender: string
+          id?: string
+          last_name: string
+          madinah_hotel_url?: string | null
+          makkah_hotel_url?: string | null
+          nationality: string
+          passport_back_url?: string | null
+          passport_expiry: string
+          passport_front_url?: string | null
+          passport_issue: string
+          passport_number: string
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
+          phone: string
+          photo_url?: string | null
+          return_date: string
+          status?: Database["public"]["Enums"]["visa_application_status"] | null
+          transport_type: string
+          updated_at?: string | null
+          visa_type: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          date_of_birth?: string
+          departure_date?: string
+          email?: string | null
+          first_name?: string
+          flight_url?: string | null
+          gender?: string
+          id?: string
+          last_name?: string
+          madinah_hotel_url?: string | null
+          makkah_hotel_url?: string | null
+          nationality?: string
+          passport_back_url?: string | null
+          passport_expiry?: string
+          passport_front_url?: string | null
+          passport_issue?: string
+          passport_number?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
+          phone?: string
+          photo_url?: string | null
+          return_date?: string
+          status?: Database["public"]["Enums"]["visa_application_status"] | null
+          transport_type?: string
+          updated_at?: string | null
+          visa_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_applications_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ziarath_services: {
         Row: {
           best_time: string | null
@@ -1900,6 +2035,14 @@ export type Database = {
         | "Van"
         | "Mini Bus"
         | "Bus"
+      visa_application_status:
+        | "pending"
+        | "paid"
+        | "abandoned"
+        | "processing"
+        | "approved"
+        | "rejected"
+        | "completed"
       visa_status: "active" | "suspended" | "discontinued"
       ziarath_type:
         | "makkah_ziarath"
@@ -2047,6 +2190,15 @@ export const Constants = {
         "Van",
         "Mini Bus",
         "Bus",
+      ],
+      visa_application_status: [
+        "pending",
+        "paid",
+        "abandoned",
+        "processing",
+        "approved",
+        "rejected",
+        "completed",
       ],
       visa_status: ["active", "suspended", "discontinued"],
       ziarath_type: [
