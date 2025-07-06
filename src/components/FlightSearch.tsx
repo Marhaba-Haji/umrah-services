@@ -1,16 +1,38 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Calendar } from "@/components/ui/calendar"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Search } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Listbox } from '@headlessui/react'
-import { CheckIcon, ChevronUpDownIcon } from '@heroicons/react/20/solid'
-import { supabase } from "@/integrations/supabase/client";
-import { Search } from 'lucide-react';
+
+export interface FlightOffer {
+  id: string;
+  airline: string;
+  flightNumber: string;
+  departure: {
+    iataCode: string;
+    terminal?: string;
+    at: string;
+  };
+  arrival: {
+    iataCode: string;
+    terminal?: string;
+    at: string;
+  };
+  duration: string;
+  stops: number;
+  cabin: string;
+  aircraft?: string;
+  price: {
+    total: string;
+    currency: string;
+  };
+  rawOffer?: any;
+}
 
 interface FlightSearchParams {
   tripType: "ONE_WAY" | "ROUND_TRIP" | "MULTI_CITY";
@@ -25,29 +47,11 @@ interface FlightSearchParams {
   nonStop: boolean;
 }
 
-interface Airport {
-  iataCode: string;
-  name: string;
-  address: {
-    cityName: string;
-    countryCode: string;
-  };
+interface FlightSearchProps {
+  onFlightSelect?: (flight: FlightOffer, searchParams: FlightSearchParams) => void;
 }
 
-interface AmadeusFlightOffer {
-  id: string;
-  itineraries: any[];
-  price: {
-    total: string;
-    currency: string;
-  };
-  dictionaries?: {
-    locations: { [key: string]: any };
-    aircraft: { [key: string]: any };
-  };
-}
-
-const FlightSearch: React.FC = () => {
+const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
   const [searchParams, setSearchParams] = useState<FlightSearchParams>({
     tripType: "ROUND_TRIP",
     originLocationCode: "",
@@ -61,56 +65,8 @@ const FlightSearch: React.FC = () => {
     nonStop: false,
   });
 
-  const [airports, setAirports] = useState<Airport[]>([]);
-  const [originAirports, setOriginAirports] = useState<Airport[]>([]);
-  const [destinationAirports, setDestinationAirports] = useState<Airport[]>([]);
-  const [isOriginDropdownOpen, setIsOriginDropdownOpen] = useState(false);
-  const [isDestinationDropdownOpen, setIsDestinationDropdownOpen] = useState(false);
-  const [flightOffers, setFlightOffers] = useState<AmadeusFlightOffer[]>([]);
+  const [flightOffers, setFlightOffers] = useState<FlightOffer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchAirports = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('airports')
-          .select(`
-            iataCode,
-            name,
-            address
-          `);
-
-        if (error) throw error;
-        setAirports(data as Airport[]);
-      } catch (error) {
-        console.error('Error fetching airports:', error);
-      }
-    };
-
-    fetchAirports();
-  }, []);
-
-  const handleOriginChange = (value: string) => {
-    setSearchParams(prev => ({
-      ...prev,
-      originLocationCode: value
-    }));
-    setOriginAirports(
-      airports.filter(airport => airport.name.toLowerCase().includes(value.toLowerCase()))
-    );
-    setIsOriginDropdownOpen(true);
-  };
-
-  const handleDestinationChange = (value: string) => {
-    setSearchParams(prev => ({
-      ...prev,
-      destinationLocationCode: value
-    }));
-    setDestinationAirports(
-      airports.filter(airport => airport.name.toLowerCase().includes(value.toLowerCase()))
-    );
-    setIsDestinationDropdownOpen(true);
-  };
 
   const handleDepartureDateChange = (date: Date | undefined) => {
     if (date) {
@@ -158,13 +114,6 @@ const FlightSearch: React.FC = () => {
     }));
   };
 
-  const handleNonStopChange = (value: boolean) => {
-    setSearchParams(prev => ({
-      ...prev,
-      nonStop: value
-    }));
-  };
-
   const handleTravelClassChange = (value: string) => {
     setSearchParams(prev => ({
       ...prev,
@@ -172,41 +121,13 @@ const FlightSearch: React.FC = () => {
     }));
   };
 
-  const handleAirportSelection = (airport: Airport, type: 'origin' | 'destination') => {
-    if (type === 'origin') {
-      setSearchParams(prev => ({
-        ...prev,
-        originLocationCode: airport.iataCode
-      }));
-      setIsOriginDropdownOpen(false);
-    } else {
-      setSearchParams(prev => ({
-        ...prev,
-        destinationLocationCode: airport.iataCode
-      }));
-      setIsDestinationDropdownOpen(false);
-    }
-  };
-
   const handleSearchFlights = async () => {
     setIsLoading(true);
     try {
-      const formattedDepartureDate = searchParams.departureDate.toISOString().split('T')[0];
-      const formattedReturnDate = searchParams.returnDate?.toISOString().split('T')[0];
-
-      const { data, error } = await supabase.functions.invoke('amadeus-flight-offers', {
-        body: {
-          ...searchParams,
-          departureDate: formattedDepartureDate,
-          returnDate: formattedReturnDate,
-        }
-      });
-
-      if (error) {
-        console.error('Error fetching flight offers:', error);
-      } else {
-        setFlightOffers(data);
-      }
+      // Mock flight search for now
+      console.log('Searching flights with params:', searchParams);
+      // You can implement actual flight search API call here
+      setFlightOffers([]);
     } catch (error) {
       console.error('Error during flight search:', error);
     } finally {
@@ -214,38 +135,11 @@ const FlightSearch: React.FC = () => {
     }
   };
 
-  const renderAirportOption = (airport: Airport) => (
-    <div key={airport.iataCode} className="flex items-center space-x-3 p-2 hover:bg-gray-50 cursor-pointer" onClick={() => handleAirportSelection(airport, originAirports.includes(airport) ? 'origin' : 'destination')}>
-      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-        <span className="text-xs font-semibold text-blue-700">{airport.iataCode}</span>
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-900">{airport.name}</p>
-        <p className="text-xs text-gray-500">{airport.address?.cityName}, {airport.address?.countryCode}</p>
-      </div>
-    </div>
-  );
-
-  const getLocationName = (locationCode: string, offer: AmadeusFlightOffer) => {
-    if (offer.dictionaries?.locations && offer.dictionaries.locations[locationCode]) {
-      return offer.dictionaries.locations[locationCode].name || locationCode;
-    }
-    return locationCode;
-  };
-
-  const getAircraftName = (aircraftCode: string, offer: AmadeusFlightOffer) => {
-    if (offer.dictionaries?.aircraft && offer.dictionaries.aircraft[aircraftCode]) {
-      return offer.dictionaries.aircraft[aircraftCode] || aircraftCode;
-    }
-    return aircraftCode;
-  };
-
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Search Flights</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Origin */}
         <div>
           <Label htmlFor="origin">Origin</Label>
           <Input
@@ -253,18 +147,10 @@ const FlightSearch: React.FC = () => {
             id="origin"
             placeholder="Enter origin airport"
             value={searchParams.originLocationCode}
-            onChange={(e) => handleOriginChange(e.target.value)}
-            onFocus={() => setIsOriginDropdownOpen(true)}
-            onBlur={() => setTimeout(() => setIsOriginDropdownOpen(false), 100)}
+            onChange={(e) => setSearchParams(prev => ({ ...prev, originLocationCode: e.target.value }))}
           />
-          {isOriginDropdownOpen && (
-            <div className="absolute z-10 bg-white border rounded shadow mt-1 w-full">
-              {originAirports.map(renderAirportOption)}
-            </div>
-          )}
         </div>
 
-        {/* Destination */}
         <div>
           <Label htmlFor="destination">Destination</Label>
           <Input
@@ -272,18 +158,10 @@ const FlightSearch: React.FC = () => {
             id="destination"
             placeholder="Enter destination airport"
             value={searchParams.destinationLocationCode}
-            onChange={(e) => handleDestinationChange(e.target.value)}
-            onFocus={() => setIsDestinationDropdownOpen(true)}
-            onBlur={() => setTimeout(() => setIsDestinationDropdownOpen(false), 100)}
+            onChange={(e) => setSearchParams(prev => ({ ...prev, destinationLocationCode: e.target.value }))}
           />
-          {isDestinationDropdownOpen && (
-            <div className="absolute z-10 bg-white border rounded shadow mt-1 w-full">
-              {destinationAirports.map(renderAirportOption)}
-            </div>
-          )}
         </div>
 
-        {/* Dates */}
         <div>
           <Label>Departure Date</Label>
           <Popover>
@@ -352,7 +230,6 @@ const FlightSearch: React.FC = () => {
           </div>
         )}
 
-        {/* Passengers */}
         <div>
           <Label>Adults</Label>
           <Input
@@ -383,7 +260,6 @@ const FlightSearch: React.FC = () => {
           />
         </div>
 
-        {/* Trip Type */}
         <div>
           <Label>Trip Type</Label>
           <Select onValueChange={handleTripTypeChange}>
@@ -393,12 +269,10 @@ const FlightSearch: React.FC = () => {
             <SelectContent>
               <SelectItem value="ONE_WAY">One Way</SelectItem>
               <SelectItem value="ROUND_TRIP">Round Trip</SelectItem>
-              {/* <SelectItem value="MULTI_CITY">Multi City</SelectItem> */}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Travel Class */}
         <div>
           <Label>Travel Class</Label>
           <Select onValueChange={handleTravelClassChange}>
@@ -412,17 +286,6 @@ const FlightSearch: React.FC = () => {
               <SelectItem value="FIRST">First</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        {/* Non-Stop */}
-        <div>
-          <Label>Non-Stop</Label>
-          <Input
-            type="checkbox"
-            id="nonStop"
-            checked={searchParams.nonStop}
-            onChange={(e) => handleNonStopChange(e.target.checked)}
-          />
         </div>
       </div>
 
@@ -445,28 +308,21 @@ const FlightSearch: React.FC = () => {
           <h2 className="text-xl font-bold mb-4">Flight Offers</h2>
           {flightOffers.map(offer => (
             <div key={offer.id} className="border rounded p-4 mb-4">
-              {offer.itineraries.map((itinerary: any, index: number) => (
-                <div key={index} className="mb-2">
-                  <h3 className="font-semibold">Itinerary {index + 1}</h3>
-                  {itinerary.segments.map((segment: any, segmentIndex: number) => (
-                    <div key={segmentIndex} className="mb-2">
-                      <p>
-                        {getLocationName(segment.departure.iataCode, offer)} ({segment.departure.iataCode})
-                        {' '}→{' '}
-                        {getLocationName(segment.arrival.iataCode, offer)} ({segment.arrival.iataCode})
-                      </p>
-                      <p>
-                        {new Date(segment.departure.at).toLocaleString()} - {new Date(segment.arrival.at).toLocaleString()}
-                      </p>
-                      <p>Carrier: {segment.carrierCode}</p>
-                      <p>Flight Number: {segment.number}</p>
-                      {/* <p>Aircraft: {getAircraftName(segment.aircraft.code, offer)}</p> */}
-                    </div>
-                  ))}
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-semibold">{offer.airline} {offer.flightNumber}</h3>
+                  <p>{offer.departure.iataCode} → {offer.arrival.iataCode}</p>
+                  <p className="text-sm text-gray-600">Duration: {offer.duration}</p>
                 </div>
-              ))}
-              <div className="mt-2">
-                <p className="font-bold">Total Price: {offer.price.total} {offer.price.currency}</p>
+                <div className="text-right">
+                  <p className="font-bold text-lg">{offer.price.total} {offer.price.currency}</p>
+                  <Button 
+                    onClick={() => onFlightSelect?.(offer, searchParams)}
+                    className="mt-2"
+                  >
+                    Select Flight
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
