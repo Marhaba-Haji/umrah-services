@@ -306,6 +306,9 @@ export type Database = {
           package_id: string | null
           paid_amount: number | null
           payment_details: Json | null
+          payment_method: string | null
+          payment_status: string | null
+          payment_transaction_id: string | null
           return_date: string | null
           special_requests: string | null
           status: Database["public"]["Enums"]["booking_status"] | null
@@ -327,6 +330,9 @@ export type Database = {
           package_id?: string | null
           paid_amount?: number | null
           payment_details?: Json | null
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
           return_date?: string | null
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
@@ -348,6 +354,9 @@ export type Database = {
           package_id?: string | null
           paid_amount?: number | null
           payment_details?: Json | null
+          payment_method?: string | null
+          payment_status?: string | null
+          payment_transaction_id?: string | null
           return_date?: string | null
           special_requests?: string | null
           status?: Database["public"]["Enums"]["booking_status"] | null
@@ -370,6 +379,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "umrah_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_payment_transaction_id_fkey"
+            columns: ["payment_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "payment_transactions"
             referencedColumns: ["id"]
           },
           {
@@ -1086,6 +1102,80 @@ export type Database = {
             columns: ["package_interest"]
             isOneToOne: false
             referencedRelation: "umrah_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          completed_at: string | null
+          created_at: string
+          currency: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          failure_url: string | null
+          id: string
+          merchant_transaction_id: string
+          payment_gateway_response: Json | null
+          payment_method: string | null
+          payment_status: string
+          payu_hash: string | null
+          payu_payment_id: string | null
+          payu_transaction_id: string | null
+          success_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          failure_url?: string | null
+          id?: string
+          merchant_transaction_id: string
+          payment_gateway_response?: Json | null
+          payment_method?: string | null
+          payment_status?: string
+          payu_hash?: string | null
+          payu_payment_id?: string | null
+          payu_transaction_id?: string | null
+          success_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          failure_url?: string | null
+          id?: string
+          merchant_transaction_id?: string
+          payment_gateway_response?: Json | null
+          payment_method?: string | null
+          payment_status?: string
+          payu_hash?: string | null
+          payu_payment_id?: string | null
+          payu_transaction_id?: string | null
+          success_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
             referencedColumns: ["id"]
           },
         ]

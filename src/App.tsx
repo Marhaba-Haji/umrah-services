@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,6 +42,8 @@ const Refund = lazy(() => import("./pages/Refund"));
 const TravelTerms = lazy(() => import("./pages/TravelTerms"));
 const Support = lazy(() => import("./pages/Support"));
 const Careers = lazy(() => import("./pages/Careers"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentFailure = lazy(() => import("./pages/PaymentFailure"));
 
 const Loader = () => (
   <div style={{ textAlign: "center", marginTop: "3rem" }}>Loading...</div>
@@ -107,6 +110,8 @@ const App = () => (
               <Route path="/travel-terms" element={<TravelTerms />} />
               <Route path="/support" element={<Support />} />
               <Route path="/careers" element={<Careers />} />
+              <Route path="/payment/success" element={<PaymentSuccess />} />
+              <Route path="/payment/failure" element={<PaymentFailure />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
