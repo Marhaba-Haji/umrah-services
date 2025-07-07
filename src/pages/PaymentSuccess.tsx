@@ -1,41 +1,56 @@
-
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CheckCircle, Download, ArrowRight } from 'lucide-react';
-import { verifyPayment } from '@/services/paymentService';
-import { useToast } from '@/hooks/use-toast';
+import React, { useEffect, useState } from "react";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Download, ArrowRight } from "lucide-react";
+import { verifyPayment } from "@/services/paymentService";
+import { useToast } from "@/hooks/use-toast";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const [isVerifying, setIsVerifying] = useState(true);
-  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [verificationResult, setVerificationResult] = useState<{
+    success: boolean;
+    verified?: boolean;
+    status?: string;
+    transactionId?: string;
+    error?: string;
+  } | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (window.location.pathname === "/payment-success") {
+      navigate("/payment/success", { replace: true });
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const verifyPaymentResult = async () => {
       try {
         // Get PayU response parameters
         const payuResponse = {
-          mihpayid: searchParams.get('mihpayid'),
-          mode: searchParams.get('mode'),
-          status: searchParams.get('status'),
-          txnid: searchParams.get('txnid'),
-          amount: searchParams.get('amount'),
-          productinfo: searchParams.get('productinfo'),
-          firstname: searchParams.get('firstname'),
-          email: searchParams.get('email'),
-          phone: searchParams.get('phone'),
-          hash: searchParams.get('hash')
+          mihpayid: searchParams.get("mihpayid"),
+          mode: searchParams.get("mode"),
+          status: searchParams.get("status"),
+          txnid: searchParams.get("txnid"),
+          amount: searchParams.get("amount"),
+          productinfo: searchParams.get("productinfo"),
+          firstname: searchParams.get("firstname"),
+          email: searchParams.get("email"),
+          phone: searchParams.get("phone"),
+          hash: searchParams.get("hash"),
         };
 
-        const merchantTransactionId = searchParams.get('txnid') || '';
+        const merchantTransactionId = searchParams.get("txnid") || "";
 
-        if (payuResponse.status === 'success' && merchantTransactionId) {
-          const result = await verifyPayment(payuResponse, merchantTransactionId);
+        if (payuResponse.status === "success" && merchantTransactionId) {
+          const result = await verifyPayment(
+            payuResponse,
+            merchantTransactionId,
+          );
           setVerificationResult(result);
 
           if (result.success && result.verified) {
@@ -46,19 +61,20 @@ const PaymentSuccess = () => {
           } else {
             toast({
               title: "Payment Verification Failed",
-              description: "There was an issue verifying your payment. Please contact support.",
-              variant: "destructive"
+              description:
+                "There was an issue verifying your payment. Please contact support.",
+              variant: "destructive",
             });
           }
         } else {
-          throw new Error('Invalid payment response');
+          throw new Error("Invalid payment response");
         }
       } catch (error) {
-        console.error('Payment verification error:', error);
+        console.error("Payment verification error:", error);
         toast({
           title: "Verification Error",
           description: "Unable to verify payment. Please contact support.",
-          variant: "destructive"
+          variant: "destructive",
         });
       } finally {
         setIsVerifying(false);
@@ -91,7 +107,7 @@ const PaymentSuccess = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto">
           <Card className="border-green-200 bg-green-50">
@@ -109,23 +125,31 @@ const PaymentSuccess = () => {
 
             <CardContent className="space-y-6">
               <div className="bg-white p-4 rounded-lg border">
-                <h3 className="font-semibold text-gray-900 mb-3">Payment Details</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  Payment Details
+                </h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Transaction ID:</span>
-                    <span className="font-mono">{searchParams.get('txnid')}</span>
+                    <span className="font-mono">
+                      {searchParams.get("txnid")}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount Paid:</span>
-                    <span className="font-semibold">₹{searchParams.get('amount')}</span>
+                    <span className="font-semibold">
+                      ₹{searchParams.get("amount")}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Payment Method:</span>
-                    <span>{searchParams.get('mode')}</span>
+                    <span>{searchParams.get("mode")}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">PayU Transaction ID:</span>
-                    <span className="font-mono">{searchParams.get('mihpayid')}</span>
+                    <span className="font-mono">
+                      {searchParams.get("mihpayid")}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -140,8 +164,8 @@ const PaymentSuccess = () => {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  asChild 
+                <Button
+                  asChild
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 >
                   <Link to="/">
@@ -149,9 +173,9 @@ const PaymentSuccess = () => {
                     Continue Browsing
                   </Link>
                 </Button>
-                
-                <Button 
-                  variant="outline" 
+
+                <Button
+                  variant="outline"
                   className="flex-1"
                   onClick={() => window.print()}
                 >

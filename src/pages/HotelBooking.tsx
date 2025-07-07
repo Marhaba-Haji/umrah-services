@@ -692,7 +692,7 @@ const HotelBooking = () => {
                       )}
                       {filteredCountryCodes.map((c) => (
                         <div
-                          key={c.code}
+                          key={`${c.code}-${c.name}`}
                           className={`flex items-center px-2 py-1 cursor-pointer hover:bg-emerald-50 ${enquiryForm.countryCode === c.code ? "bg-emerald-100 font-semibold" : ""}`}
                           onMouseDown={() => {
                             handleCountryCodeChange(c.code);

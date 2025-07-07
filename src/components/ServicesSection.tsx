@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCurrency } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 const ServicesSection = () => {
   const { currency } = useCurrency();
+  const navigate = useNavigate();
 
   // Currency conversion rates (base INR)
   const exchangeRates = {
@@ -282,21 +283,22 @@ const ServicesSection = () => {
                         : "bg-gray-900 hover:bg-gray-800"
                     }`}
                     size="lg"
-                  >
-                    <Link
-                      to={
+                    onClick={() => {
+                      navigate(
                         [
                           "Family Visit Visa",
                           "Tourist Visa",
                           "Business Visa",
                         ].includes(service.title)
                           ? "/other-visas"
-                          : "/apply-umrah-visa-online"
-                      }
-                      className="flex items-center justify-center w-full h-full"
-                    >
-                      Apply Now
-                    </Link>
+                          : "/apply-umrah-visa-online",
+                      );
+                      setTimeout(() => {
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }, 100);
+                    }}
+                  >
+                    Apply Now
                   </Button>
                 </CardContent>
               </Card>

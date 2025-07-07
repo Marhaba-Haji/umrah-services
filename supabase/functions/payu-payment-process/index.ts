@@ -1,4 +1,3 @@
-
 console.log("PayU Edge Function started");
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -62,35 +61,40 @@ serve(async (req) => {
 
     // Get active PayU settings from database
     const getPayUSettings = async (): Promise<PayUSettings> => {
-      // First get active environment
-      const { data: envData, error: envError } = await supabaseClient
-        .from("system_settings")
-        .select("setting_value")
-        .eq("setting_key", "payu_active_environment")
-        .single();
-
-      if (envError) {
-        console.error("Error fetching active environment:", envError);
-        throw new Error("Failed to get active environment");
-      }
-
-      const activeEnvironment = JSON.parse(envData.setting_value as string);
-      console.log("Active environment:", activeEnvironment);
-
-      // Get settings for active environment
-      const { data: settingsData, error: settingsError } = await supabaseClient
+      // Fetch the active PayU environment directly from payment_gateway_settings
+      const {
+        data: settingsData,
+        error: settingsError,
+        count,
+        status,
+      } = await supabaseClient
         .from("payment_gateway_settings")
-        .select("merchant_key, salt_32bit, salt_256bit, gateway_url")
+        .select(
+          "merchant_key, salt_32bit, salt_256bit, gateway_url, environment, is_active",
+          { count: "exact" },
+        )
         .eq("gateway_name", "payu")
-        .eq("environment", activeEnvironment)
         .eq("is_active", true)
-        .single();
+        .maybeSingle();
+
+      console.log("[PayU] Query result for is_active=true:", {
+        settingsData,
+        error: settingsError,
+        count,
+        status,
+      });
 
       if (settingsError || !settingsData) {
-        console.error("Error fetching PayU settings:", settingsError);
-        throw new Error("PayU settings not found for active environment");
+        console.error("Error fetching active PayU settings:", settingsError);
+        throw new Error("Active PayU settings not found (is_active=true)");
       }
 
+      console.log(
+        "[PayU] Using environment:",
+        settingsData.environment,
+        "All fields:",
+        settingsData,
+      );
       return settingsData;
     };
 
@@ -109,7 +113,7 @@ serve(async (req) => {
       // Generate hash using appropriate salt
       const saltToUse = payuSettings.salt_256bit || payuSettings.salt_32bit;
       const hashString = `${payuSettings.merchant_key}|${txnid}|${paymentRequest.amount}|${paymentRequest.productInfo}|${paymentRequest.customerName}|${paymentRequest.customerEmail}|||||||||||${saltToUse}`;
-      
+
       const hash = await crypto.subtle.digest(
         "SHA-512",
         new TextEncoder().encode(hashString),
@@ -119,7 +123,7 @@ serve(async (req) => {
         .join("");
 
       // Store payment transaction with support for both bookings and visa applications
-      const transactionData: any = {
+      const transactionData: Record<string, unknown> = {
         merchant_transaction_id: txnid,
         amount: paymentRequest.amount,
         customer_name: paymentRequest.customerName,
@@ -191,12 +195,15 @@ serve(async (req) => {
     const { payuResponse, merchantTransactionId } =
       requestBody as PaymentVerificationRequest;
 
-    console.log("Processing payment verification:", { payuResponse, merchantTransactionId });
+    console.log("Processing payment verification:", {
+      payuResponse,
+      merchantTransactionId,
+    });
 
     // Verify hash using appropriate salt
     const saltToUse = payuSettings.salt_256bit || payuSettings.salt_32bit;
     const reverseHashString = `${saltToUse}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
-    
+
     const reverseHash = await crypto.subtle.digest(
       "SHA-512",
       new TextEncoder().encode(reverseHashString),
@@ -283,7 +290,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("PayU payment processing error:", error);
-    
+
     try {
       const supabaseClient = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
@@ -297,16 +304,16 @@ serve(async (req) => {
     } catch (logError) {
       console.error("Failed to log error to DB:", logError);
     }
-    
-    return new Response(JSON.stringify({ 
-      success: false,
-      error: error.message || "Payment processing failed"
-    }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json",
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
-    });
+    );
   }
 });

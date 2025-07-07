@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Settings, Shield, AlertTriangle, CheckCircle } from "lucide-react";
@@ -14,7 +12,7 @@ import { Settings, Shield, AlertTriangle, CheckCircle } from "lucide-react";
 interface PaymentGatewaySettings {
   id: string;
   gateway_name: string;
-  environment: 'test' | 'live';
+  environment: "test" | "live";
   is_active: boolean;
   merchant_key: string;
   salt_32bit: string;
@@ -24,10 +22,29 @@ interface PaymentGatewaySettings {
   updated_at: string;
 }
 
+async function fetchActiveEnvironmentREST() {
+  const url = `${import.meta.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/system_settings?select=setting_value&setting_key=eq.payu_active_environment`;
+  const res = await fetch(url, {
+    headers: {
+      apikey:
+        import.meta.env.VITE_SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+    },
+    cache: "no-store",
+  });
+  const data = await res.json();
+  return data[0]?.setting_value;
+}
+
 const PayUGatewayManager = () => {
-  const [testSettings, setTestSettings] = useState<PaymentGatewaySettings | null>(null);
-  const [liveSettings, setLiveSettings] = useState<PaymentGatewaySettings | null>(null);
-  const [activeEnvironment, setActiveEnvironment] = useState<'test' | 'live'>('test');
+  const [testSettings, setTestSettings] =
+    useState<PaymentGatewaySettings | null>(null);
+  const [liveSettings, setLiveSettings] =
+    useState<PaymentGatewaySettings | null>(null);
+  const [activeEnvironment, setActiveEnvironment] = useState<"test" | "live">(
+    "test",
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -39,34 +56,31 @@ const PayUGatewayManager = () => {
     try {
       // Fetch payment gateway settings
       const { data: gatewaySettings, error: gatewayError } = await supabase
-        .from('payment_gateway_settings')
-        .select('*')
-        .eq('gateway_name', 'payu');
+        .from("payment_gateway_settings")
+        .select("*")
+        .eq("gateway_name", "payu");
 
       if (gatewayError) throw gatewayError;
 
       // Separate test and live settings
-      const testSetting = gatewaySettings?.find(s => s.environment === 'test');
-      const liveSetting = gatewaySettings?.find(s => s.environment === 'live');
+      const testSetting = gatewaySettings?.find(
+        (s) => s.environment === "test",
+      );
+      const liveSetting = gatewaySettings?.find(
+        (s) => s.environment === "live",
+      );
 
       setTestSettings(testSetting || null);
       setLiveSettings(liveSetting || null);
 
-      // Fetch active environment
-      const { data: systemSetting, error: systemError } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'payu_active_environment')
-        .single();
-
-      if (systemError) throw systemError;
-
-      if (systemSetting?.setting_value) {
-        const env = JSON.parse(systemSetting.setting_value as string);
-        setActiveEnvironment(env);
+      // Determine active environment from is_active
+      if (testSetting?.is_active) {
+        setActiveEnvironment("test");
+      } else if (liveSetting?.is_active) {
+        setActiveEnvironment("live");
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error("Error fetching settings:", error);
       toast({
         title: "Error",
         description: "Failed to load payment gateway settings",
@@ -77,25 +91,31 @@ const PayUGatewayManager = () => {
     }
   };
 
-  const updateSettings = async (environment: 'test' | 'live', data: Partial<PaymentGatewaySettings>) => {
+  const updateSettings = async (
+    environment: "test" | "live",
+    data: Partial<PaymentGatewaySettings>,
+    id?: string,
+  ) => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('payment_gateway_settings')
+      let query = supabase
+        .from("payment_gateway_settings")
         .update(data)
-        .eq('gateway_name', 'payu')
-        .eq('environment', environment);
-
+        .eq("gateway_name", "payu")
+        .eq("environment", environment);
+      if (id) {
+        query = query.eq("id", id);
+      }
+      const { data: updateData, error } = await query;
+      console.log("Update response:", updateData, error);
       if (error) throw error;
-
       toast({
         title: "Success",
         description: `${environment} mode settings updated successfully`,
       });
-
       await fetchSettings();
     } catch (error) {
-      console.error('Error updating settings:', error);
+      console.error("Error updating settings:", error);
       toast({
         title: "Error",
         description: "Failed to update settings",
@@ -106,42 +126,42 @@ const PayUGatewayManager = () => {
     }
   };
 
-  const switchEnvironment = async (newEnvironment: 'test' | 'live') => {
+  const switchEnvironment = async (newEnvironment: "test" | "live") => {
     setSaving(true);
     try {
-      // Update system setting
-      const { error: systemError } = await supabase
-        .from('system_settings')
-        .update({ setting_value: JSON.stringify(newEnvironment) })
-        .eq('setting_key', 'payu_active_environment');
-
-      if (systemError) throw systemError;
-
-      // Update is_active status for both environments
+      console.log("Switching environment to", newEnvironment);
       const { error: updateError } = await supabase
-        .from('payment_gateway_settings')
+        .from("payment_gateway_settings")
         .update({ is_active: false })
-        .eq('gateway_name', 'payu');
-
-      if (updateError) throw updateError;
+        .eq("gateway_name", "payu");
+      if (updateError) {
+        console.error(
+          "payment_gateway_settings deactivate error:",
+          updateError,
+        );
+        throw updateError;
+      }
 
       const { error: activateError } = await supabase
-        .from('payment_gateway_settings')
+        .from("payment_gateway_settings")
         .update({ is_active: true })
-        .eq('gateway_name', 'payu')
-        .eq('environment', newEnvironment);
+        .eq("gateway_name", "payu")
+        .eq("environment", newEnvironment);
+      if (activateError) {
+        console.error(
+          "payment_gateway_settings activate error:",
+          activateError,
+        );
+        throw activateError;
+      }
 
-      if (activateError) throw activateError;
-
-      setActiveEnvironment(newEnvironment);
+      await fetchSettings();
       toast({
         title: "Success",
         description: `Switched to ${newEnvironment} mode`,
       });
-
-      await fetchSettings();
     } catch (error) {
-      console.error('Error switching environment:', error);
+      console.error("Error switching environment:", error);
       toast({
         title: "Error",
         description: "Failed to switch environment",
@@ -152,20 +172,24 @@ const PayUGatewayManager = () => {
     }
   };
 
-  const SettingsForm = ({ 
-    settings, 
-    environment, 
-    onUpdate 
-  }: { 
-    settings: PaymentGatewaySettings | null; 
-    environment: 'test' | 'live';
+  const SettingsForm = ({
+    settings,
+    environment,
+    onUpdate,
+  }: {
+    settings: PaymentGatewaySettings | null;
+    environment: "test" | "live";
     onUpdate: (data: Partial<PaymentGatewaySettings>) => void;
   }) => {
     const [formData, setFormData] = useState({
-      merchant_key: settings?.merchant_key || '',
-      salt_32bit: settings?.salt_32bit || '',
-      salt_256bit: settings?.salt_256bit || '',
-      gateway_url: settings?.gateway_url || (environment === 'test' ? 'https://sandboxsecure.payu.in/_payment' : 'https://secure.payu.in/_payment')
+      merchant_key: settings?.merchant_key || "",
+      salt_32bit: settings?.salt_32bit || "",
+      salt_256bit: settings?.salt_256bit || "",
+      gateway_url:
+        settings?.gateway_url ||
+        (environment === "test"
+          ? "https://sandboxsecure.payu.in/_payment"
+          : "https://secure.payu.in/_payment"),
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -180,7 +204,9 @@ const PayUGatewayManager = () => {
           <Input
             id={`${environment}-merchant-key`}
             value={formData.merchant_key}
-            onChange={(e) => setFormData(prev => ({ ...prev, merchant_key: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, merchant_key: e.target.value }))
+            }
             placeholder="Enter merchant key"
             required
           />
@@ -191,20 +217,29 @@ const PayUGatewayManager = () => {
           <Input
             id={`${environment}-salt-32`}
             value={formData.salt_32bit}
-            onChange={(e) => setFormData(prev => ({ ...prev, salt_32bit: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, salt_32bit: e.target.value }))
+            }
             placeholder="Enter 32-bit salt"
             required
           />
         </div>
 
         <div>
-          <Label htmlFor={`${environment}-salt-256`}>Salt (256-bit) {environment === 'test' && <span className="text-gray-500">(Optional)</span>}</Label>
+          <Label htmlFor={`${environment}-salt-256`}>
+            Salt (256-bit){" "}
+            {environment === "test" && (
+              <span className="text-gray-500">(Optional)</span>
+            )}
+          </Label>
           <Input
             id={`${environment}-salt-256`}
             value={formData.salt_256bit}
-            onChange={(e) => setFormData(prev => ({ ...prev, salt_256bit: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, salt_256bit: e.target.value }))
+            }
             placeholder="Enter 256-bit salt"
-            required={environment === 'live'}
+            required={environment === "live"}
           />
         </div>
 
@@ -213,7 +248,9 @@ const PayUGatewayManager = () => {
           <Input
             id={`${environment}-gateway-url`}
             value={formData.gateway_url}
-            onChange={(e) => setFormData(prev => ({ ...prev, gateway_url: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, gateway_url: e.target.value }))
+            }
             placeholder="Gateway URL"
             required
           />
@@ -254,7 +291,7 @@ const PayUGatewayManager = () => {
         {/* Environment Switcher */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center gap-3">
-            {activeEnvironment === 'test' ? (
+            {activeEnvironment === "test" ? (
               <Shield className="w-5 h-5 text-orange-500" />
             ) : (
               <CheckCircle className="w-5 h-5 text-green-500" />
@@ -267,25 +304,47 @@ const PayUGatewayManager = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={activeEnvironment === 'test' ? 'secondary' : 'default'}>
+            <Badge
+              variant={activeEnvironment === "test" ? "secondary" : "default"}
+            >
               {activeEnvironment.toUpperCase()}
             </Badge>
             <div className="flex items-center gap-2">
               <Label htmlFor="environment-switch" className="text-sm">
-                {activeEnvironment === 'test' ? 'Switch to Live' : 'Switch to Test'}
+                {activeEnvironment === "test"
+                  ? "Switch to Live"
+                  : "Switch to Test"}
               </Label>
-              <Switch
+              {/* Custom Toggle Switch (not Radix, not old Switch) */}
+              <button
                 id="environment-switch"
-                checked={activeEnvironment === 'live'}
-                onCheckedChange={(checked) => switchEnvironment(checked ? 'live' : 'test')}
+                type="button"
+                role="switch"
+                aria-checked={activeEnvironment === "live"}
+                aria-label={
+                  activeEnvironment === "test"
+                    ? "Switch to Live"
+                    : "Switch to Test"
+                }
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 ${activeEnvironment === "live" ? "bg-primary" : "bg-input"} ${saving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                onClick={() =>
+                  !saving &&
+                  switchEnvironment(
+                    activeEnvironment === "test" ? "live" : "test",
+                  )
+                }
                 disabled={saving}
-              />
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${activeEnvironment === "live" ? "translate-x-5" : "translate-x-0"}`}
+                />
+              </button>
             </div>
           </div>
         </div>
 
         {/* Warning for Live Mode */}
-        {activeEnvironment === 'live' && (
+        {activeEnvironment === "live" && (
           <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
             <AlertTriangle className="w-5 h-5 text-red-500" />
             <p className="text-sm text-red-700">
@@ -295,31 +354,48 @@ const PayUGatewayManager = () => {
         )}
 
         {/* Settings Tabs */}
-        <Tabs defaultValue="test" className="w-full">
+        <Tabs
+          value={activeEnvironment}
+          className="w-full"
+          onValueChange={() => {}}
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="test" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Test Mode
-              {testSettings?.is_active && <Badge variant="secondary" className="ml-1">Active</Badge>}
+              {testSettings?.is_active && (
+                <Badge variant="secondary" className="ml-1">
+                  Active
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="live" className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4" />
               Live Mode
-              {liveSettings?.is_active && <Badge variant="default" className="ml-1">Active</Badge>}
+              {liveSettings?.is_active && (
+                <Badge variant="default" className="ml-1">
+                  Active
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="test" className="space-y-4">
             <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <h4 className="font-medium text-orange-800">Test Mode Settings</h4>
+              <h4 className="font-medium text-orange-800">
+                Test Mode Settings
+              </h4>
               <p className="text-sm text-orange-700">
-                Use these settings for testing payments. No real money will be charged.
+                Use these settings for testing payments. No real money will be
+                charged.
               </p>
             </div>
             <SettingsForm
               settings={testSettings}
               environment="test"
-              onUpdate={(data) => updateSettings('test', data)}
+              onUpdate={(data) =>
+                updateSettings("test", data, testSettings?.id)
+              }
             />
           </TabsContent>
 
@@ -327,14 +403,17 @@ const PayUGatewayManager = () => {
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
               <h4 className="font-medium text-red-800">Live Mode Settings</h4>
               <p className="text-sm text-red-700">
-                Use these settings for live payments. Real money will be charged.
-                Make sure to test thoroughly before switching to live mode.
+                Use these settings for live payments. Real money will be
+                charged. Make sure to test thoroughly before switching to live
+                mode.
               </p>
             </div>
             <SettingsForm
               settings={liveSettings}
               environment="live"
-              onUpdate={(data) => updateSettings('live', data)}
+              onUpdate={(data) =>
+                updateSettings("live", data, liveSettings?.id)
+              }
             />
           </TabsContent>
         </Tabs>

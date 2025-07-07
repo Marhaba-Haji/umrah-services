@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import UmrahVisaPayment from "../components/UmrahVisaPayment";
 import { format, addDays, parseISO, isAfter, isBefore } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 interface VisaOption {
   visa_category?: string;
@@ -36,9 +38,9 @@ interface VisaOption {
 }
 
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c == "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -112,10 +114,117 @@ const UmrahApplication = () => {
     { number: 4, title: "Payment", icon: CreditCard },
   ];
 
+  // Sort nationalityOptions alphabetically, but keep India on top
+  const baseNationalities = [
+    // Europe
+    "Albania",
+    "Andorra",
+    "Armenia",
+    "Austria",
+    "Azerbaijan",
+    "Belarus",
+    "Belgium",
+    "Bosnia and Herzegovina",
+    "Bulgaria",
+    "Croatia",
+    "Cyprus",
+    "Czech Republic",
+    "Denmark",
+    "Estonia",
+    "Finland",
+    "France",
+    "Georgia",
+    "Germany",
+    "Greece",
+    "Hungary",
+    "Iceland",
+    "Ireland",
+    "Italy",
+    "Kazakhstan",
+    "Kosovo",
+    "Latvia",
+    "Liechtenstein",
+    "Lithuania",
+    "Luxembourg",
+    "Malta",
+    "Moldova",
+    "Monaco",
+    "Montenegro",
+    "Netherlands",
+    "North Macedonia",
+    "Norway",
+    "Poland",
+    "Portugal",
+    "Romania",
+    "Russia",
+    "San Marino",
+    "Serbia",
+    "Slovakia",
+    "Slovenia",
+    "Spain",
+    "Sweden",
+    "Switzerland",
+    "Turkey",
+    "Ukraine",
+    "United Kingdom",
+    // Americas
+    "Antigua and Barbuda",
+    "Argentina",
+    "Bahamas",
+    "Barbados",
+    "Belize",
+    "Bolivia",
+    "Brazil",
+    "Canada",
+    "Chile",
+    "Colombia",
+    "Costa Rica",
+    "Cuba",
+    "Dominica",
+    "Dominican Republic",
+    "Ecuador",
+    "El Salvador",
+    "Grenada",
+    "Guatemala",
+    "Guyana",
+    "Haiti",
+    "Honduras",
+    "Jamaica",
+    "Mexico",
+    "Nicaragua",
+    "Panama",
+    "Paraguay",
+    "Peru",
+    "Saint Kitts and Nevis",
+    "Saint Lucia",
+    "Saint Vincent and the Grenadines",
+    "Suriname",
+    "Trinidad and Tobago",
+    "United States",
+    "Uruguay",
+    "Venezuela",
+    // Asia (special)
+    "Indonesia",
+    "Malaysia",
+    "Turkey",
+    "Pakistan",
+    "Bangladesh",
+  ];
+  const sortedNationalities = baseNationalities
+    .filter((n) => n !== "India")
+    .sort();
+  const nationalityOptions = ["India", ...sortedNationalities];
+
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
   const renderStep1 = () => (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Personal Information</h3>
-      
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        Personal Information
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -124,12 +233,14 @@ const UmrahApplication = () => {
           <Input
             type="text"
             value={travelers[currentTraveler].firstName}
-            onChange={(e) => handleTravelerInputChange("firstName", e.target.value)}
+            onChange={(e) =>
+              handleTravelerInputChange("firstName", e.target.value)
+            }
             className={fieldErrors.firstName ? "border-red-500" : ""}
             placeholder="Enter first name"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Last Name *
@@ -137,34 +248,52 @@ const UmrahApplication = () => {
           <Input
             type="text"
             value={travelers[currentTraveler].lastName}
-            onChange={(e) => handleTravelerInputChange("lastName", e.target.value)}
+            onChange={(e) =>
+              handleTravelerInputChange("lastName", e.target.value)
+            }
             className={fieldErrors.lastName ? "border-red-500" : ""}
             placeholder="Enter last name"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Nationality *
           </label>
-          <Input
-            type="text"
-            value={travelers[currentTraveler].nationality}
-            onChange={(e) => handleTravelerInputChange("nationality", e.target.value)}
-            className={fieldErrors.nationality ? "border-red-500" : ""}
-            placeholder="Enter nationality"
-          />
+          <Select
+            value={travelers[currentTraveler].nationality || "India"}
+            onValueChange={(value) =>
+              handleTravelerInputChange("nationality", value)
+            }
+          >
+            <SelectTrigger
+              className={fieldErrors.nationality ? "border-red-500" : ""}
+            >
+              <SelectValue placeholder="Select nationality" />
+            </SelectTrigger>
+            <SelectContent>
+              {nationalityOptions.map((nat, idx) => (
+                <SelectItem key={nat + idx} value={nat}>
+                  {nat}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Gender *
           </label>
           <Select
             value={travelers[currentTraveler].gender}
-            onValueChange={(value) => handleTravelerInputChange("gender", value)}
+            onValueChange={(value) =>
+              handleTravelerInputChange("gender", value)
+            }
           >
-            <SelectTrigger className={fieldErrors.gender ? "border-red-500" : ""}>
+            <SelectTrigger
+              className={fieldErrors.gender ? "border-red-500" : ""}
+            >
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
             <SelectContent>
@@ -173,7 +302,7 @@ const UmrahApplication = () => {
             </SelectContent>
           </Select>
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Passport Number *
@@ -181,52 +310,113 @@ const UmrahApplication = () => {
           <Input
             type="text"
             value={travelers[currentTraveler].passportNumber}
-            onChange={(e) => handleTravelerInputChange("passportNumber", e.target.value)}
+            onChange={(e) =>
+              handleTravelerInputChange("passportNumber", e.target.value)
+            }
             className={fieldErrors.passportNumber ? "border-red-500" : ""}
             placeholder="Enter passport number"
           />
         </div>
-        
-        <div>
+
+        <div className="w-full">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Date of Birth *
           </label>
-          <Input
-            type="date"
-            value={travelers[currentTraveler].dateOfBirth}
-            onChange={(e) => handleTravelerInputChange("dateOfBirth", e.target.value)}
-            className={fieldErrors.dateOfBirth ? "border-red-500" : ""}
+          <DatePicker
+            selected={
+              travelers[currentTraveler].dateOfBirth
+                ? new Date(travelers[currentTraveler].dateOfBirth)
+                : null
+            }
+            onChange={(date) =>
+              handleTravelerInputChange(
+                "dateOfBirth",
+                date ? date.toISOString().split("T")[0] : "",
+              )
+            }
+            className={`w-full h-10 ${fieldErrors.dateOfBirth ? "border-red-500" : ""}`}
+            maxDate={yesterday}
+            showMonthDropdown
+            showYearDropdown
+            dropdownMode="select"
+            placeholderText="Select date of birth"
+            dateFormat="yyyy-MM-dd"
+            customInput={
+              <Input
+                className={`w-full h-10 ${fieldErrors.dateOfBirth ? "border-red-500" : ""}`}
+              />
+            }
           />
-          {dateError && <p className="text-sm text-red-500 mt-1">{dateError}</p>}
+          {dateError && (
+            <p className="text-sm text-red-500 mt-1">{dateError}</p>
+          )}
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Passport Issue Date *
           </label>
-          <Input
-            type="date"
-            value={travelers[currentTraveler].passportIssue}
-            onChange={(e) => handleTravelerInputChange("passportIssue", e.target.value)}
-            className={fieldErrors.passportIssue ? "border-red-500" : ""}
+          <DatePicker
+            selected={
+              travelers[currentTraveler].passportIssue
+                ? new Date(travelers[currentTraveler].passportIssue)
+                : null
+            }
+            onChange={(date) =>
+              handleTravelerInputChange(
+                "passportIssue",
+                date ? date.toISOString().split("T")[0] : "",
+              )
+            }
+            className={`w-full h-10 ${fieldErrors.passportIssue ? "border-red-500" : ""}`}
+            maxDate={today}
+            showMonthDropdown
+            showYearDropdown
+            dropdownMode="select"
+            placeholderText="Select passport issue date"
+            dateFormat="yyyy-MM-dd"
+            customInput={
+              <Input
+                className={`w-full h-10 ${fieldErrors.passportIssue ? "border-red-500" : ""}`}
+              />
+            }
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Passport Expiry Date *
           </label>
-          <Input
-            type="date"
-            value={travelers[currentTraveler].passportExpiry}
-            onChange={(e) => handleTravelerInputChange("passportExpiry", e.target.value)}
-            className={fieldErrors.passportExpiry ? "border-red-500" : ""}
+          <DatePicker
+            selected={
+              travelers[currentTraveler].passportExpiry
+                ? new Date(travelers[currentTraveler].passportExpiry)
+                : null
+            }
+            onChange={(date) =>
+              handleTravelerInputChange(
+                "passportExpiry",
+                date ? date.toISOString().split("T")[0] : "",
+              )
+            }
+            className={`w-full h-10 ${fieldErrors.passportExpiry ? "border-red-500" : ""}`}
+            minDate={minExpiry}
+            showMonthDropdown
+            showYearDropdown
+            dropdownMode="select"
+            placeholderText="Select passport expiry date"
+            dateFormat="yyyy-MM-dd"
+            customInput={
+              <Input
+                className={`w-full h-10 ${fieldErrors.passportExpiry ? "border-red-500" : ""}`}
+              />
+            }
           />
           {passportExpiryAlert && (
             <p className="text-sm text-red-500 mt-1">{passportExpiryAlert}</p>
           )}
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Phone Number *
@@ -239,7 +429,7 @@ const UmrahApplication = () => {
             placeholder="Enter phone number"
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Email
@@ -252,7 +442,7 @@ const UmrahApplication = () => {
           />
         </div>
       </div>
-      
+
       {passportDateError && (
         <p className="text-sm text-red-500">{passportDateError}</p>
       )}
@@ -261,61 +451,115 @@ const UmrahApplication = () => {
 
   const renderStep2 = () => (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Travel Details</h3>
-      
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        Travel Details
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Departure Date *
           </label>
-          <Input
-            type="date"
-            value={travelers[currentTraveler].departureDate}
-            onChange={(e) => handleTravelerInputChange("departureDate", e.target.value)}
-            className={fieldErrors.departureDate ? "border-red-500" : ""}
+          <DatePicker
+            selected={
+              travelers[currentTraveler].departureDate
+                ? new Date(travelers[currentTraveler].departureDate)
+                : null
+            }
+            onChange={(date) =>
+              handleTravelerInputChange(
+                "departureDate",
+                date ? date.toISOString().split("T")[0] : "",
+              )
+            }
+            className={`w-full h-10 ${fieldErrors.departureDate ? "border-red-500" : ""}`}
+            minDate={tomorrow}
+            showMonthDropdown
+            showYearDropdown
+            dropdownMode="select"
+            placeholderText="Select departure date"
+            dateFormat="yyyy-MM-dd"
+            customInput={
+              <Input
+                className={`w-full h-10 ${fieldErrors.departureDate ? "border-red-500" : ""}`}
+              />
+            }
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Return Date *
           </label>
-          <Input
-            type="date"
-            value={travelers[currentTraveler].returnDate}
-            onChange={(e) => handleTravelerInputChange("returnDate", e.target.value)}
-            className={fieldErrors.returnDate ? "border-red-500" : ""}
+          <DatePicker
+            selected={
+              travelers[currentTraveler].returnDate
+                ? new Date(travelers[currentTraveler].returnDate)
+                : null
+            }
+            onChange={(date) =>
+              handleTravelerInputChange(
+                "returnDate",
+                date ? date.toISOString().split("T")[0] : "",
+              )
+            }
+            className={`w-full h-10 ${fieldErrors.returnDate ? "border-red-500" : ""}`}
+            minDate={
+              travelers[currentTraveler].departureDate
+                ? new Date(travelers[currentTraveler].departureDate)
+                : tomorrow
+            }
+            showMonthDropdown
+            showYearDropdown
+            dropdownMode="select"
+            placeholderText="Select return date"
+            dateFormat="yyyy-MM-dd"
+            customInput={
+              <Input
+                className={`w-full h-10 ${fieldErrors.returnDate ? "border-red-500" : ""}`}
+              />
+            }
           />
         </div>
-        
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Transport Type *
+            Transport Type *{" "}
+            <span className="text-xs text-gray-500">(charged extra*)</span>
           </label>
           <Select
             value={travelers[currentTraveler].transportType}
-            onValueChange={(value) => handleTravelerInputChange("transportType", value)}
+            onValueChange={(value) =>
+              handleTravelerInputChange("transportType", value)
+            }
           >
-            <SelectTrigger className={fieldErrors.transportType ? "border-red-500" : ""}>
+            <SelectTrigger
+              className={fieldErrors.transportType ? "border-red-500" : ""}
+            >
               <SelectValue placeholder="Select transport type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="flight">Flight</SelectItem>
-              <SelectItem value="bus">Bus</SelectItem>
-              <SelectItem value="car">Car</SelectItem>
+              <SelectItem value="sedan">Sedan (3 pax)</SelectItem>
+              <SelectItem value="h1">H1 (5 pax)</SelectItem>
+              <SelectItem value="gmc">GMC (7 pax)</SelectItem>
+              <SelectItem value="hiace">Hiace (10 pax)</SelectItem>
+              <SelectItem value="coaster">Coaster (20 pax)</SelectItem>
+              <SelectItem value="haramain-train">Haramain Train</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
-      
+
       {dateError && <p className="text-sm text-red-500">{dateError}</p>}
     </div>
   );
 
   const renderStep3 = () => (
     <div className="space-y-6">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Document Upload</h3>
-      
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        Document Upload
+      </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
           { key: "passportFront", label: "Passport Front Page *" },
@@ -332,7 +576,9 @@ const UmrahApplication = () => {
             <Input
               type="file"
               accept="image/*,.pdf"
-              onChange={(e) => handleImageUpload(key, e.target.files?.[0] || null)}
+              onChange={(e) =>
+                handleImageUpload(key, e.target.files?.[0] || null)
+              }
               className={fieldErrors[key] ? "border-red-500" : ""}
             />
             {uploadErrors[key] && (
@@ -341,7 +587,9 @@ const UmrahApplication = () => {
             {uploadPreviews[key] && (
               <div className="mt-2">
                 {isPdf(uploadPreviews[key]) ? (
-                  <p className="text-sm text-green-600">PDF uploaded successfully</p>
+                  <p className="text-sm text-green-600">
+                    PDF uploaded successfully
+                  </p>
                 ) : (
                   <img
                     src={uploadPreviews[key]}
@@ -411,12 +659,12 @@ const UmrahApplication = () => {
                 setCustomerId(cid);
                 localStorage.setItem("customer_id", cid);
               }
-              
+
               const t = travelers[currentTraveler];
-              
+
               // Upload files first
               const fileUrls = await uploadAllFiles();
-              
+
               const payload = {
                 customer_id: cid,
                 first_name: t.firstName,
@@ -436,7 +684,7 @@ const UmrahApplication = () => {
                 status: "pending",
                 ...fileUrls, // Add file URLs
               };
-              
+
               if (applicationId) {
                 // Update existing application
                 const { data, error } = await supabase
@@ -463,7 +711,7 @@ const UmrahApplication = () => {
                 }
               }
               throw new Error("Failed to create visa application");
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error("Error saving application:", error);
               throw error;
             }
@@ -472,7 +720,8 @@ const UmrahApplication = () => {
             // This should only be called after actual payment success from PayU
             toast({
               title: "Payment Successful!",
-              description: "Your visa application has been submitted and payment completed successfully. You will receive a confirmation email shortly.",
+              description:
+                "Your visa application has been submitted and payment completed successfully. You will receive a confirmation email shortly.",
             });
           }}
         />
@@ -492,7 +741,9 @@ const UmrahApplication = () => {
       if (data) {
         const order = ["Standard", "Premium", "Express"];
         setVisaOptions(
-          order.map((cat) => data.find((v) => v.visa_category === cat)).filter(Boolean),
+          order
+            .map((cat) => data.find((v) => v.visa_category === cat))
+            .filter(Boolean),
         );
       } else {
         setVisaOptions([]);
@@ -504,35 +755,35 @@ const UmrahApplication = () => {
 
   const uploadAllFiles = async () => {
     const fileUrls: Record<string, string> = {};
-    
+
     for (const [key, file] of Object.entries(uploadedFiles)) {
       if (file) {
         try {
-          const fileName = `${customerId}_${Date.now()}_${key}.${file.name.split('.').pop()}`;
+          const fileName = `${customerId}_${Date.now()}_${key}.${file.name.split(".").pop()}`;
           const { data, error } = await supabase.storage
-            .from('visa-applications')
+            .from("visa-applications")
             .upload(fileName, file);
-          
+
           if (error) {
             console.error(`Error uploading ${key}:`, error);
             throw new Error(`Failed to upload ${key}`);
           }
-          
+
           // Get public URL
           const { data: urlData } = supabase.storage
-            .from('visa-applications')
+            .from("visa-applications")
             .getPublicUrl(fileName);
-          
+
           // Map to database column names
           const columnMap: Record<string, string> = {
-            passportFront: 'passport_front_url',
-            passportBack: 'passport_back_url',
-            photo: 'photo_url',
-            flight: 'flight_url',
-            makkahHotel: 'makkah_hotel_url',
-            madinahHotel: 'madinah_hotel_url',
+            passportFront: "passport_front_url",
+            passportBack: "passport_back_url",
+            photo: "photo_url",
+            flight: "flight_url",
+            makkahHotel: "makkah_hotel_url",
+            madinahHotel: "madinah_hotel_url",
           };
-          
+
           fileUrls[columnMap[key]] = urlData.publicUrl;
         } catch (error) {
           console.error(`Error processing ${key}:`, error);
@@ -540,7 +791,7 @@ const UmrahApplication = () => {
         }
       }
     }
-    
+
     return fileUrls;
   };
 
@@ -553,7 +804,7 @@ const UmrahApplication = () => {
       };
       return updated;
     });
-    
+
     if (field === "passportIssue" || field === "passportExpiry") {
       const issue =
         field === "passportIssue"
@@ -574,9 +825,11 @@ const UmrahApplication = () => {
       setPassportDateError(dateError);
       if (expiry) {
         const expiryDate = new Date(expiry);
+        const minExpiry = new Date(today);
+        minExpiry.setDate(today.getDate() + 181);
         const diffDays =
           (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        if (diffDays < 181) {
+        if (expiryDate < minExpiry) {
           setPassportExpiryAlert(
             "Passport expiry date must be at least 181 days from today!",
           );
@@ -590,8 +843,10 @@ const UmrahApplication = () => {
     if (field === "dateOfBirth") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (value && new Date(value) > today) {
-        setDateError("Date of birth cannot be after today.");
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      if (value && new Date(value) >= today) {
+        setDateError("Date of birth must be at least 1 day before today.");
       } else {
         setDateError("");
       }
@@ -647,13 +902,13 @@ const UmrahApplication = () => {
       return;
     }
     setUploadErrors((prev) => ({ ...prev, [field]: "" }));
-    
+
     // Store the actual file
     setUploadedFiles((prev) => ({
       ...prev,
       [field]: file,
     }));
-    
+
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -679,13 +934,12 @@ const UmrahApplication = () => {
   const validateCurrentStep = () => {
     const errors: Record<string, boolean> = {};
     let hasError = false;
-    
+
     if (currentStep === 1) {
       const t = travelers[currentTraveler];
       [
         "firstName",
         "lastName",
-        "nationality",
         "gender",
         "passportNumber",
         "passportIssue",
@@ -698,10 +952,13 @@ const UmrahApplication = () => {
           hasError = true;
         }
       });
+      if (!t.nationality) {
+        travelers[currentTraveler].nationality = "India";
+      }
       if (passportDateError || passportExpiryAlert || dateError)
         hasError = true;
     }
-    
+
     if (currentStep === 2) {
       const t = travelers[currentTraveler];
       ["departureDate", "returnDate", "transportType"].forEach((f) => {
@@ -712,7 +969,7 @@ const UmrahApplication = () => {
       });
       if (dateError) hasError = true;
     }
-    
+
     if (currentStep === 3) {
       [
         "passportFront",
@@ -729,7 +986,7 @@ const UmrahApplication = () => {
       });
       if (Object.values(uploadErrors).some(Boolean)) hasError = true;
     }
-    
+
     setFieldErrors(errors);
     if (hasError) {
       toast({
@@ -776,11 +1033,11 @@ const UmrahApplication = () => {
             .eq("phone", phone)
             .limit(1)
             .maybeSingle();
-          
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error fetching customer:', error);
+
+          if (error && error.code !== "PGRST116") {
+            console.error("Error fetching customer:", error);
           }
-          
+
           if (data && data.customer_id) {
             cid = data.customer_id;
           } else {
@@ -788,7 +1045,7 @@ const UmrahApplication = () => {
           }
           localStorage.setItem("customer_id", cid);
         } catch (error) {
-          console.error('Error with customer lookup:', error);
+          console.error("Error with customer lookup:", error);
           cid = generateUUID();
           localStorage.setItem("customer_id", cid);
         }
@@ -812,6 +1069,11 @@ const UmrahApplication = () => {
   const totalVisaPrice = selectedVisaPrice * travelerCount;
 
   const isPdf = (dataUrl: string) => dataUrl.startsWith("data:application/pdf");
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const minExpiry = new Date(today);
+  minExpiry.setDate(today.getDate() + 181);
 
   return (
     <div className="min-h-screen bg-gray-50">

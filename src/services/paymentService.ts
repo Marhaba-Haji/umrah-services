@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface PaymentRequest {
@@ -13,7 +12,7 @@ interface PaymentRequest {
 
 interface PaymentResponse {
   success: boolean;
-  paymentData?: any;
+  paymentData?: Record<string, string>;
   payuUrl?: string;
   transactionId?: string;
   error?: string;
@@ -25,7 +24,7 @@ export const initiatePayment = async (
   try {
     const currentUrl = window.location.origin;
     const successUrl = `${currentUrl}/payment-success`;
-    const failureUrl = `${currentUrl}/payment-failure`;
+    const failureUrl = `${currentUrl}/payment/failure`;
 
     const { data, error } = await supabase.functions.invoke(
       "payu-payment-process",
@@ -40,6 +39,20 @@ export const initiatePayment = async (
 
     if (error) {
       console.error("Payment initiation error:", error);
+      if (error.response && typeof error.response.json === "function") {
+        error.response
+          .json()
+          .then((errBody) => {
+            console.error("Edge Function error body:", errBody);
+          })
+          .catch((e) => {
+            console.error("Failed to parse error response body:", e);
+          });
+      } else if (error.data) {
+        console.error("Edge Function error data:", error.data);
+      } else {
+        console.error("Edge Function error (raw):", error);
+      }
       return {
         success: false,
         error: error.message || "Failed to initiate payment",
@@ -56,7 +69,10 @@ export const initiatePayment = async (
   }
 };
 
-export const redirectToPayU = (paymentData: any, payuUrl: string) => {
+export const redirectToPayU = (
+  paymentData: Record<string, string>,
+  payuUrl: string,
+) => {
   const form = document.createElement("form");
   form.method = "POST";
   form.action = payuUrl;
@@ -74,7 +90,10 @@ export const redirectToPayU = (paymentData: any, payuUrl: string) => {
   form.submit();
 };
 
-export const verifyPayment = async (payuResponse: any, merchantTransactionId: string) => {
+export const verifyPayment = async (
+  payuResponse: Record<string, string>,
+  merchantTransactionId: string,
+) => {
   try {
     const { data, error } = await supabase.functions.invoke(
       "payu-payment-process",
