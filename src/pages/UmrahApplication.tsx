@@ -71,6 +71,14 @@ const UmrahApplication = () => {
   const [passportExpiryAlert, setPassportExpiryAlert] = useState("");
   const [dateError, setDateError] = useState("");
   const MAX_IMAGE_SIZE_MB = 2;
+  const [uploadedFiles, setUploadedFiles] = useState({
+    passportFront: null as File | null,
+    passportBack: null as File | null,
+    photo: null as File | null,
+    flight: null as File | null,
+    makkahHotel: null as File | null,
+    madinahHotel: null as File | null,
+  });
   const [uploadPreviews, setUploadPreviews] = useState({
     passportFront: "",
     passportBack: "",
@@ -396,34 +404,39 @@ const UmrahApplication = () => {
           }
           visaApplicationId={applicationId}
           onProceedToPayment={async () => {
-            let cid = customerId;
-            if (!cid) {
-              cid = generateUUID();
-              setCustomerId(cid);
-              localStorage.setItem("customer_id", cid);
-            }
-            
-            const t = travelers[currentTraveler];
-            const payload = {
-              customer_id: cid,
-              first_name: t.firstName,
-              last_name: t.lastName,
-              nationality: t.nationality,
-              passport_number: t.passportNumber,
-              passport_issue: t.passportIssue,
-              passport_expiry: t.passportExpiry,
-              date_of_birth: t.dateOfBirth,
-              gender: t.gender,
-              email: t.email,
-              phone: t.phone,
-              departure_date: t.departureDate,
-              return_date: t.returnDate,
-              transport_type: t.transportType,
-              visa_type: visaType,
-              status: "pending",
-            };
-            
             try {
+              let cid = customerId;
+              if (!cid) {
+                cid = generateUUID();
+                setCustomerId(cid);
+                localStorage.setItem("customer_id", cid);
+              }
+              
+              const t = travelers[currentTraveler];
+              
+              // Upload files first
+              const fileUrls = await uploadAllFiles();
+              
+              const payload = {
+                customer_id: cid,
+                first_name: t.firstName,
+                last_name: t.lastName,
+                nationality: t.nationality,
+                passport_number: t.passportNumber,
+                passport_issue: t.passportIssue,
+                passport_expiry: t.passportExpiry,
+                date_of_birth: t.dateOfBirth,
+                gender: t.gender,
+                email: t.email,
+                phone: t.phone,
+                departure_date: t.departureDate,
+                return_date: t.returnDate,
+                transport_type: t.transportType,
+                visa_type: visaType,
+                status: "pending",
+                ...fileUrls, // Add file URLs
+              };
+              
               if (applicationId) {
                 // Update existing application
                 const { data, error } = await supabase
@@ -456,6 +469,7 @@ const UmrahApplication = () => {
             }
           }}
           onPaymentSuccess={() => {
+            // This should only be called after actual payment success from PayU
             toast({
               title: "Payment Successful!",
               description: "Your visa application has been submitted and payment completed successfully. You will receive a confirmation email shortly.",
@@ -487,6 +501,48 @@ const UmrahApplication = () => {
     }
     fetchVisaOptions();
   }, []);
+
+  const uploadAllFiles = async () => {
+    const fileUrls: Record<string, string> = {};
+    
+    for (const [key, file] of Object.entries(uploadedFiles)) {
+      if (file) {
+        try {
+          const fileName = `${customerId}_${Date.now()}_${key}.${file.name.split('.').pop()}`;
+          const { data, error } = await supabase.storage
+            .from('visa-applications')
+            .upload(fileName, file);
+          
+          if (error) {
+            console.error(`Error uploading ${key}:`, error);
+            throw new Error(`Failed to upload ${key}`);
+          }
+          
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('visa-applications')
+            .getPublicUrl(fileName);
+          
+          // Map to database column names
+          const columnMap: Record<string, string> = {
+            passportFront: 'passport_front_url',
+            passportBack: 'passport_back_url',
+            photo: 'photo_url',
+            flight: 'flight_url',
+            makkahHotel: 'makkah_hotel_url',
+            madinahHotel: 'madinah_hotel_url',
+          };
+          
+          fileUrls[columnMap[key]] = urlData.publicUrl;
+        } catch (error) {
+          console.error(`Error processing ${key}:`, error);
+          throw error;
+        }
+      }
+    }
+    
+    return fileUrls;
+  };
 
   const handleTravelerInputChange = (field: string, value: string) => {
     setTravelers((prev) => {
@@ -591,6 +647,14 @@ const UmrahApplication = () => {
       return;
     }
     setUploadErrors((prev) => ({ ...prev, [field]: "" }));
+    
+    // Store the actual file
+    setUploadedFiles((prev) => ({
+      ...prev,
+      [field]: file,
+    }));
+    
+    // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
       setUploadPreviews((prev) => ({
@@ -658,7 +722,7 @@ const UmrahApplication = () => {
         "makkahHotel",
         "madinahHotel",
       ].forEach((f) => {
-        if (!uploadPreviews[f]) {
+        if (!uploadedFiles[f]) {
           errors[f] = true;
           hasError = true;
         }

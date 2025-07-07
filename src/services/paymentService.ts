@@ -74,14 +74,14 @@ export const redirectToPayU = (paymentData: any, payuUrl: string) => {
   form.submit();
 };
 
-export const verifyPayment = async (payuResponse: any) => {
+export const verifyPayment = async (payuResponse: any, merchantTransactionId: string) => {
   try {
     const { data, error } = await supabase.functions.invoke(
       "payu-payment-process",
       {
         body: {
           payuResponse,
-          merchantTransactionId: payuResponse.txnid,
+          merchantTransactionId,
         },
       },
     );

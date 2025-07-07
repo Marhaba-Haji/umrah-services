@@ -62,10 +62,7 @@ const UmrahVisaPayment: React.FC<UmrahVisaPaymentProps> = ({
 
   const handlePaymentSuccess = () => {
     setShowCheckout(false);
-    toast({
-      title: "Payment Successful",
-      description: "Your visa application payment has been completed successfully.",
-    });
+    // Only show success toast after actual payment completion from PayU
     if (onPaymentSuccess) {
       onPaymentSuccess();
     }
