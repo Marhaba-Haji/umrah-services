@@ -26,6 +26,13 @@ interface PaymentVerificationRequest {
   merchantTransactionId: string;
 }
 
+interface PayUSettings {
+  merchant_key: string;
+  salt_32bit: string;
+  salt_256bit?: string;
+  gateway_url: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -53,12 +60,42 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const payuMerchantKey = Deno.env.get("PAYU_MERCHANT_KEY");
-    const payuSalt = Deno.env.get("PAYU_SALT");
+    // Get active PayU settings from database
+    const getPayUSettings = async (): Promise<PayUSettings> => {
+      // First get active environment
+      const { data: envData, error: envError } = await supabaseClient
+        .from("system_settings")
+        .select("setting_value")
+        .eq("setting_key", "payu_active_environment")
+        .single();
 
-    if (!payuMerchantKey || !payuSalt) {
-      throw new Error("PayU credentials not configured");
-    }
+      if (envError) {
+        console.error("Error fetching active environment:", envError);
+        throw new Error("Failed to get active environment");
+      }
+
+      const activeEnvironment = JSON.parse(envData.setting_value as string);
+      console.log("Active environment:", activeEnvironment);
+
+      // Get settings for active environment
+      const { data: settingsData, error: settingsError } = await supabaseClient
+        .from("payment_gateway_settings")
+        .select("merchant_key, salt_32bit, salt_256bit, gateway_url")
+        .eq("gateway_name", "payu")
+        .eq("environment", activeEnvironment)
+        .eq("is_active", true)
+        .single();
+
+      if (settingsError || !settingsData) {
+        console.error("Error fetching PayU settings:", settingsError);
+        throw new Error("PayU settings not found for active environment");
+      }
+
+      return settingsData;
+    };
+
+    const payuSettings = await getPayUSettings();
+    console.log("Using PayU settings for environment");
 
     // Handle payment initiation
     if (!requestBody.payuResponse) {
@@ -69,8 +106,10 @@ serve(async (req) => {
       // Generate transaction ID
       const txnid = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // Generate hash
-      const hashString = `${payuMerchantKey}|${txnid}|${paymentRequest.amount}|${paymentRequest.productInfo}|${paymentRequest.customerName}|${paymentRequest.customerEmail}|||||||||||${payuSalt}`;
+      // Generate hash using appropriate salt
+      const saltToUse = payuSettings.salt_256bit || payuSettings.salt_32bit;
+      const hashString = `${payuSettings.merchant_key}|${txnid}|${paymentRequest.amount}|${paymentRequest.productInfo}|${paymentRequest.customerName}|${paymentRequest.customerEmail}|||||||||||${saltToUse}`;
+      
       const hash = await crypto.subtle.digest(
         "SHA-512",
         new TextEncoder().encode(hashString),
@@ -119,7 +158,7 @@ serve(async (req) => {
       console.log("Transaction created successfully:", transaction);
 
       const paymentData = {
-        key: payuMerchantKey,
+        key: payuSettings.merchant_key,
         txnid: txnid,
         amount: paymentRequest.amount.toString(),
         productinfo: paymentRequest.productInfo,
@@ -137,7 +176,7 @@ serve(async (req) => {
           success: true,
           paymentData,
           transactionId: transaction.id,
-          payuUrl: "https://sandboxsecure.payu.in/_payment", // Use production URL for live
+          payuUrl: payuSettings.gateway_url,
         }),
         {
           headers: {
@@ -154,8 +193,10 @@ serve(async (req) => {
 
     console.log("Processing payment verification:", { payuResponse, merchantTransactionId });
 
-    // Verify hash
-    const reverseHashString = `${payuSalt}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
+    // Verify hash using appropriate salt
+    const saltToUse = payuSettings.salt_256bit || payuSettings.salt_32bit;
+    const reverseHashString = `${saltToUse}|${payuResponse.status}|||||||||||${payuResponse.email}|${payuResponse.firstname}|${payuResponse.productinfo}|${payuResponse.amount}|${payuResponse.txnid}|${payuResponse.key}`;
+    
     const reverseHash = await crypto.subtle.digest(
       "SHA-512",
       new TextEncoder().encode(reverseHashString),

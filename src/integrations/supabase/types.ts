@@ -1130,6 +1130,45 @@ export type Database = {
           },
         ]
       }
+      payment_gateway_settings: {
+        Row: {
+          created_at: string | null
+          environment: string
+          gateway_name: string
+          gateway_url: string
+          id: string
+          is_active: boolean
+          merchant_key: string
+          salt_256bit: string | null
+          salt_32bit: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          environment: string
+          gateway_name?: string
+          gateway_url: string
+          id?: string
+          is_active?: boolean
+          merchant_key: string
+          salt_256bit?: string | null
+          salt_32bit: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          environment?: string
+          gateway_name?: string
+          gateway_url?: string
+          id?: string
+          is_active?: boolean
+          merchant_key?: string
+          salt_256bit?: string | null
+          salt_32bit?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_transactions: {
         Row: {
           amount: number
