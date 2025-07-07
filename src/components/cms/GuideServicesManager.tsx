@@ -1,13 +1,14 @@
+
 import React, { useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,98 +17,67 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Edit, Trash2, Plus, Star } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface GuideService {
   id: string;
   guide_name: string;
   guide_city: string;
-  phone_number: number | null;
+  phone_number: string | null;
   country_code: string | null;
-  description: string;
-  experience: string;
-  languages: string[];
-  specializations: string[];
-  qualifications: string[];
-  services_offered: string[];
-  service_type: string;
-  service_prices: string;
-  availability_schedule: string;
-  guide_photo: string;
-  featured_service: boolean;
-  rating: number;
+  description: string | null;
+  experience: string | null;
+  languages: string[] | null;
+  specializations: string[] | null;
+  qualifications: string[] | null;
+  service_type: string[] | null;
+  services_offered: string[] | null;
+  service_prices: any;
+  availability_schedule: any;
+  rating: number | null;
+  guide_photo: string | null;
+  featured_service: string | null;
   status: "active" | "inactive";
 }
 
 interface GuideFormData {
-  guideName: string;
-  guideCity: string;
-  phoneNumber: number | null;
-  countryCode: string | null;
+  guide_name: string;
+  guide_city: string;
+  phone_number: string;
+  country_code: string;
   description: string;
   experience: string;
-  languages: string[];
-  specializations: string[];
-  qualifications: string[];
-  servicesOffered: string[];
-  serviceType: string;
-  servicePrices: string;
-  availabilitySchedule: string;
-  guidePhoto: string;
-  featuredService: boolean;
-  rating: number | null;
+  languages: string;
+  specializations: string;
+  qualifications: string;
+  service_type: string;
+  services_offered: string;
+  featured_service: string;
   status: "active" | "inactive";
 }
 
 const GuideServicesManager = () => {
   const [guides, setGuides] = useState<GuideService[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">(
-    "all",
-  );
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingGuide, setEditingGuide] = useState<GuideService | null>(null);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
-  const [guideName, setGuideName] = useState("");
-  const [guideCity, setGuideCity] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState<number | null>(null);
-  const [countryCode, setCountryCode] = useState<string | null>("");
-  const [description, setDescription] = useState("");
-  const [experience, setExperience] = useState("");
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [qualifications, setQualifications] = useState<string[]>([]);
-  const [servicesOffered, setServicesOffered] = useState<string[]>([]);
-  const [serviceType, setServiceType] = useState("");
-  const [servicePrices, setServicePrices] = useState("");
-  const [availabilitySchedule, setAvailabilitySchedule] = useState("");
-  const [guidePhoto, setGuidePhoto] = useState("");
-  const [featuredService, setFeaturedService] = useState(false);
-  const [rating, setRating] = useState<number | null>(null);
-  const [status, setStatus] = useState<"active" | "inactive">("active");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [formData, setFormData] = useState<GuideFormData>({
+    guide_name: "",
+    guide_city: "",
+    phone_number: "",
+    country_code: "",
+    description: "",
+    experience: "",
+    languages: "",
+    specializations: "",
+    qualifications: "",
+    service_type: "",
+    services_offered: "",
+    featured_service: "",
+    status: "active",
+  });
 
   useEffect(() => {
     fetchGuides();
@@ -116,7 +86,10 @@ const GuideServicesManager = () => {
   const fetchGuides = async () => {
     setLoading(true);
     try {
-      let query = supabase.from("guide_services").select("*");
+      let query = supabase
+        .from("guide_services")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
@@ -125,7 +98,14 @@ const GuideServicesManager = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setGuides(data || []);
+      
+      // Map the data to ensure proper typing
+      const mappedGuides: GuideService[] = (data || []).map(guide => ({
+        ...guide,
+        status: guide.status as "active" | "inactive"
+      }));
+      
+      setGuides(mappedGuides);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -147,40 +127,33 @@ const GuideServicesManager = () => {
 
   const handleEdit = (guide: GuideService) => {
     setEditingGuide(guide);
+    setFormData({
+      guide_name: guide.guide_name,
+      guide_city: guide.guide_city,
+      phone_number: guide.phone_number || "",
+      country_code: guide.country_code || "",
+      description: guide.description || "",
+      experience: guide.experience || "",
+      languages: guide.languages?.join(", ") || "",
+      specializations: guide.specializations?.join(", ") || "",
+      qualifications: guide.qualifications?.join(", ") || "",
+      service_type: guide.service_type?.join(", ") || "",
+      services_offered: guide.services_offered?.join(", ") || "",
+      featured_service: guide.featured_service || "",
+      status: guide.status,
+    });
     setIsFormOpen(true);
-
-    setGuideName(guide.guide_name);
-    setGuideCity(guide.guide_city);
-    setPhoneNumber(guide.phone_number);
-    setCountryCode(guide.country_code);
-    setDescription(guide.description);
-    setExperience(guide.experience);
-    setLanguages(guide.languages);
-    setSpecializations(guide.specializations);
-    setQualifications(guide.qualifications);
-    setServicesOffered(guide.services_offered);
-    setServiceType(guide.service_type);
-    setServicePrices(guide.service_prices);
-    setAvailabilitySchedule(guide.availability_schedule);
-    setGuidePhoto(guide.guide_photo);
-    setFeaturedService(guide.featured_service);
-    setRating(guide.rating);
-    setStatus(guide.status);
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this guide?")) {
+    if (window.confirm("Are you sure you want to delete this guide service?")) {
       setLoading(true);
       try {
-        const { error } = await supabase
-          .from("guide_services")
-          .delete()
-          .eq("id", id);
-
+        const { error } = await supabase.from("guide_services").delete().eq("id", id);
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Guide deleted successfully!",
+          description: "Guide service deleted successfully!",
         });
         fetchGuides();
       } catch (error: any) {
@@ -195,48 +168,25 @@ const GuideServicesManager = () => {
     }
   };
 
-  const reset = () => {
-    setGuideName("");
-    setGuideCity("");
-    setPhoneNumber(null);
-    setCountryCode("");
-    setDescription("");
-    setExperience("");
-    setLanguages([]);
-    setSpecializations([]);
-    setQualifications([]);
-    setServicesOffered([]);
-    setServiceType("");
-    setServicePrices("");
-    setAvailabilitySchedule("");
-    setGuidePhoto("");
-    setFeaturedService(false);
-    setRating(null);
-    setStatus("active");
-  };
-
-  const handleSubmit = async (data: GuideFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setLoading(true);
 
       const guideData = {
-        guide_name: data.guideName,
-        guide_city: data.guideCity,
-        phone_number: data.phoneNumber,
-        country_code: data.countryCode,
-        description: data.description,
-        experience: data.experience,
-        languages: data.languages,
-        specializations: data.specializations,
-        qualifications: data.qualifications,
-        services_offered: data.servicesOffered,
-        service_type: data.serviceType,
-        service_prices: data.servicePrices,
-        availability_schedule: data.availabilitySchedule,
-        guide_photo: data.guidePhoto,
-        featured_service: data.featuredService,
-        rating: data.rating ? parseFloat(data.rating.toString()) : 0,
-        status: data.status,
+        guide_name: formData.guide_name,
+        guide_city: formData.guide_city,
+        phone_number: formData.phone_number || null,
+        country_code: formData.country_code || null,
+        description: formData.description || null,
+        experience: formData.experience || null,
+        languages: formData.languages ? formData.languages.split(",").map(s => s.trim()) : null,
+        specializations: formData.specializations ? formData.specializations.split(",").map(s => s.trim()) : null,
+        qualifications: formData.qualifications ? formData.qualifications.split(",").map(s => s.trim()) : null,
+        service_type: formData.service_type ? formData.service_type.split(",").map(s => s.trim()) : null,
+        services_offered: formData.services_offered ? formData.services_offered.split(",").map(s => s.trim()) : null,
+        featured_service: formData.featured_service || null,
+        status: formData.status,
       };
 
       if (editingGuide) {
@@ -248,7 +198,7 @@ const GuideServicesManager = () => {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Guide updated successfully!",
+          description: "Guide service updated successfully!",
         });
       } else {
         const { error } = await supabase
@@ -258,14 +208,28 @@ const GuideServicesManager = () => {
         if (error) throw error;
         toast({
           title: "Success",
-          description: "Guide added successfully!",
+          description: "Guide service added successfully!",
         });
       }
 
       fetchGuides();
       setIsFormOpen(false);
       setEditingGuide(null);
-      reset();
+      setFormData({
+        guide_name: "",
+        guide_city: "",
+        phone_number: "",
+        country_code: "",
+        description: "",
+        experience: "",
+        languages: "",
+        specializations: "",
+        qualifications: "",
+        service_type: "",
+        services_offered: "",
+        featured_service: "",
+        status: "active",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -275,6 +239,14 @@ const GuideServicesManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value as "all" | "active" | "inactive");
+  };
+
+  const handleStatusChange = (value: string) => {
+    setFormData(prev => ({ ...prev, status: value as "active" | "inactive" }));
   };
 
   return (
@@ -291,7 +263,7 @@ const GuideServicesManager = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-64"
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -302,7 +274,25 @@ const GuideServicesManager = () => {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
+          <Button onClick={() => {
+            setEditingGuide(null);
+            setFormData({
+              guide_name: "",
+              guide_city: "",
+              phone_number: "",
+              country_code: "",
+              description: "",
+              experience: "",
+              languages: "",
+              specializations: "",
+              qualifications: "",
+              service_type: "",
+              services_offered: "",
+              featured_service: "",
+              status: "active",
+            });
+            setIsFormOpen(true);
+          }}>
             <Plus className="w-4 h-4 mr-2" />
             Add New Guide
           </Button>
@@ -316,8 +306,7 @@ const GuideServicesManager = () => {
                 <TableHead>Guide Name</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Services</TableHead>
-                <TableHead>Rating</TableHead>
+                <TableHead>Experience</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -327,33 +316,10 @@ const GuideServicesManager = () => {
                 <TableRow key={guide.id}>
                   <TableCell className="font-medium">{guide.guide_name}</TableCell>
                   <TableCell>{guide.guide_city}</TableCell>
-                  <TableCell>{String(guide.phone_number || '')}</TableCell>
+                  <TableCell>{guide.phone_number || "N/A"}</TableCell>
+                  <TableCell>{guide.experience || "N/A"}</TableCell>
                   <TableCell>
-                    {Array.isArray(guide.services_offered) && guide.services_offered.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {guide.services_offered.slice(0, 2).map((service, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {String(service)}
-                          </Badge>
-                        ))}
-                        {guide.services_offered.length > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{guide.services_offered.length - 2} more
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 text-yellow-400 mr-1" />
-                      {guide.rating || 0}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={guide.status === "active" ? "default" : "secondary"}>
-                      {guide.status}
-                    </Badge>
+                    {guide.status === "active" ? "Active" : "Inactive"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -379,200 +345,132 @@ const GuideServicesManager = () => {
           </Table>
         </div>
 
+        {/* Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="sm:max-w-[625px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {editingGuide ? "Edit Guide" : "Add New Guide"}
-              </DialogTitle>
+              <DialogTitle>{editingGuide ? "Edit Guide Service" : "Add New Guide Service"}</DialogTitle>
               <DialogDescription>
-                {editingGuide
-                  ? "Update guide details here. Click save when done."
-                  : "Add a new guide to the list. Make sure everything is clear."}
+                {editingGuide ? "Update guide service details." : "Enter details for the new guide service."}
               </DialogDescription>
             </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="guideName">Guide Name</Label>
+                  <Label htmlFor="guide_name">Guide Name *</Label>
                   <Input
-                    id="guideName"
-                    value={guideName}
-                    onChange={(e) => setGuideName(e.target.value)}
+                    id="guide_name"
+                    value={formData.guide_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, guide_name: e.target.value }))}
+                    placeholder="Enter guide name"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="guideCity">Guide City</Label>
+                  <Label htmlFor="guide_city">City *</Label>
                   <Input
-                    id="guideCity"
-                    value={guideCity}
-                    onChange={(e) => setGuideCity(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
-                  <Input
-                    type="number"
-                    id="phoneNumber"
-                    value={phoneNumber !== null ? phoneNumber.toString() : ""}
-                    onChange={(e) =>
-                      setPhoneNumber(e.target.value ? parseInt(e.target.value) : null)
-                    }
+                    id="guide_city"
+                    value={formData.guide_city}
+                    onChange={(e) => setFormData(prev => ({ ...prev, guide_city: e.target.value }))}
+                    placeholder="Enter city"
+                    required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="countryCode">Country Code</Label>
+                  <Label htmlFor="phone_number">Phone Number</Label>
                   <Input
-                    id="countryCode"
-                    value={countryCode || ""}
-                    onChange={(e) => setCountryCode(e.target.value)}
+                    id="phone_number"
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
+                    placeholder="Enter phone number"
                   />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="country_code">Country Code</Label>
+                  <Input
+                    id="country_code"
+                    value={formData.country_code}
+                    onChange={(e) => setFormData(prev => ({ ...prev, country_code: e.target.value }))}
+                    placeholder="e.g., +971"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter description"
+                    rows={3}
+                  />
+                </div>
+                <div className="col-span-2">
                   <Label htmlFor="experience">Experience</Label>
-                  <Input
+                  <Textarea
                     id="experience"
-                    value={experience}
-                    onChange={(e) => setExperience(e.target.value)}
+                    value={formData.experience}
+                    onChange={(e) => setFormData(prev => ({ ...prev, experience: e.target.value }))}
+                    placeholder="Enter experience details"
+                    rows={2}
                   />
                 </div>
                 <div>
                   <Label htmlFor="languages">Languages (comma-separated)</Label>
                   <Input
                     id="languages"
-                    value={languages.join(",")}
-                    onChange={(e) =>
-                      setLanguages(
-                        e.target.value.split(",").map((lang) => lang.trim()),
-                      )
-                    }
+                    value={formData.languages}
+                    onChange={(e) => setFormData(prev => ({ ...prev, languages: e.target.value }))}
+                    placeholder="e.g., English, Arabic, Urdu"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="specializations">
-                    Specializations (comma-separated)
-                  </Label>
+                  <Label htmlFor="specializations">Specializations (comma-separated)</Label>
                   <Input
                     id="specializations"
-                    value={specializations.join(",")}
-                    onChange={(e) =>
-                      setSpecializations(
-                        e.target.value.split(",").map((spec) => spec.trim()),
-                      )
-                    }
+                    value={formData.specializations}
+                    onChange={(e) => setFormData(prev => ({ ...prev, specializations: e.target.value }))}
+                    placeholder="e.g., Umrah, Hajj, Tours"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="qualifications">
-                    Qualifications (comma-separated)
-                  </Label>
+                  <Label htmlFor="qualifications">Qualifications (comma-separated)</Label>
                   <Input
                     id="qualifications"
-                    value={qualifications.join(",")}
-                    onChange={(e) =>
-                      setQualifications(
-                        e.target.value.split(",").map((qual) => qual.trim()),
-                      )
-                    }
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="servicesOffered">
-                  Services Offered (comma-separated)
-                </Label>
-                <Input
-                  id="servicesOffered"
-                  value={servicesOffered.join(",")}
-                  onChange={(e) =>
-                    setServicesOffered(
-                      e.target.value.split(",").map((service) => service.trim()),
-                    )
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="serviceType">Service Type</Label>
-                  <Input
-                    id="serviceType"
-                    value={serviceType}
-                    onChange={(e) => setServiceType(e.target.value)}
+                    value={formData.qualifications}
+                    onChange={(e) => setFormData(prev => ({ ...prev, qualifications: e.target.value }))}
+                    placeholder="e.g., Certified Guide, Religious Studies"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="servicePrices">Service Prices</Label>
+                  <Label htmlFor="service_type">Service Types (comma-separated)</Label>
                   <Input
-                    id="servicePrices"
-                    value={servicePrices}
-                    onChange={(e) => setServicePrices(e.target.value)}
+                    id="service_type"
+                    value={formData.service_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, service_type: e.target.value }))}
+                    placeholder="e.g., Group Tours, Private Tours"
                   />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="availabilitySchedule">Availability Schedule</Label>
-                <Input
-                  id="availabilitySchedule"
-                  value={availabilitySchedule}
-                  onChange={(e) => setAvailabilitySchedule(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="guidePhoto">Guide Photo URL</Label>
-                <Input
-                  id="guidePhoto"
-                  value={guidePhoto}
-                  onChange={(e) => setGuidePhoto(e.target.value)}
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="featuredService">Featured Service</Label>
-                <Checkbox
-                  id="featuredService"
-                  checked={featuredService}
-                  onCheckedChange={(checked) => setFeaturedService(!!checked)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="rating">Rating</Label>
+                  <Label htmlFor="services_offered">Services Offered (comma-separated)</Label>
                   <Input
-                    type="number"
-                    id="rating"
-                    value={rating !== null ? rating.toString() : ""}
-                    onChange={(e) =>
-                      setRating(e.target.value ? parseFloat(e.target.value) : null)
-                    }
+                    id="services_offered"
+                    value={formData.services_offered}
+                    onChange={(e) => setFormData(prev => ({ ...prev, services_offered: e.target.value }))}
+                    placeholder="e.g., Ziyarat, Historical Tours"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="featured_service">Featured Service</Label>
+                  <Input
+                    id="featured_service"
+                    value={formData.featured_service}
+                    onChange={(e) => setFormData(prev => ({ ...prev, featured_service: e.target.value }))}
+                    placeholder="Enter featured service"
                   />
                 </div>
                 <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select value={status} onValueChange={setStatus}>
+                  <Select value={formData.status} onValueChange={handleStatusChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -583,48 +481,12 @@ const GuideServicesManager = () => {
                   </Select>
                 </div>
               </div>
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setIsFormOpen(false);
-                  setEditingGuide(null);
-                  reset();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  handleSubmit({
-                    guideName,
-                    guideCity,
-                    phoneNumber,
-                    countryCode,
-                    description,
-                    experience,
-                    languages,
-                    specializations,
-                    qualifications,
-                    servicesOffered,
-                    serviceType,
-                    servicePrices,
-                    availabilitySchedule,
-                    guidePhoto,
-                    featuredService,
-                    rating,
-                    status,
-                  });
-                }}
-                disabled={loading}
-              >
-                {loading ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Save changes"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </CardContent>

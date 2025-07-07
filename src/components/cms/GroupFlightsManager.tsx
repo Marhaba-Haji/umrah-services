@@ -1,25 +1,23 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import { useForm, Controller } from "react-hook-form";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 interface Flight {
   id: string;
@@ -79,7 +77,14 @@ const GroupFlightsManager = () => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setFlights(data || []);
+      
+      // Map the data to ensure proper typing
+      const mappedFlights: Flight[] = (data || []).map(flight => ({
+        ...flight,
+        status: flight.status as "active" | "inactive"
+      }));
+      
+      setFlights(mappedFlights);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -140,7 +145,7 @@ const GroupFlightsManager = () => {
     }
   };
 
-  const handleSubmit = async (data: FlightFormData) => {
+  const onSubmit = async (data: FlightFormData) => {
     try {
       setLoading(true);
 
@@ -196,6 +201,10 @@ const GroupFlightsManager = () => {
     }
   };
 
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value as "all" | "active" | "inactive");
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -210,7 +219,7 @@ const GroupFlightsManager = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-64"
             />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
               <SelectTrigger className="w-40">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -282,19 +291,17 @@ const GroupFlightsManager = () => {
 
         {/* Form Dialog */}
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingFlight ? "Edit Flight" : "Add New Flight"}</DialogTitle>
               <DialogDescription>
                 {editingFlight ? "Update flight details." : "Enter details for the new flight."}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit(handleSubmit)}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="sector" className="text-right">
-                    Sector
-                  </Label>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="sector">Sector *</Label>
                   <Controller
                     name="sector"
                     control={control}
@@ -305,10 +312,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="airline" className="text-right">
-                    Airline
-                  </Label>
+                <div>
+                  <Label htmlFor="airline">Airline *</Label>
                   <Controller
                     name="airline"
                     control={control}
@@ -319,10 +324,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="flightNumber" className="text-right">
-                    Flight Number
-                  </Label>
+                <div>
+                  <Label htmlFor="flightNumber">Flight Number *</Label>
                   <Controller
                     name="flightNumber"
                     control={control}
@@ -333,10 +336,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="price" className="text-right">
-                    Price
-                  </Label>
+                <div>
+                  <Label htmlFor="price">Price *</Label>
                   <Controller
                     name="price"
                     control={control}
@@ -353,10 +354,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="duration" className="text-right">
-                    Duration
-                  </Label>
+                <div>
+                  <Label htmlFor="duration">Duration *</Label>
                   <Controller
                     name="duration"
                     control={control}
@@ -367,10 +366,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="layoverDuration" className="text-right">
-                    Layover Duration
-                  </Label>
+                <div>
+                  <Label htmlFor="layoverDuration">Layover Duration</Label>
                   <Controller
                     name="layoverDuration"
                     control={control}
@@ -380,10 +377,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="luggageLimit" className="text-right">
-                    Luggage Limit
-                  </Label>
+                <div>
+                  <Label htmlFor="luggageLimit">Luggage Limit</Label>
                   <Controller
                     name="luggageLimit"
                     control={control}
@@ -393,17 +388,15 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="flightType" className="text-right">
-                    Flight Type
-                  </Label>
+                <div>
+                  <Label htmlFor="flightType">Flight Type *</Label>
                   <Controller
                     name="flightType"
                     control={control}
                     defaultValue="direct"
                     rules={{ required: "Flight Type is required" }}
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select flight type" />
                         </SelectTrigger>
@@ -415,10 +408,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="departureTime" className="text-right">
-                    Departure Time
-                  </Label>
+                <div>
+                  <Label htmlFor="departureTime">Departure Time *</Label>
                   <Controller
                     name="departureTime"
                     control={control}
@@ -429,10 +420,8 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="arrivalTime" className="text-right">
-                    Arrival Time
-                  </Label>
+                <div>
+                  <Label htmlFor="arrivalTime">Arrival Time *</Label>
                   <Controller
                     name="arrivalTime"
                     control={control}
@@ -443,16 +432,14 @@ const GroupFlightsManager = () => {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="status" className="text-right">
-                    Status
-                  </Label>
+                <div>
+                  <Label htmlFor="status">Status *</Label>
                   <Controller
                     name="status"
                     control={control}
                     defaultValue="active"
                     render={({ field }) => (
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
