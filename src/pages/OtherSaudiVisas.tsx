@@ -277,8 +277,61 @@ function VisaCard({
                 Process
               </AccordionTrigger>
               <AccordionContent className="pt-2 pb-3">
-                {/* Parse process HTML into steps with debug log and static fallback */}
+                {/* Parse process HTML as <ol><li><strong>Title</strong> - Desc</li></ol> or fallback */}
                 {(() => {
+                  try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(
+                      visa.process,
+                      "text/html",
+                    );
+                    const ol = doc.querySelector("ol");
+                    if (ol) {
+                      const steps = Array.from(ol.querySelectorAll("li")).map(
+                        (li) => {
+                          const strong = li.querySelector("strong, b");
+                          const title = strong ? strong.textContent : "";
+                          let desc = li.textContent || "";
+                          if (title)
+                            desc = desc
+                              .replace(title, "")
+                              .replace(/^\s*-?\s*/, "");
+                          return { title, desc };
+                        },
+                      );
+                      if (steps.length > 0) {
+                        return (
+                          <ol className="relative border-l-2 border-green-200 pl-10 pr-2">
+                            {steps.map((step, idx) => (
+                              <li
+                                key={idx}
+                                className="mb-8 ml-4 flex items-start"
+                              >
+                                <span
+                                  className={`absolute left-2 flex items-center justify-center w-6 h-6 rounded-full text-white font-bold ${["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-purple-500"][idx % 4]}`}
+                                >
+                                  {idx + 1}
+                                </span>
+                                <div className="min-w-0">
+                                  <h4
+                                    className={`font-bold ${["text-green-700", "text-blue-700", "text-yellow-700", "text-purple-700"][idx % 4]}`}
+                                  >
+                                    {step.title}
+                                  </h4>
+                                  <p className="text-gray-700 text-sm break-words whitespace-pre-line">
+                                    {step.desc}
+                                  </p>
+                                </div>
+                              </li>
+                            ))}
+                          </ol>
+                        );
+                      }
+                    }
+                  } catch (e) {
+                    // Optionally log or handle error, or just remove the block
+                  }
+                  // Fallback: existing logic
                   try {
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(
@@ -311,101 +364,39 @@ function VisaCard({
                       }
                     });
                     if (currentStep) steps.push(currentStep);
-                    if (steps.length === 0) throw new Error("No steps");
-                    // Debug log
-                    console.log("Parsed process steps:", steps);
-                    // Render timeline
-                    return (
-                      <ol className="relative border-l-2 border-green-200 pl-10 pr-2">
-                        {steps.map((step, idx) => (
-                          <li key={idx} className="mb-8 ml-6 flex items-start">
-                            <span
-                              className={`absolute -left-3 flex items-center justify-center w-6 h-6 rounded-full text-white font-bold ${["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-purple-500"][idx % 4]}`}
+                    if (steps.length > 0) {
+                      return (
+                        <ol className="relative border-l-2 border-green-200 pl-10 pr-2">
+                          {steps.map((step, idx) => (
+                            <li
+                              key={idx}
+                              className="mb-8 ml-4 flex items-start"
                             >
-                              {idx + 1}
-                            </span>
-                            <div>
-                              <h4
-                                className={`font-bold ${["text-green-700", "text-blue-700", "text-yellow-700", "text-purple-700"][idx % 4]}`}
+                              <span
+                                className={`absolute left-2 flex items-center justify-center w-6 h-6 rounded-full text-white font-bold ${["bg-green-500", "bg-blue-500", "bg-yellow-500", "bg-purple-500"][idx % 4]}`}
                               >
-                                {step.title}
-                              </h4>
-                              <p className="text-gray-700 text-sm">
-                                {step.desc}
-                              </p>
-                            </div>
-                          </li>
-                        ))}
-                      </ol>
-                    );
-                  } catch {
-                    // no-op: fallback handled below
-                    return null;
+                                {idx + 1}
+                              </span>
+                              <div className="min-w-0">
+                                <h4
+                                  className={`font-bold ${["text-green-700", "text-blue-700", "text-yellow-700", "text-purple-700"][idx % 4]}`}
+                                >
+                                  {step.title}
+                                </h4>
+                                <p className="text-gray-700 text-sm break-words whitespace-pre-line">
+                                  {step.desc}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      );
+                    }
+                  } catch (e) {
+                    // Optionally log or handle error, or just remove the block
                   }
-                  // Fallback: show a static sample timeline
-                  console.warn(
-                    "Process parsing failed, showing sample timeline:",
-                  );
-                  return (
-                    <ol className="relative border-l-2 border-green-200">
-                      <li className="mb-8 ml-6 flex items-start">
-                        <span className="absolute -left-3 flex items-center justify-center w-6 h-6 bg-green-500 rounded-full text-white font-bold">
-                          1
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-green-700">
-                            Start &amp; submit your application
-                          </h4>
-                          <p className="text-gray-700 text-sm">
-                            Complete your application accurately on our
-                            user-friendly platform.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="mb-8 ml-6 flex items-start">
-                        <span className="absolute -left-3 flex items-center justify-center w-6 h-6 bg-blue-500 rounded-full text-white font-bold">
-                          2
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-blue-700">
-                            Expert review and appointment booking
-                          </h4>
-                          <p className="text-gray-700 text-sm">
-                            Your designated visa expert reviews your application
-                            and books your appointments at the visa centre.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="mb-8 ml-6 flex items-start">
-                        <span className="absolute -left-3 flex items-center justify-center w-6 h-6 bg-yellow-500 rounded-full text-white font-bold">
-                          3
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-yellow-700">
-                            Visit visa application centre
-                          </h4>
-                          <p className="text-gray-700 text-sm">
-                            Visit the visa centre to submit biometrics with our
-                            guidance and support.
-                          </p>
-                        </div>
-                      </li>
-                      <li className="ml-6 flex items-start">
-                        <span className="absolute -left-3 flex items-center justify-center w-6 h-6 bg-purple-500 rounded-full text-white font-bold">
-                          4
-                        </span>
-                        <div>
-                          <h4 className="font-bold text-purple-700">
-                            Visa delivered on time
-                          </h4>
-                          <p className="text-gray-700 text-sm">
-                            Relax as we ensure your visa is processed promptly
-                            and delivered on time.
-                          </p>
-                        </div>
-                      </li>
-                    </ol>
-                  );
+                  // Final fallback: nothing
+                  return null;
                 })()}
               </AccordionContent>
             </AccordionItem>
@@ -909,9 +900,17 @@ const OtherSaudiVisas = () => {
     }));
   };
 
+  useEffect(() => {
+    const el = document.getElementById("saudi-visa-header");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Header />
+      <div id="saudi-visa-header"></div>
 
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}

@@ -138,8 +138,17 @@ const TestimonialsSection = () => {
                 <div className="text-sm text-gray-600">Average Rating</div>
               </div>
               <div>
-                <div className="text-3xl font-bold text-emerald-600 mb-2">
-                  24/7
+                <div
+                  data-lov-id="src\components\TestimonialsSection.tsx:141:16"
+                  data-lov-name="div"
+                  data-component-path="src\components\TestimonialsSection.tsx"
+                  data-component-line="141"
+                  data-component-file="TestimonialsSection.tsx"
+                  data-component-name="div"
+                  data-component-content="%7B%22text%22%3A%2224%2F7%22%2C%22className%22%3A%22text-3xl%20font-bold%20text-emerald-600%20mb-2%22%7D"
+                  className="text-3xl font-bold text-emerald-600 mb-2"
+                >
+                  7 days/week
                 </div>
                 <div className="text-sm text-gray-600">Expert Support</div>
               </div>

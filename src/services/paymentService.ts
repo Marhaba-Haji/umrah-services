@@ -23,7 +23,7 @@ export const initiatePayment = async (
 ): Promise<PaymentResponse> => {
   try {
     const currentUrl = window.location.origin;
-    const successUrl = `${currentUrl}/payment-success`;
+    const successUrl = `${currentUrl}/payment/success`;
     const failureUrl = `${currentUrl}/payment/failure`;
 
     const { data, error } = await supabase.functions.invoke(

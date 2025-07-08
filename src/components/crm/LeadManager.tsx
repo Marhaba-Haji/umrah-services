@@ -68,6 +68,20 @@ type LeadFormData = {
   followUpDate?: string;
 };
 
+interface VisaApplication {
+  id: string;
+  first_name: string;
+  last_name: string;
+  nationality: string;
+  passport_number: string;
+  gender: string;
+  phone: string;
+  email: string;
+  payment_status: string | null;
+  status: string | null;
+  created_at: string;
+}
+
 const LeadManager = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [contactInquiries, setContactInquiries] = useState<ContactInquiry[]>(
@@ -76,6 +90,9 @@ const LeadManager = () => {
   const [groupFlightInquiries, setGroupFlightInquiries] = useState<
     GroupFlightInquiry[]
   >([]);
+  const [visaApplications, setVisaApplications] = useState<VisaApplication[]>(
+    [],
+  );
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -200,6 +217,32 @@ const LeadManager = () => {
       channel.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    fetchVisaApplications();
+    // Optionally, add a subscription for real-time updates if needed
+  }, []);
+
+  const fetchVisaApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("visa_applications")
+        .select("*")
+        .or("payment_status.is.null,payment_status.neq.completed")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      // Deduplicate by id
+      const unique = Array.from(
+        new Map((data || []).map((v) => [v.id, v])).values(),
+      );
+      setVisaApplications(unique);
+    } catch (error) {
+      console.error(
+        "Error fetching visa applications:",
+        (error as Error).message,
+      );
+    }
+  };
 
   const onSubmit = (data: unknown) => {
     const d = data as LeadFormData;
@@ -610,6 +653,85 @@ const LeadManager = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Umrah Visa Applications Section */}
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold mb-4">
+              Umrah Visa Applications (Unpaid/Failed)
+            </h2>
+            <div className="rounded-md border overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Nationality
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Passport
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Gender
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Phone
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment
+                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {visaApplications.map((app) => (
+                    <tr key={app.id}>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.first_name} {app.last_name}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.nationality}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.passport_number}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.gender}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.phone}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.email}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.status}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {app.payment_status}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                        {new Date(app.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {visaApplications.length === 0 && (
+                <div className="p-4 text-gray-500">
+                  No unpaid or failed Umrah visa applications found.
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

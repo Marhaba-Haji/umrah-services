@@ -6,27 +6,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useCurrency } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { convertFromINR } from "@/lib/utils";
 
 const ServicesSection = () => {
   const { currency } = useCurrency();
   const navigate = useNavigate();
-
-  // Currency conversion rates (base INR)
-  const exchangeRates = {
-    USD: 0.012,
-    INR: 1,
-    SAR: 0.045,
-  };
-
-  // Currency symbols
-  const currencySymbols = {
-    USD: "$",
-    INR: "₹",
-    SAR: "ر.س",
-  };
-
-  const currencySymbol = currencySymbols[currency] || "₹";
-  const rate = exchangeRates[currency] || 1;
 
   // State for dynamic prices
   const [basicVisaPrice, setBasicVisaPrice] = useState<number | null>(null);
@@ -165,8 +149,11 @@ const ServicesSection = () => {
                   </span>
                 );
               } else if (basicVisaPrice !== null) {
-                const converted = Math.round(basicVisaPrice * rate);
-                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+                const { value, symbol } = convertFromINR(
+                  basicVisaPrice,
+                  currency,
+                );
+                priceDisplay = `${symbol}${value.toLocaleString()}`;
               } else {
                 priceDisplay = <span className="text-red-500">N/A</span>;
               }
@@ -179,8 +166,11 @@ const ServicesSection = () => {
                   </span>
                 );
               } else if (premiumVisaPrice !== null) {
-                const converted = Math.round(premiumVisaPrice * rate);
-                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+                const { value, symbol } = convertFromINR(
+                  premiumVisaPrice,
+                  currency,
+                );
+                priceDisplay = `${symbol}${value.toLocaleString()}`;
               } else {
                 priceDisplay = <span className="text-red-500">N/A</span>;
               }
@@ -193,8 +183,11 @@ const ServicesSection = () => {
                   </span>
                 );
               } else if (expressVisaPrice !== null) {
-                const converted = Math.round(expressVisaPrice * rate);
-                priceDisplay = `${currencySymbol}${converted.toLocaleString()}`;
+                const { value, symbol } = convertFromINR(
+                  expressVisaPrice,
+                  currency,
+                );
+                priceDisplay = `${symbol}${value.toLocaleString()}`;
               } else {
                 priceDisplay = <span className="text-red-500">N/A</span>;
               }
@@ -290,7 +283,7 @@ const ServicesSection = () => {
                           "Tourist Visa",
                           "Business Visa",
                         ].includes(service.title)
-                          ? "/other-visas"
+                          ? "/saudi-visa-services"
                           : "/apply-umrah-visa-online",
                       );
                       setTimeout(() => {

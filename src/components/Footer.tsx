@@ -1,5 +1,13 @@
 import React from "react";
-import { Mail, Phone } from "lucide-react";
+import {
+  Mail,
+  Phone,
+  Facebook,
+  Instagram,
+  Twitter,
+  Youtube,
+  Linkedin,
+} from "lucide-react";
 const Footer = () => {
   return (
     <footer id="contact" className="bg-gray-900 text-white">
@@ -189,7 +197,7 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="border-t border-gray-800 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex flex-col md:flex-row justify-between items-center w-full">
             <div className="text-gray-400 text-sm mb-4 md:mb-0">
               <p>
                 &copy; 2024 Marhaba Haji Umrah Visa Services. All rights
@@ -200,7 +208,49 @@ const Footer = () => {
                 processing.
               </p>
             </div>
-
+            {/* Social Media Links */}
+            <div className="flex items-center space-x-4 mb-4 md:mb-0">
+              <a
+                href="https://www.facebook.com/marhabahaj/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+              >
+                <Facebook className="w-5 h-5 hover:text-blue-500 transition-colors" />
+              </a>
+              <a
+                href="https://www.instagram.com/marhaba.haji/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Instagram className="w-5 h-5 hover:text-pink-500 transition-colors" />
+              </a>
+              <a
+                href="https://x.com/marhabahaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="X (Twitter)"
+              >
+                <Twitter className="w-5 h-5 hover:text-blue-400 transition-colors" />
+              </a>
+              <a
+                href="https://www.youtube.com/@marhabahaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+              >
+                <Youtube className="w-5 h-5 hover:text-red-600 transition-colors" />
+              </a>
+              <a
+                href="https://in.linkedin.com/company/marhabahaji"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn"
+              >
+                <Linkedin className="w-5 h-5 hover:text-blue-700 transition-colors" />
+              </a>
+            </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2 text-sm">
                 <span className="w-2 h-2 bg-green-500 rounded-full"></span>

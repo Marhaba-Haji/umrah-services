@@ -4,26 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { useCurrency } from "./Header";
+import { convertFromINR } from "@/lib/utils";
 
 const AdditionalServices = () => {
   const { currency } = useCurrency();
-
-  // Currency conversion rates (base USD)
-  const exchangeRates = {
-    USD: 1,
-    INR: 83.5,
-    SAR: 3.75,
-  };
-
-  // Currency symbols
-  const currencySymbols = {
-    USD: "$",
-    INR: "₹",
-    SAR: "ر.س",
-  };
-
-  const currencySymbol = currencySymbols[currency] || "$";
-  const rate = exchangeRates[currency] || 1;
 
   const services = [
     {
@@ -39,6 +23,7 @@ const AdditionalServices = () => {
         "Instant confirmation",
       ],
       basePrice: 1999,
+      priceUnit: "/day",
     },
     {
       icon: "🕌",
@@ -52,7 +37,8 @@ const AdditionalServices = () => {
         "Halal certified",
         "Airport transfers included",
       ],
-      basePrice: 120,
+      basePrice: 2499,
+      priceUnit: "/day",
     },
     {
       icon: "✈️",
@@ -66,7 +52,8 @@ const AdditionalServices = () => {
         "Flexible dates",
         "Baggage included",
       ],
-      basePrice: 800,
+      basePrice: 35000,
+      priceUnit: "/person",
     },
     {
       icon: "📦",
@@ -80,7 +67,8 @@ const AdditionalServices = () => {
         "Custom itineraries",
         "Best group rates",
       ],
-      basePrice: 1200,
+      basePrice: 69999,
+      priceUnit: "/person",
     },
     {
       icon: "⚡",
@@ -94,7 +82,8 @@ const AdditionalServices = () => {
         "Compact itinerary",
         "Maximum spiritual benefit",
       ],
-      basePrice: 899,
+      basePrice: 64999,
+      priceUnit: "/person",
     },
     {
       icon: "🚗",
@@ -108,7 +97,8 @@ const AdditionalServices = () => {
         "24/7 availability",
         "Fixed pricing",
       ],
-      basePrice: 50,
+      basePrice: 4499,
+      priceUnit: "/trip",
     },
     {
       icon: "🎯",
@@ -122,7 +112,8 @@ const AdditionalServices = () => {
         "Religious instruction",
         "Historical insights",
       ],
-      basePrice: 100,
+      basePrice: 3499,
+      priceUnit: "/activity",
     },
     {
       icon: "📍",
@@ -136,7 +127,8 @@ const AdditionalServices = () => {
         "Cave of Hira",
         "Jabal al-Nour",
       ],
-      basePrice: 80,
+      basePrice: 5699,
+      priceUnit: "/trip",
     },
     {
       icon: "🏛️",
@@ -150,7 +142,8 @@ const AdditionalServices = () => {
         "Qiblatain Mosque",
         "Islamic history",
       ],
-      basePrice: 70,
+      basePrice: 5699,
+      priceUnit: "/trip",
     },
   ];
 
@@ -197,31 +190,11 @@ const AdditionalServices = () => {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-full md:max-w-7xl mx-auto">
           {services.map((service, index) => {
-            let priceDisplay;
-            const priceUnit =
-              service.basePrice >= 800
-                ? "/person"
-                : service.basePrice >= 100
-                  ? "/day"
-                  : service.basePrice >= 50
-                    ? "/trip"
-                    : "/night";
-            if (service.title === "Makkah Hotel Booking") {
-              priceDisplay = "From ₹1,999/day";
-            } else if (service.title === "Madinah Hotel Booking") {
-              priceDisplay = "From ₹2,999/day";
-            } else if (service.title === "Group Umrah Packages") {
-              priceDisplay = "From ₹69,999/person";
-            } else if (service.title === "Group Flights") {
-              priceDisplay = "From ₹34,999/person";
-            } else if (service.title === "Short Umrah Packages") {
-              priceDisplay = "From ₹59,999/person";
-            } else if (service.title === "Guide Services") {
-              priceDisplay = "From ₹2,999/activity";
-            } else {
-              const convertedPrice = Math.round(service.basePrice * rate);
-              priceDisplay = `From ${currencySymbol}${convertedPrice.toLocaleString()}${priceUnit}`;
-            }
+            const { value, symbol } = convertFromINR(
+              service.basePrice,
+              currency,
+            );
+            const priceDisplay = `From ${symbol}${value.toLocaleString()}${service.priceUnit}`;
 
             return (
               <Card

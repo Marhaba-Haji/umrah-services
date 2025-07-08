@@ -1075,9 +1075,17 @@ const UmrahApplication = () => {
   const minExpiry = new Date(today);
   minExpiry.setDate(today.getDate() + 181);
 
+  useEffect(() => {
+    const el = document.getElementById("umrah-application-header");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
+      <div id="umrah-application-header"></div>
 
       <div className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto">

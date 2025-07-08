@@ -7,6 +7,7 @@ import AnimatedCounter from "./AnimatedCounter";
 import { useCurrency } from "./Header";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { convertFromINR } from "@/lib/utils";
 
 const HeroSection = () => {
   const [nationality, setNationality] = useState("");
@@ -25,20 +26,6 @@ const HeroSection = () => {
     "Nigeria",
     "Egypt",
   ];
-
-  // Currency conversion rates (base USD)
-  const exchangeRates = {
-    USD: 1,
-    INR: 83.5,
-    SAR: 3.75,
-  };
-
-  // Currency symbols
-  const currencySymbols = {
-    USD: "$",
-    INR: "₹",
-    SAR: "ر.س",
-  };
 
   useEffect(() => {
     async function fetchVisaPrice() {
@@ -61,19 +48,12 @@ const HeroSection = () => {
     fetchVisaPrice();
   }, []);
 
-  const currencySymbol = currencySymbols[currency] || "$";
-  // If INR, show as is. If USD or SAR, convert from INR.
   let convertedPrice: number | null = null;
+  let currencySymbol = "₹";
   if (basePriceUSD !== null) {
-    if (currency === "INR") {
-      convertedPrice = basePriceUSD;
-    } else {
-      // Convert from INR to selected currency
-      const inrToTarget = exchangeRates[currency]
-        ? (1 / exchangeRates["INR"]) * exchangeRates[currency]
-        : 1;
-      convertedPrice = Math.round(basePriceUSD * inrToTarget);
-    }
+    const { value, symbol } = convertFromINR(basePriceUSD, currency);
+    convertedPrice = value;
+    currencySymbol = symbol;
   }
 
   const handleWhatsAppClick = () => {

@@ -1,23 +1,22 @@
-
-import React, { useState, useEffect } from 'react';
-import Header, { CurrencyContext } from '../components/Header';
-import HeroSection from '../components/HeroSection';
-import TrustIndicators from '../components/TrustIndicators';
-import UmrahConditions from '../components/UmrahConditions';
-import ServicesSection from '../components/ServicesSection';
-import HowItWorks from '../components/HowItWorks';
-import OtherSaudiServices from '../components/OtherSaudiServices';
-import AdditionalServices from '../components/AdditionalServices';
-import FAQSection from '../components/FAQSection';
-import TestimonialsSection from '../components/TestimonialsSection';
-import Footer from '../components/Footer';
-import LeadCapturePopup from '../components/LeadCapturePopup';
-import SmartWidget from '../components/SmartWidget';
-import HomePageSEO from '../components/seo/HomePageSEO';
+import React, { useState, useEffect } from "react";
+import Header, { CurrencyContext } from "../components/Header";
+import HeroSection from "../components/HeroSection";
+import TrustIndicators from "../components/TrustIndicators";
+import UmrahConditions from "../components/UmrahConditions";
+import ServicesSection from "../components/ServicesSection";
+import HowItWorks from "../components/HowItWorks";
+import OtherSaudiServices from "../components/OtherSaudiServices";
+import AdditionalServices from "../components/AdditionalServices";
+import FAQSection from "../components/FAQSection";
+import TestimonialsSection from "../components/TestimonialsSection";
+import Footer from "../components/Footer";
+import LeadCapturePopup from "../components/LeadCapturePopup";
+import SmartWidget from "../components/SmartWidget";
+import HomePageSEO from "../components/seo/HomePageSEO";
 
 const Index = () => {
   const [showPopup, setShowPopup] = useState(false);
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState("INR");
 
   useEffect(() => {
     // Show popup after 15 seconds
@@ -32,7 +31,7 @@ const Index = () => {
     <CurrencyContext.Provider value={{ currency, setCurrency }}>
       <HomePageSEO />
       <div className="min-h-screen bg-white">
-        <Header />
+        <Header currency={currency} setCurrency={setCurrency} />
         <main>
           <HeroSection />
           <TrustIndicators />
@@ -45,13 +44,13 @@ const Index = () => {
           <FAQSection />
         </main>
         <Footer />
-        
+
         {/* Lead Capture Popup */}
-        <LeadCapturePopup 
-          isOpen={showPopup} 
-          onClose={() => setShowPopup(false)} 
+        <LeadCapturePopup
+          isOpen={showPopup}
+          onClose={() => setShowPopup(false)}
         />
-        
+
         {/* Smart Widget - replaces WhatsApp Widget */}
         <SmartWidget />
       </div>

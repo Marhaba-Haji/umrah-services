@@ -99,7 +99,10 @@ const App = () => (
                 path="/ziarath/:slug"
                 element={<ZiarathActivityDetail />}
               />
-              <Route path="/other-visas" element={<OtherSaudiVisas />} />
+              <Route
+                path="/saudi-visa-services"
+                element={<OtherSaudiVisas />}
+              />
               <Route path="/control-panel" element={<ControlPanel />} />
               <Route
                 path="/build-your-own-umrah"

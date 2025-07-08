@@ -6,7 +6,19 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+
+function corsResponse(
+  body: string | null,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+) {
+  return new Response(body, {
+    status,
+    headers: { ...corsHeaders, ...extraHeaders },
+  });
+}
 
 interface PaymentRequest {
   bookingId?: string;
@@ -33,31 +45,40 @@ interface PayUSettings {
 }
 
 serve(async (req) => {
+  // CORS preflight handler must be first
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return corsResponse(null, 200);
   }
 
-  const rawBody = await req.text();
-  console.log("Raw request body:", rawBody);
-  let requestBody = null;
+  let rawBody = "";
+  let supabaseClient: unknown = null;
   try {
-    requestBody = JSON.parse(rawBody);
-  } catch (e) {
-    return new Response(
-      JSON.stringify({ error: "Request body must be valid JSON." }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
-    );
-  }
-
-  try {
-    // Create Supabase client with service role key for bypassing RLS
-    const supabaseClient = createClient(
+    supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
+    rawBody = await req.text();
+    await supabaseClient.from("function_error_logs").insert({
+      function_name: "payu-payment-process",
+      error_message: "INCOMING_REQUEST",
+      request_payload: {
+        method: req.method,
+        headers: Object.fromEntries(req.headers.entries()),
+        timestamp: new Date().toISOString(),
+        raw_body: rawBody,
+      },
+    });
+
+    let requestBody = null;
+    try {
+      requestBody = JSON.parse(rawBody);
+    } catch (e) {
+      return corsResponse(
+        JSON.stringify({ error: "Request body must be valid JSON." }),
+        400,
+        { "Content-Type": "application/json" },
+      );
+    }
 
     // Get active PayU settings from database
     const getPayUSettings = async (): Promise<PayUSettings> => {
@@ -154,8 +175,13 @@ serve(async (req) => {
 
       if (transactionError) {
         console.error("Transaction creation error:", transactionError);
-        throw new Error(
-          `Failed to create payment transaction: ${transactionError.message}`,
+        return corsResponse(
+          JSON.stringify({
+            success: false,
+            error: `Failed to create payment transaction: ${transactionError.message}`,
+          }),
+          500,
+          { "Content-Type": "application/json" },
         );
       }
 
@@ -175,19 +201,15 @@ serve(async (req) => {
         service_provider: "payu_paisa",
       };
 
-      return new Response(
+      return corsResponse(
         JSON.stringify({
           success: true,
           paymentData,
           transactionId: transaction.id,
           payuUrl: payuSettings.gateway_url,
         }),
-        {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        },
+        200,
+        { "Content-Type": "application/json" },
       );
     }
 
@@ -218,11 +240,22 @@ serve(async (req) => {
     const updateData: Record<string, unknown> = {
       payu_transaction_id: payuResponse.txnid,
       payu_payment_id: payuResponse.mihpayid,
-      payment_status: payuResponse.status.toLowerCase(),
+      payment_status: payuResponse.status?.toLowerCase(),
       payment_method: payuResponse.mode,
+      payu_hash: payuResponse.hash,
       payment_gateway_response: payuResponse,
       updated_at: new Date().toISOString(),
+      payer_upi_id: payuResponse.field3,
+      payment_status_detail: payuResponse.field7,
+      payment_channel: payuResponse.field8,
+      payment_status_message: payuResponse.field9,
+      bank_ref_num: payuResponse.bank_ref_num,
+      PG_TYPE: payuResponse.PG_TYPE,
+      productinfo: payuResponse.productinfo,
+      error_message: payuResponse.error_Message,
+      amount: payuResponse.amount,
     };
+    console.log("Update data for payment_transactions:", updateData);
 
     if (payuResponse.status === "success" && isValidHash) {
       updateData.completed_at = new Date().toISOString();
@@ -230,6 +263,13 @@ serve(async (req) => {
     } else if (payuResponse.status === "failure") {
       updateData.payment_status = "failed";
     }
+
+    console.log(
+      "Updating payment_transactions with:",
+      updateData,
+      "for merchantTransactionId:",
+      merchantTransactionId,
+    );
 
     const { data: transaction, error: updateError } = await supabaseClient
       .from("payment_transactions")
@@ -239,9 +279,20 @@ serve(async (req) => {
       .single();
 
     if (updateError) {
-      console.error("Transaction update error:", updateError);
-      throw new Error(
-        `Failed to update payment transaction: ${updateError.message}`,
+      console.error("Payment transaction update error:", updateError);
+      return corsResponse(
+        JSON.stringify({
+          success: false,
+          error: `Failed to update payment transaction: ${updateError.message}`,
+        }),
+        500,
+        { "Content-Type": "application/json" },
+      );
+    }
+    if (!transaction) {
+      console.error(
+        "No payment transaction found for merchantTransactionId:",
+        merchantTransactionId,
       );
     }
 
@@ -261,59 +312,70 @@ serve(async (req) => {
       }
 
       if (transaction.visa_application_id) {
+        // Prepare update data
+        const visaUpdateData = {
+          payment_status: "completed",
+          payment_method: "payu",
+          payment_transaction_id: transaction.id,
+          status: "completed",
+        };
         // Update visa application status
-        await supabaseClient
+        const { error: visaUpdateError } = await supabaseClient
           .from("visa_applications")
-          .update({
-            payment_status: "completed",
-            payment_method: "payu",
-            payment_transaction_id: transaction.id,
-            status: "payment_completed",
-          })
+          .update(visaUpdateData)
           .eq("id", transaction.visa_application_id);
+
+        // Log the update attempt (success or failure)
+        await supabaseClient.from("visa_application_update_logs").insert({
+          visa_application_id: transaction.visa_application_id,
+          transaction_id: transaction.id,
+          update_data: visaUpdateData,
+          result: visaUpdateError ? "failure" : "success",
+          error_message: visaUpdateError
+            ? String(visaUpdateError.message || visaUpdateError)
+            : null,
+          created_at: new Date().toISOString(),
+        });
+
+        if (visaUpdateError) {
+          console.error("Visa application update error:", visaUpdateError);
+          // Optionally, throw or handle this error
+        }
       }
     }
 
-    return new Response(
+    return corsResponse(
       JSON.stringify({
         success: true,
         verified: isValidHash,
         status: payuResponse.status,
         transactionId: transaction.id,
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      },
+      200,
+      { "Content-Type": "application/json" },
     );
   } catch (error) {
-    console.error("PayU payment processing error:", error);
-
-    try {
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      );
+    console.error("Unhandled error in payu-payment-process:", error);
+    // Log error to function_error_logs
+    if (supabaseClient) {
       await supabaseClient.from("function_error_logs").insert({
         function_name: "payu-payment-process",
-        error_message: error?.message || String(error),
-        request_payload: requestBody,
+        error_message: error instanceof Error ? error.message : String(error),
+        request_payload: {
+          method: req.method,
+          headers: Object.fromEntries(req.headers.entries()),
+          timestamp: new Date().toISOString(),
+          raw_body: rawBody,
+        },
       });
-    } catch (logError) {
-      console.error("Failed to log error to DB:", logError);
     }
-
-    return new Response(
+    return corsResponse(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : String(error),
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      500,
+      { "Content-Type": "application/json" },
     );
   }
 });

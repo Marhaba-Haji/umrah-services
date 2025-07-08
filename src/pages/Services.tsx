@@ -117,7 +117,7 @@ const Services = () => {
       title: "Other Saudi Visas",
       description: "Business, tourist, and family visit visas for Saudi Arabia",
       icon: FileText,
-      route: "/other-visas",
+      route: "/saudi-visa-services",
       gradient: "from-teal-500 to-cyan-600",
       features: ["Multiple types", "Fast processing", "Documentation help"],
       popular: false,
