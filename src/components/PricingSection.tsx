@@ -1,10 +1,9 @@
-
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
-import { useCurrency } from './Header';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 const PricingSection = () => {
   const { currency } = useCurrency();
@@ -13,71 +12,71 @@ const PricingSection = () => {
   const exchangeRates = {
     USD: 1,
     INR: 83.5,
-    SAR: 3.75
+    SAR: 3.75,
   };
 
   // Currency symbols
   const currencySymbols = {
-    USD: '$',
-    INR: '₹',
-    SAR: 'ر.س'
+    USD: "$",
+    INR: "₹",
+    SAR: "ر.س",
   };
 
-  const currencySymbol = currencySymbols[currency] || '$';
+  const currencySymbol = currencySymbols[currency] || "$";
   const rate = exchangeRates[currency] || 1;
 
   const plans = [
     {
-      name: 'Standard Umrah Visa',
+      name: "Standard Umrah Visa",
       originalBasePrice: 399,
       basePrice: 299,
-      processing: '5-7 Days',
+      processing: "5-7 Days",
       features: [
-        'Single Entry Visa',
-        'Valid for 30 days',
-        'Document verification',
-        'Email support',
-        'Hotel booking assistance',
-        'Flight booking guidance'
+        "Single Entry Visa",
+        "Valid for 30 days",
+        "Document verification",
+        "Email support",
+        "Hotel booking assistance",
+        "Flight booking guidance",
       ],
-      popular: false
+      popular: false,
     },
     {
-      name: 'Express Umrah Visa',
+      name: "Express Umrah Visa",
       originalBasePrice: 599,
       basePrice: 449,
-      processing: '3-5 Days',
+      processing: "3-5 Days",
       features: [
-        'Single Entry Visa',
-        'Valid for 90 days',
-        'Priority processing',
-        '24/7 phone support',
-        'Hotel booking included',
-        'Airport transfer assistance',
-        'Travel insurance',
-        'Document collection service'
+        "Single Entry Visa",
+        "Valid for 90 days",
+        "Priority processing",
+        "24/7 phone support",
+        "Hotel booking included",
+        "Airport transfer assistance",
+        "Travel insurance",
+        "Document collection service",
       ],
-      popular: true
+      popular: true,
     },
     {
-      name: 'Premium Umrah Package',
+      name: "Premium Umrah Package",
       originalBasePrice: 899,
       basePrice: 699,
-      processing: '1-3 Days',
+      processing: "1-3 Days",
       features: [
-        'Multiple Entry Visa',
-        'Valid for 180 days',
-        'VIP processing',
-        'Dedicated visa consultant',
-        'Premium hotel booking',
-        'Airport transfer included',
-        'Comprehensive travel insurance',
-        'Ziyarath tour booking',
-        'Local SIM card',
-        'Concierge service'
+        "Multiple Entry Visa",
+        "Valid for 180 days",
+        "VIP processing",
+        "Dedicated visa consultant",
+        "Premium hotel booking",
+        "Airport transfer included",
+        "Comprehensive travel insurance",
+        "Ziyarath tour booking",
+        "Local SIM card",
+        "Concierge service",
       ],
-      popular: false
-    }
+      popular: false,
+    },
   ];
 
   return (
@@ -88,32 +87,40 @@ const PricingSection = () => {
             Choose Your Umrah Visa Package
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Fast, reliable, and affordable Umrah visa processing with guaranteed approval
+            Fast, reliable, and affordable Umrah visa processing with guaranteed
+            approval
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const convertedPrice = Math.round(plan.basePrice * rate);
-            const convertedOriginalPrice = Math.round(plan.originalBasePrice * rate);
+            const convertedOriginalPrice = Math.round(
+              plan.originalBasePrice * rate,
+            );
             return (
-              <Card key={index} className={`relative ${plan.popular ? 'border-2 border-emerald-500 shadow-xl scale-105' : 'border shadow-lg'}`}>
+              <Card
+                key={index}
+                className={`relative ${plan.popular ? "border-2 border-emerald-500 shadow-xl scale-105" : "border shadow-lg"}`}
+              >
                 {plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white px-4 py-1">
                     Most Popular
                   </Badge>
                 )}
-                
+
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-xl font-bold text-gray-900 mb-2">
                     {plan.name}
                   </CardTitle>
                   <div className="mb-4">
                     <span className="text-3xl font-bold text-emerald-600">
-                      {currencySymbol}{convertedPrice.toLocaleString()}
+                      {currencySymbol}
+                      {convertedPrice.toLocaleString()}
                     </span>
                     <span className="text-lg text-gray-500 line-through ml-2">
-                      {currencySymbol}{convertedOriginalPrice.toLocaleString()}
+                      {currencySymbol}
+                      {convertedOriginalPrice.toLocaleString()}
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 bg-gray-50 px-3 py-1 rounded-full inline-block">
@@ -124,21 +131,26 @@ const PricingSection = () => {
                 <CardContent className="pt-0">
                   <ul className="space-y-3 mb-6">
                     {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center text-sm">
+                      <li
+                        key={featureIndex}
+                        className="flex items-center text-sm"
+                      >
                         <Check className="w-4 h-4 text-emerald-500 mr-3 flex-shrink-0" />
                         <span className="text-gray-700">{feature}</span>
                       </li>
                     ))}
                   </ul>
 
-                  <Button 
-                    className={`w-full ${plan.popular 
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                      : 'bg-white border border-emerald-600 text-emerald-600 hover:bg-emerald-50'
+                  <Button
+                    className={`w-full ${
+                      plan.popular
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                        : "bg-white border border-emerald-600 text-emerald-600 hover:bg-emerald-50"
                     }`}
                     size="lg"
                   >
-                    Apply Now - {currencySymbol}{convertedPrice.toLocaleString()}
+                    Apply Now - {currencySymbol}
+                    {convertedPrice.toLocaleString()}
                   </Button>
                 </CardContent>
               </Card>
@@ -147,8 +159,13 @@ const PricingSection = () => {
         </div>
 
         <div className="text-center mt-12">
-          <p className="text-gray-600 mb-4">Need a custom package or have questions?</p>
-          <Button variant="outline" className="border-emerald-600 text-emerald-600 hover:bg-emerald-50">
+          <p className="text-gray-600 mb-4">
+            Need a custom package or have questions?
+          </p>
+          <Button
+            variant="outline"
+            className="border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+          >
             Contact Our Visa Experts
           </Button>
         </div>

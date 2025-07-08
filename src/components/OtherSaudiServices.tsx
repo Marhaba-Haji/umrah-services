@@ -21,7 +21,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useCurrency } from "./Header";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { convertFromINR } from "@/lib/utils";
 
 const ICON_MAP: Record<string, React.ElementType> = {

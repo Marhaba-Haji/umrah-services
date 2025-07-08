@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Header, { CurrencyContext } from "../components/Header";
+import Header from "../components/Header";
+import { CurrencyContext } from "../contexts/CurrencyContext";
 import HeroSection from "../components/HeroSection";
 import TrustIndicators from "../components/TrustIndicators";
 import UmrahConditions from "../components/UmrahConditions";

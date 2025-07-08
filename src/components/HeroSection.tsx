@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
-import { useCurrency } from "./Header";
+import { useCurrency } from "../contexts/CurrencyContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { convertFromINR } from "@/lib/utils";
