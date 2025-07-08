@@ -31,6 +31,8 @@ import {
   format as formatDate,
 } from "date-fns";
 import { toast } from "react-hot-toast";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL!,
@@ -91,6 +93,7 @@ const HotelBooking = () => {
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
   const countryDropdownRef = useRef<HTMLDivElement>(null);
   const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const { currency } = useCurrency();
 
   const defaultPriceRange = [0, 10000];
   const defaultDistanceRange = [0, 15000];
@@ -392,7 +395,13 @@ const HotelBooking = () => {
               <div>
                 <span className="text-sm text-gray-500">Starting from</span>
                 <div className="text-2xl font-bold text-emerald-600">
-                  ₹{hotel.price_per_night.toLocaleString()}
+                  {(() => {
+                    const { value, symbol } = convertFromINR(
+                      hotel.price_per_night,
+                      currency,
+                    );
+                    return `${symbol}${value.toLocaleString()}`;
+                  })()}
                 </div>
                 <span className="text-sm text-gray-500">/ night</span>
               </div>

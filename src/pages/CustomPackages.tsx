@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const CustomPackages = () => {
   const [filters, setFilters] = useState({});
@@ -25,6 +27,7 @@ const CustomPackages = () => {
     Array<Record<string, unknown>>
   >([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { currency } = useCurrency();
 
   useEffect(() => {
     const fetchCustomPackages = async () => {
@@ -86,7 +89,10 @@ const CustomPackages = () => {
           <div className="flex gap-8 max-w-7xl mx-auto items-start">
             {/* Left Panel - Filters */}
             <div className="w-80 flex-shrink-0 self-start">
-              <UmrahPackageFilters onFiltersChange={handleFiltersChange} />
+              <UmrahPackageFilters
+                onFiltersChange={handleFiltersChange}
+                currency={currency}
+              />
             </div>
             {/* Right Panel - Packages */}
             <div className="flex-1">
@@ -115,6 +121,10 @@ const CustomPackages = () => {
                     const inclusionsToShow = (pkg.inclusions || []).slice(0, 4);
                     const moreInclusions =
                       (pkg.inclusions || []).length - inclusionsToShow.length;
+                    const { value, symbol } = convertFromINR(
+                      pkg.price,
+                      currency,
+                    );
                     return (
                       <div
                         key={pkg.id}
@@ -259,14 +269,23 @@ const CustomPackages = () => {
                             </div>
                           )}
                           {/* Price and CTA */}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-lg font-bold text-emerald-700">
+                              {symbol}
+                              {value.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              per person
+                            </span>
+                          </div>
                           <div className="flex items-end justify-between mt-auto pt-4">
                             <div className="flex flex-col">
                               <span className="text-sm text-gray-500">
                                 Starting from
                               </span>
                               <span className="text-2xl font-bold text-emerald-600">
-                                {getCurrencySymbol(pkg.currency)}
-                                {pkg.price?.toLocaleString?.() ?? "N/A"}
+                                {symbol}
+                                {value.toLocaleString()}
                               </span>
                             </div>
                             {pkg.seo?.slug ? (

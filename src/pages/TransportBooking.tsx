@@ -30,6 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { TransportService, VehicleType } from "../types/transport";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const TransportBooking = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -58,6 +60,8 @@ const TransportBooking = () => {
 
   const filterBarRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+
+  const { currency } = useCurrency();
 
   // Check if popup was already shown on this page
   React.useEffect(() => {
@@ -318,7 +322,13 @@ const TransportBooking = () => {
                 )}
               </div>
               <span className="text-lg font-bold text-emerald-700">
-                ${selectedRoute.price}
+                {(() => {
+                  const { value, symbol } = convertFromINR(
+                    selectedRoute.price,
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
               </span>
             </div>
           )}
@@ -357,12 +367,24 @@ const TransportBooking = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-700">Total Price:</span>
                   <span className="text-xl font-bold text-emerald-600">
-                    ${(pricePerUnit * vehicleCount).toLocaleString()}
+                    {(() => {
+                      const { value, symbol } = convertFromINR(
+                        pricePerUnit * vehicleCount,
+                        currency,
+                      );
+                      return `${symbol}${value.toLocaleString()}`;
+                    })()}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  ${pricePerUnit} × {vehicleCount} vehicle
-                  {vehicleCount > 1 ? "s" : ""}
+                  {(() => {
+                    const { value, symbol } = convertFromINR(
+                      pricePerUnit,
+                      currency,
+                    );
+                    return `${symbol}${value.toLocaleString()}`;
+                  })()}{" "}
+                  × {vehicleCount} vehicle{vehicleCount > 1 ? "s" : ""}
                 </p>
               </div>
               <Button
@@ -396,7 +418,11 @@ const TransportBooking = () => {
           Cart ({getTotalItems()})
           {getTotalAmount() > 0 && (
             <span className="ml-2 bg-white text-emerald-600 px-2 py-1 rounded-full text-sm font-bold">
-              ${getTotalAmount().toLocaleString()}
+              {convertFromINR(getTotalAmount(), currency).symbol}
+              {convertFromINR(
+                getTotalAmount(),
+                currency,
+              ).value.toLocaleString()}
             </span>
           )}
         </Button>
@@ -430,63 +456,72 @@ const TransportBooking = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {cartItems.map((item) => (
-                      <Card key={item.id}>
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-sm">
-                                {item.vehicleName}
-                              </h4>
-                              <p className="text-xs text-gray-600 mb-2">
-                                {item.routeName}
-                              </p>
-                              <p className="text-sm font-bold text-emerald-600">
-                                ${item.pricePerUnit} per vehicle
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFromCart(item.id)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
+                    {cartItems.map((item) => {
+                      const { value: unitValue, symbol: unitSymbol } =
+                        convertFromINR(item.pricePerUnit, currency);
+                      const { value: totalValue, symbol: totalSymbol } =
+                        convertFromINR(item.totalPrice, currency);
+                      return (
+                        <Card key={item.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm">
+                                  {item.vehicleName}
+                                </h4>
+                                <p className="text-xs text-gray-600 mb-2">
+                                  {item.routeName}
+                                </p>
+                                <p className="text-sm font-bold text-emerald-600">
+                                  {unitSymbol}
+                                  {unitValue.toLocaleString()} per vehicle
+                                </p>
+                              </div>
                               <Button
+                                variant="ghost"
                                 size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateCartItemCount(item.id, item.count - 1)
-                                }
-                                disabled={item.count <= 1}
+                                onClick={() => removeFromCart(item.id)}
+                                className="text-red-500 hover:text-red-700"
                               >
-                                <Minus className="w-3 h-3" />
-                              </Button>
-                              <span className="font-medium">{item.count}</span>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  updateCartItemCount(item.id, item.count + 1)
-                                }
-                              >
-                                <Plus className="w-3 h-3" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold text-emerald-600">
-                                ${item.totalPrice.toLocaleString()}
-                              </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    updateCartItemCount(item.id, item.count - 1)
+                                  }
+                                  disabled={item.count <= 1}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <span className="font-medium">
+                                  {item.count}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    updateCartItemCount(item.id, item.count + 1)
+                                  }
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-emerald-600">
+                                  {totalSymbol}
+                                  {totalValue.toLocaleString()}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -499,7 +534,11 @@ const TransportBooking = () => {
                         Total Amount:
                       </span>
                       <span className="text-2xl font-bold text-emerald-600">
-                        ${getTotalAmount().toLocaleString()}
+                        {convertFromINR(getTotalAmount(), currency).symbol}
+                        {convertFromINR(
+                          getTotalAmount(),
+                          currency,
+                        ).value.toLocaleString()}
                       </span>
                     </div>
 

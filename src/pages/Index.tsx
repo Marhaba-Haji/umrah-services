@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
-import { CurrencyContext } from "../contexts/CurrencyContext";
 import HeroSection from "../components/HeroSection";
 import TrustIndicators from "../components/TrustIndicators";
 import UmrahConditions from "../components/UmrahConditions";
@@ -17,7 +16,6 @@ import HomePageSEO from "../components/seo/HomePageSEO";
 
 const Index = () => {
   const [showPopup, setShowPopup] = useState(false);
-  const [currency, setCurrency] = useState("INR");
 
   useEffect(() => {
     // Show popup after 15 seconds
@@ -29,10 +27,10 @@ const Index = () => {
   }, []);
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency }}>
+    <>
       <HomePageSEO />
       <div className="min-h-screen bg-white">
-        <Header currency={currency} setCurrency={setCurrency} />
+        <Header />
         <main>
           <HeroSection />
           <TrustIndicators />
@@ -55,7 +53,7 @@ const Index = () => {
         {/* Smart Widget - replaces WhatsApp Widget */}
         <SmartWidget />
       </div>
-    </CurrencyContext.Provider>
+    </>
   );
 };
 

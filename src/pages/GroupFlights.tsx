@@ -14,6 +14,8 @@ import { Calendar, Users, Plane, MapPin, ArrowRight } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 // import emailjs from 'emailjs-com';
 
 const GroupFlights = () => {
@@ -29,26 +31,27 @@ const GroupFlights = () => {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [triedSubmit, setTriedSubmit] = React.useState(false);
+  const { currency } = useCurrency();
 
   const popularRoutes = [
-    { from: "Delhi", to: "Jeddah", price: "Starting from $450" },
-    { from: "Mumbai", to: "Jeddah", price: "Starting from $420" },
-    { from: "Bangalore", to: "Jeddah", price: "Starting from $480" },
-    { from: "Hyderabad", to: "Jeddah", price: "Starting from $460" },
-    { from: "Chennai", to: "Jeddah", price: "Starting from $470" },
-    { from: "Ahmedabad", to: "Jeddah", price: "Starting from $440" },
-    { from: "Calicut", to: "Jeddah", price: "Starting from $490" },
-    { from: "Lucknow", to: "Jeddah", price: "Starting from $465" },
-    { from: "Kolkata", to: "Jeddah", price: "Starting from $485" },
-    { from: "Delhi", to: "Madinah", price: "Starting from $470" },
-    { from: "Mumbai", to: "Madinah", price: "Starting from $440" },
-    { from: "Bangalore", to: "Madinah", price: "Starting from $500" },
-    { from: "Hyderabad", to: "Madinah", price: "Starting from $480" },
-    { from: "Chennai", to: "Madinah", price: "Starting from $490" },
-    { from: "Ahmedabad", to: "Madinah", price: "Starting from $460" },
-    { from: "Calicut", to: "Madinah", price: "Starting from $510" },
-    { from: "Lucknow", to: "Madinah", price: "Starting from $485" },
-    { from: "Kolkata", to: "Madinah", price: "Starting from $505" },
+    { from: "Delhi", to: "Jeddah", price: 37500 },
+    { from: "Mumbai", to: "Jeddah", price: 35000 },
+    { from: "Bangalore", to: "Jeddah", price: 40000 },
+    { from: "Hyderabad", to: "Jeddah", price: 38000 },
+    { from: "Chennai", to: "Jeddah", price: 39000 },
+    { from: "Ahmedabad", to: "Jeddah", price: 36000 },
+    { from: "Calicut", to: "Jeddah", price: 41000 },
+    { from: "Lucknow", to: "Jeddah", price: 38500 },
+    { from: "Kolkata", to: "Jeddah", price: 40500 },
+    { from: "Delhi", to: "Madinah", price: 39000 },
+    { from: "Mumbai", to: "Madinah", price: 36000 },
+    { from: "Bangalore", to: "Madinah", price: 42000 },
+    { from: "Hyderabad", to: "Madinah", price: 40000 },
+    { from: "Chennai", to: "Madinah", price: 41000 },
+    { from: "Ahmedabad", to: "Madinah", price: 37000 },
+    { from: "Calicut", to: "Madinah", price: 43000 },
+    { from: "Lucknow", to: "Madinah", price: 40500 },
+    { from: "Kolkata", to: "Madinah", price: 42500 },
   ];
 
   const handleRouteSelect = (route: { from: string; to: string }) => {
@@ -369,37 +372,41 @@ const GroupFlights = () => {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {popularRoutes.map((route, index) => (
-              <Card
-                key={index}
-                className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-emerald-500"
-                onClick={() => handleRouteSelect(route)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
-                      <span className="font-semibold text-gray-900">
-                        {route.from}
-                      </span>
+            {popularRoutes.map((route, index) => {
+              const { value, symbol } = convertFromINR(route.price, currency);
+              return (
+                <Card
+                  key={index}
+                  className="hover:shadow-lg transition-all cursor-pointer border-l-4 border-l-emerald-500"
+                  onClick={() => handleRouteSelect(route)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-gray-900">
+                          {route.from}
+                        </span>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center space-x-2">
+                        <MapPin className="w-4 h-4 text-emerald-600" />
+                        <span className="font-semibold text-gray-900">
+                          {route.to}
+                        </span>
+                      </div>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
-                      <span className="font-semibold text-gray-900">
-                        {route.to}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-emerald-600 font-medium">
-                    {route.price}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Click to select this route
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
+                    <p className="text-sm text-emerald-600 font-medium">
+                      Starting from {symbol}
+                      {value.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Click to select this route
+                    </p>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
 

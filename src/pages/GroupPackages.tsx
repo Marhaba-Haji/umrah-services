@@ -18,11 +18,14 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const GroupPackages = () => {
   const [filters, setFilters] = useState({});
   const [groupPackages, setGroupPackages] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { currency } = useCurrency();
 
   useEffect(() => {
     const fetchGroupPackages = async () => {
@@ -88,7 +91,10 @@ const GroupPackages = () => {
           <div className="flex gap-8 max-w-7xl mx-auto items-start">
             {/* Left Panel - Filters */}
             <div className="w-80 flex-shrink-0 self-start">
-              <UmrahPackageFilters onFiltersChange={handleFiltersChange} />
+              <UmrahPackageFilters
+                onFiltersChange={handleFiltersChange}
+                currency={currency}
+              />
             </div>
 
             {/* Right Panel - Packages */}
@@ -119,6 +125,10 @@ const GroupPackages = () => {
                     const inclusionsToShow = (pkg.inclusions || []).slice(0, 4);
                     const moreInclusions =
                       (pkg.inclusions || []).length - inclusionsToShow.length;
+                    const { value, symbol } = convertFromINR(
+                      pkg.price,
+                      currency,
+                    );
                     return (
                       <div
                         key={pkg.id}
@@ -269,8 +279,8 @@ const GroupPackages = () => {
                             <div className="flex items-end justify-between">
                               <div>
                                 <span className="text-3xl font-extrabold text-emerald-600">
-                                  {getCurrencySymbol(pkg.currency)}
-                                  {pkg.price}
+                                  {symbol}
+                                  {value.toLocaleString()}
                                 </span>
                                 <span className="text-xs text-gray-500 ml-1">
                                   per person

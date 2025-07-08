@@ -29,6 +29,8 @@ import { format, addDays, parseISO, isAfter, isBefore } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 interface VisaOption {
   visa_category?: string;
@@ -106,6 +108,7 @@ const UmrahApplication = () => {
   const [applicationId, setApplicationId] = useState<string | null>(null);
   const savingRef = useRef(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const { currency } = useCurrency();
 
   const steps = [
     { number: 1, title: "Personal Information", icon: User },
@@ -622,7 +625,11 @@ const UmrahApplication = () => {
             <div className="flex justify-between">
               <span>Visa Fee per Traveler:</span>
               <span className="font-semibold">
-                ₹{selectedVisaPrice?.toLocaleString()}
+                {convertFromINR(selectedVisaPrice || 0, currency).symbol}
+                {convertFromINR(
+                  selectedVisaPrice || 0,
+                  currency,
+                ).value.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between">
@@ -632,7 +639,13 @@ const UmrahApplication = () => {
             <hr className="my-2 border-emerald-300" />
             <div className="flex justify-between text-lg font-bold text-emerald-800">
               <span>Total Visa Amount:</span>
-              <span>₹{totalVisaPrice?.toLocaleString()}</span>
+              <span>
+                {convertFromINR(totalVisaPrice || 0, currency).symbol}
+                {convertFromINR(
+                  totalVisaPrice || 0,
+                  currency,
+                ).value.toLocaleString()}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -1068,6 +1081,12 @@ const UmrahApplication = () => {
   const selectedVisaPrice = selectedVisa ? selectedVisa.price : 0;
   const totalVisaPrice = selectedVisaPrice * travelerCount;
 
+  const selectedVisaPriceConverted = convertFromINR(
+    selectedVisaPrice || 0,
+    currency,
+  );
+  const totalVisaPriceConverted = convertFromINR(totalVisaPrice || 0, currency);
+
   const isPdf = (dataUrl: string) => dataUrl.startsWith("data:application/pdf");
 
   const yesterday = new Date(today);
@@ -1124,7 +1143,11 @@ const UmrahApplication = () => {
                           {visa.processing_time}
                         </h3>
                         <p className="text-xl font-bold text-emerald-600">
-                          ₹{visa.price?.toLocaleString()}
+                          {convertFromINR(visa.price || 0, currency).symbol}
+                          {convertFromINR(
+                            visa.price || 0,
+                            currency,
+                          ).value.toLocaleString()}
                         </p>
                         <div className="text-sm mt-1">
                           Approval Rate:{" "}

@@ -1,21 +1,26 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Users, Hammer, UserPlus, Star, CheckCircle } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Users, Hammer, UserPlus, Star, CheckCircle } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const UmrahPackages = () => {
+  const { currency } = useCurrency();
   const packageTypes = [
     {
       title: "Group Umrah Packages",
-      description: "Join fellow pilgrims in comprehensive group packages with shared experiences and guided tours",
+      description:
+        "Join fellow pilgrims in comprehensive group packages with shared experiences and guided tours",
       icon: Users,
       route: "/group-packages",
       gradient: "from-emerald-500 to-teal-600",
       price: "Starting from Rs. 70,000",
+      priceValue: 70000,
       duration: "15-20 Days",
       features: [
         "Shared accommodations",
@@ -23,48 +28,52 @@ const UmrahPackages = () => {
         "Professional guide",
         "Group prayers",
         "Ziarath tours included",
-        "24/7 group coordinator"
+        "24/7 group coordinator",
       ],
       benefits: [
         "Cost-effective pricing",
         "Social spiritual experience",
         "Expert guidance",
-        "Safety in numbers"
+        "Safety in numbers",
       ],
       popular: true,
-      image: "photo-1466442929976-97f336a657be"
+      image: "photo-1466442929976-97f336a657be",
     },
     {
       title: "Short Independent Package",
-      description: "Pre-curated short Umrah packages based on popular customer plans. Enjoy flexibility and independence with handpicked options.",
+      description:
+        "Pre-curated short Umrah packages based on popular customer plans. Enjoy flexibility and independence with handpicked options.",
       icon: UserPlus,
       route: "/custom-packages",
       gradient: "from-blue-500 to-indigo-600",
       price: "Starting from Rs. 62,000",
+      priceValue: 62000,
       duration: "3-10 Days",
       features: [
         "Private accommodations",
         "Flexible itinerary",
         "Custom meal plans",
         "Private transportation",
-        "Personalized services"
+        "Personalized services",
       ],
       benefits: [
         "Complete flexibility",
         "Privacy and comfort",
         "Curated for you",
-        "Personal attention"
+        "Personal attention",
       ],
       popular: false,
-      image: "photo-1523712999610-f77fbcfc3843"
+      image: "photo-1523712999610-f77fbcfc3843",
     },
     {
       title: "Build Your Own Umrah Package",
-      description: "Create a fully personalized Umrah journey. Select your preferred flights, hotels in Makkah & Madinah, visa, transport, ziarath tours, guides, and more—all in one place.",
+      description:
+        "Create a fully personalized Umrah journey. Select your preferred flights, hotels in Makkah & Madinah, visa, transport, ziarath tours, guides, and more—all in one place.",
       icon: Hammer,
       route: "/build-your-own-umrah",
       gradient: "from-purple-500 to-pink-600",
       price: "Fully Customizable",
+      priceValue: null,
       duration: "Any Duration",
       features: [
         "Choose flights",
@@ -73,23 +82,23 @@ const UmrahPackages = () => {
         "Transport options",
         "Ziarath tours",
         "Guided or independent",
-        "Add-on services"
+        "Add-on services",
       ],
       benefits: [
         "Ultimate flexibility",
         "Tailored to your needs",
         "Mix & match services",
-        "Transparent pricing"
+        "Transparent pricing",
       ],
       popular: false,
-      image: "photo-1506744038136-46273834b3fb"
-    }
+      image: "photo-1506744038136-46273834b3fb",
+    },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       <Header />
-      
+
       {/* Hero Section - compact */}
       <section className="py-4 md:py-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 bg-black/20" />
@@ -101,7 +110,8 @@ const UmrahPackages = () => {
             Choose Your Umrah Package
           </h1>
           <p className="text-sm md:text-base text-white/90 max-w-xl mx-auto leading-snug md:leading-snug">
-            Select between our comprehensive group packages or create your own personalized pilgrimage experience
+            Select between our comprehensive group packages or create your own
+            personalized pilgrimage experience
           </p>
         </div>
       </section>
@@ -111,15 +121,15 @@ const UmrahPackages = () => {
         <div className="container mx-auto px-2 md:px-4">
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
             {packageTypes.map((packageType, index) => (
-              <Card 
+              <Card
                 key={index}
                 className="group relative flex flex-col h-full min-h-[540px] md:min-h-[560px] overflow-hidden border-0 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-3 bg-white"
               >
                 {/* Prominent Image with Title Overlay and Most Popular Badge */}
                 <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-t-2xl mb-0 flex items-start justify-between">
                   <div className="absolute left-0 top-0 w-full h-full bg-gradient-to-t from-black/40 via-black/10 to-transparent z-10" />
-                  <img 
-                    src={`https://images.unsplash.com/${packageType.image}?w=800&h=400&fit=crop`} 
+                  <img
+                    src={`https://images.unsplash.com/${packageType.image}?w=800&h=400&fit=crop`}
                     alt={packageType.title}
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 z-0"
                   />
@@ -131,12 +141,14 @@ const UmrahPackages = () => {
                   </div>
                   {/* Card Icon - bottom left of image */}
                   <div className="absolute bottom-3 left-3 z-30">
-                    <div className={`w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-md`}>
+                    <div
+                      className={`w-8 h-8 rounded-lg bg-white/80 flex items-center justify-center shadow-md`}
+                    >
                       <packageType.icon className="w-5 h-5 text-emerald-700" />
                     </div>
                   </div>
                   {/* Most Popular Badge only for Independent Short Umrah Packages - repositioned to bottom right */}
-                  {packageType.title === 'Short Independent Package' && (
+                  {packageType.title === "Short Independent Package" && (
                     <div className="absolute bottom-4 right-4 z-30">
                       <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold px-3 py-1 shadow-lg">
                         <Star className="w-3 h-3 mr-1" />
@@ -152,7 +164,15 @@ const UmrahPackages = () => {
                   <div className="flex items-center justify-between mb-3 p-2 bg-gray-50 rounded-xl">
                     <div>
                       <div className="text-lg font-bold text-emerald-600">
-                        {packageType.price}
+                        {packageType.priceValue
+                          ? (() => {
+                              const { value, symbol } = convertFromINR(
+                                packageType.priceValue,
+                                currency,
+                              );
+                              return `Starting from ${symbol}${value.toLocaleString()}`;
+                            })()
+                          : packageType.price}
                       </div>
                       <div className="text-xs text-gray-500">per person</div>
                     </div>
@@ -160,31 +180,47 @@ const UmrahPackages = () => {
                       <div className="text-sm font-semibold text-gray-900">
                         {packageType.duration}
                       </div>
-                      <div className="text-xs text-gray-500">{['Group Umrah Packages', 'Short Independent Package'].includes(packageType.title) ? 'fixed' : 'flexible'}</div>
+                      <div className="text-xs text-gray-500">
+                        {[
+                          "Group Umrah Packages",
+                          "Short Independent Package",
+                        ].includes(packageType.title)
+                          ? "fixed"
+                          : "flexible"}
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10 p-5 pt-0 flex flex-col flex-1">
                   {/* Features */}
                   <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Package Includes:</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                      Package Includes:
+                    </h4>
                     <div className="grid grid-cols-1 gap-1 md:grid-cols-2">
                       {packageType.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center space-x-2">
+                        <div
+                          key={featureIndex}
+                          className="flex items-center space-x-2"
+                        >
                           <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                          <span className="text-xs md:text-sm text-gray-700">{feature}</span>
+                          <span className="text-xs md:text-sm text-gray-700">
+                            {feature}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
                   {/* Benefits */}
                   <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Key Benefits:</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+                      Key Benefits:
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {packageType.benefits.map((benefit, benefitIndex) => (
-                        <Badge 
+                        <Badge
                           key={benefitIndex}
-                          variant="outline" 
+                          variant="outline"
                           className="text-xs border-emerald-200 text-emerald-700 bg-emerald-50"
                         >
                           {benefit}
@@ -194,11 +230,13 @@ const UmrahPackages = () => {
                   </div>
                   <div className="mt-auto">
                     <Link to={packageType.route}>
-                      <Button 
+                      <Button
                         className={`w-full bg-gradient-to-r ${packageType.gradient} hover:opacity-90 transform transition-all duration-300 hover:scale-105 shadow-lg text-base py-3`}
                         size="lg"
                       >
-                        {packageType.title === 'Build Your Own Umrah Package' ? 'Start Building' : `Explore ${packageType.title.split(' ')[0]} Packages`}
+                        {packageType.title === "Build Your Own Umrah Package"
+                          ? "Start Building"
+                          : `Explore ${packageType.title.split(" ")[0]} Packages`}
                       </Button>
                     </Link>
                   </div>
@@ -218,22 +256,35 @@ const UmrahPackages = () => {
                   <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">97% Success Rate</h4>
-                  <p className="text-gray-600 text-sm">Guaranteed visa approval and seamless travel experience</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    99% Success Rate
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Guaranteed visa approval and seamless travel experience
+                  </p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Users className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">1,000+ Pilgrims</h4>
-                  <p className="text-gray-600 text-sm">Successfully served pilgrims from around the world</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    1,000+ Pilgrims
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Successfully served pilgrims from around the world
+                  </p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Star className="w-8 h-8 text-white" />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">5-Star Service</h4>
-                  <p className="text-gray-600 text-sm">Premium service with 24/7 support throughout your journey</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    5-Star Service
+                  </h4>
+                  <p className="text-gray-600 text-sm">
+                    Premium service with 7 days/week support throughout your
+                    journey
+                  </p>
                 </div>
               </div>
             </div>

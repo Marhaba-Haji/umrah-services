@@ -35,6 +35,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 interface GuideService {
   id: string;
@@ -86,6 +88,7 @@ const GuideBooking = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { currency } = useCurrency();
 
   const [bookingForm, setBookingForm] = useState({
     name: "",
@@ -516,6 +519,10 @@ const GuideBooking = () => {
                       );
                       // Calculate the lowest price for this guide
                       const minPrice = getMinPrice(guide);
+                      const { value, symbol } = convertFromINR(
+                        minPrice,
+                        currency,
+                      );
                       return (
                         <Card
                           key={guide.id}
@@ -582,7 +589,8 @@ const GuideBooking = () => {
                                 <div className="text-xs font-semibold text-emerald-700 mb-2">
                                   Starting from{" "}
                                   <span className="font-bold text-base">
-                                    ₹{minPrice.toLocaleString("en-IN")}
+                                    {symbol}
+                                    {value.toLocaleString()}
                                   </span>
                                 </div>
                               )}
@@ -844,6 +852,10 @@ const GuideBooking = () => {
                         details.serviceType,
                       );
                       const subtotal = getGuideSubtotal(guide, details);
+                      const { value: priceValue, symbol: priceSymbol } =
+                        convertFromINR(price, currency);
+                      const { value: subtotalValue, symbol: subtotalSymbol } =
+                        convertFromINR(subtotal, currency);
                       return (
                         <div
                           key={guide.id}
@@ -928,25 +940,36 @@ const GuideBooking = () => {
                             <div className="text-xs mb-1">
                               Price:{" "}
                               <span className="font-semibold">
-                                ₹{price.toLocaleString("en-IN")}
+                                {priceSymbol}
+                                {priceValue.toLocaleString()}
                               </span>
                             </div>
                           )}
                           {/* Subtotal */}
                           {details.serviceType && (
                             <div className="text-xs font-bold text-emerald-700">
-                              Subtotal: ₹{subtotal.toLocaleString("en-IN")}
+                              Subtotal: {subtotalSymbol}
+                              {subtotalValue.toLocaleString()}
                             </div>
                           )}
                         </div>
                       );
                     })}
                     {/* Order Total */}
-                    <div className="border-t pt-3 mt-3 text-right">
-                      <span className="font-semibold text-emerald-800">
-                        Order Total: ₹{getOrderTotal().toLocaleString("en-IN")}
-                      </span>
-                    </div>
+                    {(() => {
+                      const { value, symbol } = convertFromINR(
+                        getOrderTotal(),
+                        currency,
+                      );
+                      return (
+                        <div className="border-t pt-3 mt-3 text-right">
+                          <span className="font-semibold text-emerald-800">
+                            Order Total: {symbol}
+                            {value.toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="text-center py-6 text-gray-500">

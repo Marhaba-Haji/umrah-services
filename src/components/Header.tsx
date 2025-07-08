@@ -11,13 +11,8 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { CurrencyContext, useCurrency } from "../contexts/CurrencyContext";
 
-const Header = ({
-  currency,
-  setCurrency,
-}: {
-  currency: string;
-  setCurrency: (currency: string) => void;
-}) => {
+const Header = () => {
+  const { currency, setCurrency } = useCurrency();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const lastScrollY = useRef(window.scrollY);

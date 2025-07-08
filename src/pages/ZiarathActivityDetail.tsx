@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/carousel";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog } from "@/components/ui/dialog";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 // --- Helper Components ---
 const QuickFact = ({ icon: Icon, label, value }) => (
@@ -214,6 +216,7 @@ const ZiarathActivityDetail = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [related, setRelated] = useState([]);
   const [enlargedImg, setEnlargedImg] = useState<string | null>(null);
+  const { currency } = useCurrency();
 
   useEffect(() => {
     (async () => {
@@ -273,6 +276,10 @@ const ZiarathActivityDetail = () => {
   const minPrice = activity.vehicle_prices
     ? Math.min(...Object.values(activity.vehicle_prices).map(Number))
     : activity.price;
+  const { value: convertedMinPrice, symbol: convertedSymbol } = convertFromINR(
+    minPrice || 0,
+    currency,
+  );
 
   return (
     <div className="min-h-screen bg-[#f6f8f7]">
@@ -311,7 +318,9 @@ const ZiarathActivityDetail = () => {
                   icon={Star}
                   label="Price"
                   value={
-                    minPrice ? `₹${minPrice.toLocaleString("en-IN")}` : "N/A"
+                    minPrice
+                      ? `${convertedSymbol}${convertedMinPrice.toLocaleString()}`
+                      : "N/A"
                   }
                 />
               </div>
@@ -647,7 +656,11 @@ const ZiarathActivityDetail = () => {
                         </div>
                       </div>
                       <div className="text-base font-bold text-yellow-700">
-                        ₹{Number(price).toLocaleString("en-IN")}
+                        {convertFromINR(Number(price) || 0, currency).symbol}
+                        {convertFromINR(
+                          Number(price) || 0,
+                          currency,
+                        ).value.toLocaleString()}
                       </div>
                     </label>
                   );

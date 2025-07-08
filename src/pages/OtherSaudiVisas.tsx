@@ -35,7 +35,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, convertFromINR } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -93,6 +93,7 @@ function VisaCard({
   toggleDocs,
   onApply,
 }) {
+  const { currency } = useCurrency();
   // Remove icon/color logic
   const requirementsArr = Array.isArray(visa.requirements)
     ? visa.requirements
@@ -101,6 +102,11 @@ function VisaCard({
         visa.requirements.split(",").map((f) => f.trim())
       : [];
   const imageUrl = visa.featured_image || "/default-visa.jpg";
+
+  const { value: visaValue, symbol: visaSymbol } = convertFromINR(
+    Number(visa.agency_fees ?? visa.price),
+    currency,
+  );
 
   return (
     <Card className="relative group shadow-xl rounded-3xl border-0 bg-white mb-6 overflow-hidden">
@@ -132,7 +138,8 @@ function VisaCard({
           </div>
           <div>
             <span className="bg-white text-green-700 font-bold px-3 py-1 pr-6 rounded-full shadow text-base relative">
-              ₹{Number(visa.agency_fees ?? visa.price).toLocaleString()}
+              {visaSymbol}
+              {visaValue.toLocaleString()}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -142,16 +149,24 @@ function VisaCard({
                   </TooltipTrigger>
                   <TooltipContent className="bg-white text-gray-900 shadow-lg rounded-lg p-3 text-sm min-w-[180px]">
                     <div>
-                      <span className="font-semibold">Agency Fees:</span> ₹
-                      {visa.agency_fees
-                        ? Number(visa.agency_fees).toLocaleString()
-                        : "-"}
+                      <span className="font-semibold">Agency Fees:</span>{" "}
+                      {(() => {
+                        const { value, symbol } = convertFromINR(
+                          Number(visa.agency_fees),
+                          currency,
+                        );
+                        return symbol + value.toLocaleString();
+                      })()}
                     </div>
                     <div>
-                      <span className="font-semibold">Embassy Fees:</span> ₹
-                      {visa.embassy_fees
-                        ? Number(visa.embassy_fees).toLocaleString()
-                        : "-"}
+                      <span className="font-semibold">Embassy Fees:</span>{" "}
+                      {(() => {
+                        const { value, symbol } = convertFromINR(
+                          Number(visa.embassy_fees),
+                          currency,
+                        );
+                        return symbol + value.toLocaleString();
+                      })()}
                     </div>
                   </TooltipContent>
                 </Tooltip>
@@ -444,6 +459,7 @@ function VisaCard({
 
 // --- ApplicationModal component (3-step flow, progress bar, trust signals) ---
 function ApplicationModal({ visa }) {
+  const { currency } = useCurrency();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -557,11 +573,25 @@ function ApplicationModal({ visa }) {
           <div>
             <h2 className="text-xl font-bold mb-2">Payment</h2>
             <div className="mb-2 text-lg font-semibold">
-              Total: ₹{Number(visa.agency_fees ?? visa.price).toLocaleString()}
+              Total:{" "}
+              {(() => {
+                const { value, symbol } = convertFromINR(
+                  Number(visa.agency_fees ?? visa.price),
+                  currency,
+                );
+                return symbol + value.toLocaleString();
+              })()}
             </div>
             {visa.embassy_fees && (
               <div className="mb-2 text-sm text-gray-500">
-                + Embassy Fee: ₹{Number(visa.embassy_fees).toLocaleString()}
+                + Embassy Fee:{" "}
+                {(() => {
+                  const { value, symbol } = convertFromINR(
+                    Number(visa.embassy_fees),
+                    currency,
+                  );
+                  return symbol + value.toLocaleString();
+                })()}
               </div>
             )}
             <Button

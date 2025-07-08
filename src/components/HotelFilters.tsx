@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 type HotelFilterState = {
   city: string;
@@ -25,6 +27,7 @@ interface HotelFiltersProps {
 }
 
 const HotelFilters = ({ onFilterChange }: HotelFiltersProps) => {
+  const { currency } = useCurrency();
   const [city, setCity] = useState("makkah");
   const [priceRange, setPriceRange] = useState<number[]>([0, 10000]);
   const [starRating, setStarRating] = useState<number[]>([]);
@@ -92,8 +95,8 @@ const HotelFilters = ({ onFilterChange }: HotelFiltersProps) => {
               <SelectValue placeholder="Select city" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="makkah">🕋 Makkah</SelectItem>
-              <SelectItem value="madinah">🕌 Madinah</SelectItem>
+              <SelectItem value="makkah">🔋 Makkah</SelectItem>
+              <SelectItem value="madinah">🔌 Madinah</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -113,8 +116,24 @@ const HotelFilters = ({ onFilterChange }: HotelFiltersProps) => {
               className="w-full"
             />
             <div className="flex justify-between text-sm text-gray-600 mt-2">
-              <span>₹{priceRange[0]}</span>
-              <span>₹{priceRange[1]}</span>
+              <span>
+                {(() => {
+                  const { symbol, value } = convertFromINR(
+                    priceRange[0],
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
+              </span>
+              <span>
+                {(() => {
+                  const { symbol, value } = convertFromINR(
+                    priceRange[1],
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
+              </span>
             </div>
           </div>
         </div>

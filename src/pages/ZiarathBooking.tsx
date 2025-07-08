@@ -57,6 +57,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 // Define types
 interface Activity {
@@ -107,6 +109,7 @@ export function BookingModal({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const { currency } = useCurrency();
 
   // Update numberOfPeople when vehicle changes
   useEffect(() => {
@@ -181,7 +184,13 @@ export function BookingModal({
                             </div>
                           </div>
                           <div className="text-lg font-bold text-[#fbbf24]">
-                            ₹{Number(price).toLocaleString("en-IN")}
+                            {(() => {
+                              const { value, symbol } = convertFromINR(
+                                Number(price),
+                                currency,
+                              );
+                              return `${symbol}${value.toLocaleString()}`;
+                            })()}
                           </div>
                         </label>
                       );
@@ -192,12 +201,17 @@ export function BookingModal({
             )}
             <div className="flex items-center gap-4 mb-2 mt-4">
               <span className="text-2xl font-extrabold text-[#fbbf24]">
-                ₹
-                {activity.vehicle_prices && selectedVehicleId
-                  ? Number(
-                      activity.vehicle_prices[selectedVehicleId],
-                    ).toLocaleString("en-IN")
-                  : activity.price?.toLocaleString("en-IN")}
+                {(() => {
+                  let price = activity.price;
+                  if (activity.vehicle_prices && selectedVehicleId) {
+                    price = Number(activity.vehicle_prices[selectedVehicleId]);
+                  }
+                  const { value, symbol } = convertFromINR(
+                    Number(price),
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
               </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -368,6 +382,8 @@ const ZiarathBooking = () => {
 
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [modalActivity, setModalActivity] = useState<Activity | null>(null);
+
+  const { currency } = useCurrency();
 
   const fetchActivities = useCallback(async () => {
     setIsLoading(true);
@@ -684,7 +700,13 @@ const ZiarathBooking = () => {
                     </div>
                     <div className="flex items-center justify-between mt-2 gap-2">
                       <span className="text-2xl font-extrabold text-[#fbbf24]">
-                        ₹{activity.price?.toLocaleString("en-IN")}
+                        {(() => {
+                          const { value, symbol } = convertFromINR(
+                            Number(activity.price),
+                            currency,
+                          );
+                          return `${symbol}${value.toLocaleString()}`;
+                        })()}
                       </span>
                       <Button
                         size="lg"
@@ -835,7 +857,13 @@ const ZiarathBooking = () => {
                                   </div>
                                 </div>
                                 <div className="text-lg font-bold text-[#fbbf24]">
-                                  ₹{Number(price).toLocaleString("en-IN")}
+                                  {(() => {
+                                    const { value, symbol } = convertFromINR(
+                                      Number(price),
+                                      currency,
+                                    );
+                                    return `${symbol}${value.toLocaleString()}`;
+                                  })()}
                                 </div>
                               </label>
                             );
@@ -846,12 +874,22 @@ const ZiarathBooking = () => {
                   )}
                   <div className="flex items-center gap-4 mb-6">
                     <span className="text-2xl font-extrabold text-[#fbbf24]">
-                      ₹
-                      {drawerActivity.vehicle_prices && selectedVehicleId
-                        ? Number(
+                      {(() => {
+                        let price = drawerActivity.price;
+                        if (
+                          drawerActivity.vehicle_prices &&
+                          selectedVehicleId
+                        ) {
+                          price = Number(
                             drawerActivity.vehicle_prices[selectedVehicleId],
-                          ).toLocaleString("en-IN")
-                        : drawerActivity.price?.toLocaleString("en-IN")}
+                          );
+                        }
+                        const { value, symbol } = convertFromINR(
+                          Number(price),
+                          currency,
+                        );
+                        return `${symbol}${value.toLocaleString()}`;
+                      })()}
                     </span>
                   </div>
                   <div className="flex flex-col md:flex-row md:gap-4 gap-2 mt-2">
@@ -933,12 +971,19 @@ const ZiarathBooking = () => {
                     </span>
                   </div>
                   <div className="text-lg font-bold text-[#fbbf24]">
-                    ₹
-                    {drawerActivity.vehicle_prices && selectedVehicleId
-                      ? Number(
+                    {(() => {
+                      let price = drawerActivity.price;
+                      if (drawerActivity.vehicle_prices && selectedVehicleId) {
+                        price = Number(
                           drawerActivity.vehicle_prices[selectedVehicleId],
-                        ).toLocaleString("en-IN")
-                      : drawerActivity.price?.toLocaleString("en-IN")}
+                        );
+                      }
+                      const { value, symbol } = convertFromINR(
+                        Number(price),
+                        currency,
+                      );
+                      return `${symbol}${value.toLocaleString()}`;
+                    })()}
                   </div>
                 </div>
                 <form onSubmit={handleBooking} className="space-y-4">

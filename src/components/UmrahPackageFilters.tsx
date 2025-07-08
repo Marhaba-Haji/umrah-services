@@ -6,12 +6,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Star, Filter } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 interface UmrahPackageFiltersProps {
   onFiltersChange: (filters: unknown) => void;
+  currency: string;
 }
 
-const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
+const UmrahPackageFilters = ({
+  onFiltersChange,
+  currency,
+}: UmrahPackageFiltersProps) => {
   const [priceRange, setPriceRange] = useState([1000, 5000]);
   const [duration, setDuration] = useState("");
   const [makkahDistance, setMakkahDistance] = useState([0, 2000]);
@@ -67,7 +73,7 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
         {/* Price Range */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            💰 Price Range (USD)
+            💰 Price Range ({currency})
           </label>
           <div className="px-2">
             <Slider
@@ -79,8 +85,24 @@ const UmrahPackageFilters = ({ onFiltersChange }: UmrahPackageFiltersProps) => {
               className="w-full"
             />
             <div className="flex justify-between text-sm text-gray-600 mt-2">
-              <span>${priceRange[0]}</span>
-              <span>${priceRange[1]}</span>
+              <span>
+                {(() => {
+                  const { symbol, value } = convertFromINR(
+                    priceRange[0],
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
+              </span>
+              <span>
+                {(() => {
+                  const { symbol, value } = convertFromINR(
+                    priceRange[1],
+                    currency,
+                  );
+                  return `${symbol}${value.toLocaleString()}`;
+                })()}
+              </span>
             </div>
           </div>
         </div>

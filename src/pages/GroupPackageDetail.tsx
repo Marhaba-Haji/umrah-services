@@ -9,6 +9,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Clock, Users, Plane, Landmark, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { convertFromINR } from "@/lib/utils";
 
 const GroupPackageDetail = () => {
   const { slug } = useParams();
@@ -16,6 +18,7 @@ const GroupPackageDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const { currency } = useCurrency();
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -88,6 +91,11 @@ const GroupPackageDetail = () => {
   // Example: fake reviews and rating for demo
   const reviews = pkg.reviews || 847;
   const rating = pkg.rating || 4.9;
+
+  const { value: convertedPrice, symbol: convertedSymbol } = convertFromINR(
+    pkg.price || 0,
+    currency,
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-emerald-50">
@@ -164,8 +172,8 @@ const GroupPackageDetail = () => {
           {/* Price and booking summary */}
           <div className="flex flex-col items-end">
             <div className="text-4xl font-extrabold text-emerald-600">
-              {getCurrencySymbol(pkg.currency)}
-              {pkg.price}
+              {convertedSymbol}
+              {convertedPrice.toLocaleString()}
             </div>
             <div className="text-base text-gray-500">per person</div>
             <Button
@@ -410,10 +418,36 @@ const GroupPackageDetail = () => {
                 <CardTitle>Pricing</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="bg-gray-50 p-3 rounded text-xs overflow-x-auto">
-                  {JSON.stringify(pkg.pricing, null, 2)}
-                </pre>
-                {/* You can replace this with a more beautiful table if you want */}
+                {pkg.pricing && Array.isArray(pkg.pricing) ? (
+                  <table className="min-w-full text-sm border bg-gray-50 rounded">
+                    <thead>
+                      <tr>
+                        <th className="px-3 py-2 border">Type</th>
+                        <th className="px-3 py-2 border">Price</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pkg.pricing.map((row, idx) => (
+                        <tr key={idx} className="even:bg-white">
+                          <td className="px-3 py-2 border">
+                            {row.type || row.label || "-"}
+                          </td>
+                          <td className="px-3 py-2 border">
+                            {convertFromINR(row.price || 0, currency).symbol}
+                            {convertFromINR(
+                              row.price || 0,
+                              currency,
+                            ).value.toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <pre className="bg-gray-50 p-3 rounded text-xs overflow-x-auto">
+                    {JSON.stringify(pkg.pricing, null, 2)}
+                  </pre>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
