@@ -14,6 +14,8 @@ import {
   X,
   Check,
   Info,
+  Plane,
+  IdCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +28,8 @@ import type { FlightCartDetails } from "../components/FlightStep";
 import Header from "@/components/Header";
 import HotelSearch from "@/components/HotelSearch";
 import Footer from "../components/Footer";
+import { KaabaIcon } from "@/components/ui/kaaba-icon";
+import { MasjidNabawiIcon } from "@/components/ui/masjid-nabawi-icon";
 
 interface CartItem {
   id: string;
@@ -34,6 +38,13 @@ interface CartItem {
   price: number;
   quantity?: number;
   details?: Record<string, unknown>;
+}
+
+interface VehicleOption {
+  id: string;
+  price: number;
+  vehicle_name: string;
+  capacity: string | number;
 }
 
 const BuildYourOwnUmrah = () => {
@@ -77,6 +88,14 @@ const BuildYourOwnUmrah = () => {
   >([]);
   const [guideLoading, setGuideLoading] = useState(false);
   const [guideError, setGuideError] = useState<string | null>(null);
+  const [visaQuantities, setVisaQuantities] = useState({});
+  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [transportCapacity, setTransportCapacity] = useState<number | null>(
+    null,
+  );
+  const [ziarathVehicleSelections, setZiarathVehicleSelections] = useState<
+    Record<string, string>
+  >({});
 
   const totalGroupSize =
     adultCount + childWithBedCount + childWithoutBedCount + infantCount;
@@ -84,10 +103,15 @@ const BuildYourOwnUmrah = () => {
   const steps = [
     { id: 0, title: "Trip Duration", icon: Calendar, color: "bg-primary" },
     { id: 1, title: "Group Size", icon: Users, color: "bg-primary" },
-    { id: 2, title: "Visa", icon: Package, color: "bg-primary" },
-    { id: 3, title: "Flights", icon: Calendar, color: "bg-primary" },
-    { id: 4, title: "Makkah Hotel", icon: MapPin, color: "bg-primary" },
-    { id: 5, title: "Madinah Hotel", icon: MapPin, color: "bg-primary" },
+    { id: 2, title: "Visa", icon: IdCard, color: "bg-primary" },
+    { id: 3, title: "Flights", icon: Plane, color: "bg-primary" },
+    { id: 4, title: "Makkah Hotel", icon: KaabaIcon, color: "bg-primary" },
+    {
+      id: 5,
+      title: "Madinah Hotel",
+      icon: MasjidNabawiIcon,
+      color: "bg-primary",
+    },
     { id: 6, title: "Transport", icon: Car, color: "bg-primary" },
     { id: 7, title: "Guide", icon: UserCheck, color: "bg-primary" },
     { id: 8, title: "Ziarath", icon: Map, color: "bg-primary" },
@@ -155,6 +179,20 @@ const BuildYourOwnUmrah = () => {
     };
     fetchGuides();
   }, []);
+
+  useEffect(() => {
+    if (!visaOptions || visaOptions.length === 0) return;
+    setVisaQuantities((prev) => {
+      const initial = { ...prev };
+      visaOptions.forEach((visa) => {
+        const cartVisa = cart.find(
+          (item) => item.id === visa.id && item.type === "visa",
+        );
+        initial[visa.id] = cartVisa ? cartVisa.quantity || 1 : totalGroupSize;
+      });
+      return initial;
+    });
+  }, [visaOptions, cart, totalGroupSize]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     setCart((prev) => {
@@ -381,83 +419,133 @@ const BuildYourOwnUmrah = () => {
         )}
         {!visaLoading &&
           !visaError &&
-          visaOptions.map((visa) => (
-            <Card
-              key={visa.id}
-              className={`relative border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                visa.popular
-                  ? "border-primary shadow-md"
-                  : "border-gray-200 hover:border-primary/30"
-              }`}
-              onClick={() =>
-                addToCart({
-                  id: visa.id,
-                  type: "visa",
-                  name: visa.visa_type,
-                  price: visa.price,
-                  details: {
-                    processing: visa.processing_time,
-                    validity: visa.visa_validity,
-                  },
-                })
-              }
-            >
-              {visa.popular && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-secondary text-primary px-4 py-1">
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {visa.visa_type}
-                      </h3>
+          visaOptions.map((visa) => {
+            const cartVisa = cart.find(
+              (item) => item.id === visa.id && item.type === "visa",
+            );
+            const localQty = visaQuantities[visa.id] || 1;
+            const totalVisaPrice = (visa.price || 0) * (localQty || 1);
+            return (
+              <Card
+                key={visa.id}
+                className={`relative border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
+                  visa.popular
+                    ? "border-primary shadow-md"
+                    : "border-gray-200 hover:border-primary/30"
+                }`}
+              >
+                {visa.popular && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-secondary text-primary px-4 py-1">
+                      Most Popular
+                    </Badge>
+                  </div>
+                )}
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {visa.visa_type}{" "}
+                          {visa.visa_category ? `(${visa.visa_category})` : ""}
+                        </h3>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-600">
+                          Processing: {visa.processing_time}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Validity: {visa.visa_validity}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-sm text-primary font-medium mb-3">
-                      {visa.description}
-                    </p>
-                    <div className="space-y-1">
-                      <p className="text-sm text-gray-600">
-                        Processing: {visa.processing_time}
+                    <div className="text-right min-w-[120px] flex flex-col items-end gap-2">
+                      <p className="text-lg font-bold text-primary">
+                        ₹{visa.price?.toLocaleString()}{" "}
+                        <span className="text-xs font-normal text-gray-500">
+                          / visa
+                        </span>
                       </p>
-                      <p className="text-sm text-gray-600">
-                        Validity: {visa.visa_validity}
-                      </p>
+                      {/* Editable Counter */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVisaQuantities((q) => ({
+                              ...q,
+                              [visa.id]: Math.max(1, (q[visa.id] || 1) - 1),
+                            }));
+                          }}
+                          disabled={localQty <= 1}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <input
+                          type="number"
+                          min={1}
+                          className="w-12 text-center border rounded"
+                          value={localQty}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const val = Math.max(1, Number(e.target.value));
+                            setVisaQuantities((q) => ({
+                              ...q,
+                              [visa.id]: val,
+                            }));
+                          }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-8 h-8 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setVisaQuantities((q) => ({
+                              ...q,
+                              [visa.id]: (q[visa.id] || 1) + 1,
+                            }));
+                          }}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Total:{" "}
+                        <span className="font-semibold text-primary">
+                          ₹{totalVisaPrice.toLocaleString()}
+                        </span>
+                      </div>
+                      <Button
+                        className="mt-2 w-full bg-primary hover:bg-primary/90 text-white"
+                        onClick={() => {
+                          if (cartVisa) {
+                            updateQuantity(visa.id, localQty);
+                          } else {
+                            addToCart({
+                              id: visa.id,
+                              type: "visa",
+                              name: visa.visa_type,
+                              price: visa.price,
+                              details: {
+                                processing: visa.processing_time,
+                                validity: visa.visa_validity,
+                              },
+                            });
+                            updateQuantity(visa.id, localQty);
+                          }
+                        }}
+                      >
+                        Add to Package
+                      </Button>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-primary">
-                      ₹{visa.price?.toLocaleString()}
-                    </p>
-                    <Button
-                      size="sm"
-                      className="mt-3 bg-primary hover:bg-primary/90"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addToCart({
-                          id: visa.id,
-                          type: "visa",
-                          name: visa.visa_type,
-                          price: visa.price,
-                          details: {
-                            processing: visa.processing_time,
-                            validity: visa.visa_validity,
-                          },
-                        });
-                      }}
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      Add
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
       <div className="bg-accent rounded-xl p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-primary mt-0.5" />
@@ -871,6 +959,38 @@ const BuildYourOwnUmrah = () => {
               </h2>
               <p className="text-gray-600">Choose your travel comfort</p>
             </div>
+            {/* Vehicle Capacity Filter */}
+            <div className="flex justify-center mb-4">
+              <label
+                className="mr-2 font-medium text-gray-700"
+                htmlFor="capacity-filter"
+              >
+                Vehicle Capacity:
+              </label>
+              <select
+                id="capacity-filter"
+                className="border rounded px-3 py-2"
+                value={transportCapacity ?? ""}
+                onChange={(e) =>
+                  setTransportCapacity(
+                    e.target.value ? Number(e.target.value) : null,
+                  )
+                }
+              >
+                <option value="">All</option>
+                {[
+                  ...new Set(
+                    transportOptions.map((t) => t.capacity).filter(Boolean),
+                  ),
+                ]
+                  .sort((a, b) => a - b)
+                  .map((cap) => (
+                    <option key={cap} value={cap}>
+                      {cap} seats
+                    </option>
+                  ))}
+              </select>
+            </div>
             <div className="grid gap-4">
               {transportLoading && (
                 <div className="text-center text-gray-500">
@@ -882,75 +1002,89 @@ const BuildYourOwnUmrah = () => {
               )}
               {!transportLoading &&
                 !transportError &&
-                transportOptions.length === 0 && (
+                transportOptions.filter((t) =>
+                  transportCapacity ? t.capacity === transportCapacity : true,
+                ).length === 0 && (
                   <div className="text-center text-gray-500">
                     No transport options available.
                   </div>
                 )}
               {!transportLoading &&
                 !transportError &&
-                transportOptions.map((transport) => (
-                  <Card
-                    key={transport.id}
-                    className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                      transport.popular
-                        ? "border-primary shadow-md"
-                        : "border-gray-200 hover:border-primary/30"
-                    }`}
-                  >
-                    {transport.popular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-secondary text-primary px-4 py-1">
-                          Most Popular
-                        </Badge>
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                            {transport.vehicle_name}
-                          </h4>
-                          <p className="text-sm text-primary font-medium mb-2">
-                            {transport.description}
-                          </p>
-                          <div className="space-y-1">
-                            <p className="text-sm text-gray-600">
-                              Capacity: {transport.capacity}
+                transportOptions
+                  .filter((t) =>
+                    transportCapacity ? t.capacity === transportCapacity : true,
+                  )
+                  .map((transport) => (
+                    <Card
+                      key={transport.id}
+                      className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
+                        transport.popular
+                          ? "border-primary shadow-md"
+                          : "border-gray-200 hover:border-primary/30"
+                      }`}
+                    >
+                      {transport.popular && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                          <Badge className="bg-secondary text-primary px-4 py-1">
+                            Most Popular
+                          </Badge>
+                        </div>
+                      )}
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start gap-4">
+                          {transport.vehicle_image && (
+                            <img
+                              src={transport.vehicle_image}
+                              alt={transport.vehicle_name}
+                              className="w-24 h-16 object-cover rounded-xl border mb-2"
+                              style={{ flexShrink: 0 }}
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                              {transport.vehicle_name}
+                            </h4>
+                            <p className="text-sm text-primary font-medium mb-2">
+                              {transport.description}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              Route: {transport.route}
+                            <div className="space-y-1">
+                              <p className="text-sm text-gray-600">
+                                Capacity: {transport.capacity}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Route: {transport.route}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-primary">
+                              ₹{transport.price?.toLocaleString()}
                             </p>
+                            <Button
+                              size="sm"
+                              className="mt-3 bg-primary hover:bg-primary/90"
+                              onClick={() =>
+                                addToCart({
+                                  id: transport.id,
+                                  type: "transport",
+                                  name: transport.vehicle_name,
+                                  price: transport.price,
+                                  details: {
+                                    capacity: transport.capacity,
+                                    route: transport.route,
+                                  },
+                                })
+                              }
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add
+                            </Button>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-primary">
-                            ₹{transport.price?.toLocaleString()}
-                          </p>
-                          <Button
-                            size="sm"
-                            className="mt-3 bg-primary hover:bg-primary/90"
-                            onClick={() =>
-                              addToCart({
-                                id: transport.id,
-                                type: "transport",
-                                name: transport.vehicle_name,
-                                price: transport.price,
-                                details: {
-                                  capacity: transport.capacity,
-                                  route: transport.route,
-                                },
-                              })
-                            }
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
             </div>
           </div>
         );
@@ -999,7 +1133,15 @@ const BuildYourOwnUmrah = () => {
                       className="border-2 transition-all duration-200 hover:shadow-lg cursor-pointer"
                     >
                       <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
+                        <div className="flex justify-between items-start gap-4">
+                          {guide.guide_photo && (
+                            <img
+                              src={guide.guide_photo}
+                              alt={guide.guide_name}
+                              className="w-20 h-20 object-cover rounded-xl border mb-2"
+                              style={{ flexShrink: 0 }}
+                            />
+                          )}
                           <div className="flex-1">
                             <h4 className="text-lg font-semibold text-gray-900 mb-1">
                               {guide.guide_name}
@@ -1007,23 +1149,6 @@ const BuildYourOwnUmrah = () => {
                             <p className="text-sm text-primary font-medium mb-2">
                               {guide.description}
                             </p>
-                            <div className="space-y-1">
-                              {guide.experience && (
-                                <p className="text-sm text-gray-600">
-                                  Experience: {guide.experience}
-                                </p>
-                              )}
-                              {guide.languages && (
-                                <p className="text-sm text-gray-600">
-                                  Languages: {guide.languages.join(", ")}
-                                </p>
-                              )}
-                              {guide.rating && (
-                                <p className="text-sm text-gray-600">
-                                  Rating: {guide.rating}★
-                                </p>
-                              )}
-                            </div>
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-primary">
@@ -1038,11 +1163,7 @@ const BuildYourOwnUmrah = () => {
                                   type: "guide",
                                   name: guide.guide_name,
                                   price,
-                                  details: {
-                                    experience: guide.experience,
-                                    languages: guide.languages,
-                                    rating: guide.rating,
-                                  },
+                                  details: {},
                                 })
                               }
                             >
@@ -1085,66 +1206,133 @@ const BuildYourOwnUmrah = () => {
                 )}
               {!ziarathLoading &&
                 !ziarathError &&
-                ziarathOptions.map((ziarath) => (
-                  <Card
-                    key={ziarath.id}
-                    className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                      ziarath.popular
-                        ? "border-primary shadow-md"
-                        : "border-gray-200 hover:border-primary/30"
-                    }`}
-                  >
-                    {ziarath.popular && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className="bg-secondary text-primary px-4 py-1">
-                          Most Popular
-                        </Badge>
-                      </div>
-                    )}
-                    <CardContent className="p-6">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                            {ziarath.name}
-                          </h4>
-                          <div
-                            className="text-sm text-primary font-medium mb-2"
-                            dangerouslySetInnerHTML={{
-                              __html: ziarath.description,
-                            }}
-                          />
-                          <div className="space-y-1">
-                            <p className="text-sm text-gray-600">
-                              Duration: {ziarath.duration}
+                ziarathOptions.map((ziarath) => {
+                  let vehicleOptions: VehicleOption[] = [];
+                  if (
+                    ziarath.vehicle_prices &&
+                    typeof ziarath.vehicle_prices === "object"
+                  ) {
+                    vehicleOptions = Object.entries(ziarath.vehicle_prices).map(
+                      ([vehicleId, price]) => {
+                        const vehicle = transportOptions.find(
+                          (v) => v.id === vehicleId,
+                        );
+                        return {
+                          id: vehicleId,
+                          price,
+                          vehicle_name:
+                            vehicle?.vehicle_name || `Vehicle ${vehicleId}`,
+                          capacity: vehicle?.capacity || "-",
+                        };
+                      },
+                    );
+                  }
+                  const selectedVehicleId =
+                    ziarathVehicleSelections[ziarath.id] ||
+                    (vehicleOptions[0]?.id ?? "");
+                  const selectedVehicle = vehicleOptions.find(
+                    (v) => v.id === selectedVehicleId,
+                  );
+                  return (
+                    <Card
+                      key={ziarath.id}
+                      className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
+                        ziarath.popular
+                          ? "border-primary shadow-md"
+                          : "border-gray-200 hover:border-primary/30"
+                      }`}
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex gap-4 items-start">
+                          {ziarath.featured_image && (
+                            <img
+                              src={ziarath.featured_image}
+                              alt={ziarath.name}
+                              className="w-28 h-20 object-cover rounded-xl border mb-2"
+                              style={{ flexShrink: 0 }}
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                              {ziarath.name}
+                            </h4>
+                            <div className="space-y-1">
+                              <p className="text-sm text-gray-600">
+                                City: {ziarath.city}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                Duration: {ziarath.duration}
+                              </p>
+                            </div>
+                            {/* Vehicle selection dropdown */}
+                            {vehicleOptions.length > 0 && (
+                              <div className="mt-2">
+                                <label
+                                  className="mr-2 font-medium text-gray-700"
+                                  htmlFor={`ziarath-vehicle-${ziarath.id}`}
+                                >
+                                  Vehicle:
+                                </label>
+                                <select
+                                  id={`ziarath-vehicle-${ziarath.id}`}
+                                  className="border rounded px-3 py-2"
+                                  value={selectedVehicleId}
+                                  onChange={(e) =>
+                                    setZiarathVehicleSelections((sel) => ({
+                                      ...sel,
+                                      [ziarath.id]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  {vehicleOptions.map((vehicle) => (
+                                    <option key={vehicle.id} value={vehicle.id}>
+                                      `${vehicle.vehicle_name} ($
+                                      {vehicle.capacity} seats) - ₹$
+                                      {vehicle.price?.toLocaleString()}`
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right min-w-[120px] flex flex-col items-end gap-2">
+                            <p className="text-xl font-bold text-primary">
+                              ₹
+                              {selectedVehicle?.price
+                                ? selectedVehicle.price.toLocaleString()
+                                : ziarath.price?.toLocaleString() || "-"}
                             </p>
+                            <Button
+                              className="mt-2 w-full bg-primary hover:bg-primary/90 text-white"
+                              onClick={() => {
+                                if (selectedVehicle) {
+                                  addToCart({
+                                    id: `${ziarath.id}_${selectedVehicle.id}`,
+                                    type: "ziarath",
+                                    name: `${ziarath.name} (${selectedVehicle.vehicle_name})`,
+                                    price: selectedVehicle.price,
+                                    details: {
+                                      duration: ziarath.duration,
+                                      city: ziarath.city,
+                                      vehicle: selectedVehicle.vehicle_name,
+                                      vehicle_id: selectedVehicle.id,
+                                    },
+                                  });
+                                }
+                              }}
+                              disabled={!selectedVehicle}
+                            >
+                              Add to Package
+                            </Button>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-primary">
-                            ₹{ziarath.price?.toLocaleString()}
-                          </p>
-                          <Button
-                            size="sm"
-                            className="mt-3 bg-primary hover:bg-primary/90"
-                            onClick={() =>
-                              addToCart({
-                                id: ziarath.id,
-                                type: "ziarath",
-                                name: ziarath.name,
-                                price: ziarath.price,
-                                details: { duration: ziarath.duration },
-                              })
-                            }
-                          >
-                            <Plus className="w-4 h-4 mr-1" />
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
             </div>
+            {console.log("Ziarath options:", ziarathOptions)}
+            {console.log("Transport options:", transportOptions)}
           </div>
         );
       default:
@@ -1156,104 +1344,112 @@ const BuildYourOwnUmrah = () => {
     <>
       <Header />
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="sticky top-0 z-40 bg-white shadow-sm border-b">
-          <div className="px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="text-center">
-                <h1 className="text-lg font-bold text-gray-900">
-                  Build Your Umrah
-                </h1>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <Badge
-                    variant="outline"
-                    className="text-xs text-primary border-primary"
-                  >
-                    Step {activeStep + 1} of {steps.length}
-                  </Badge>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowCart(true)}
-                className="relative p-2"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {getTotalItems() > 0 && (
-                  <Badge className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center p-0">
-                    {getTotalItems()}
-                  </Badge>
-                )}
-              </Button>
-            </div>
-          </div>
+        {/* Page Header */}
+        <div className="text-center py-8 bg-gradient-to-r from-primary/10 to-accent/10 rounded-b-3xl shadow mb-4">
+          <h1 className="text-3xl font-extrabold text-primary mb-2 tracking-tight">
+            Build Your Umrah
+          </h1>
+          <p className="text-lg text-gray-600 italic">
+            “Begin your spiritual journey with ease and confidence.”
+          </p>
         </div>
 
         {/* Progress Bar */}
         <div className="bg-white px-4 py-3 border-b">
-          <div className="w-full bg-accent rounded-full h-2">
+          <div className="w-full bg-[#e6f4ea] rounded-full h-2 relative">
             <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
+              className="bg-gradient-to-r from-[#eab308] to-[#023f3a] h-2 rounded-full transition-all duration-300"
               style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
             ></div>
           </div>
         </div>
 
         {/* Step Navigation */}
-        <div className="bg-white border-b px-3 py-3">
-          <div className="flex space-x-2 overflow-x-auto scrollbar-hide">
+        <div
+          className="bg-white border-b px-3 py-2 flex justify-center shadow-md rounded-b-2xl border-[#eab308]/20"
+          style={{ height: "100px", minHeight: "100px" }}
+        >
+          <div className="flex space-x-4 overflow-x-auto overflow-y-hidden scrollbar-hide justify-center items-center w-full max-w-5xl h-full">
             {steps.map((step, index) => {
               const Icon = step.icon;
               const isActive = activeStep === index;
-              const isCompleted = cart.some((item) => {
-                switch (step.id) {
-                  case 0:
-                    return item.type === "visa";
-                  case 1:
-                    return item.type === "flight";
-                  case 2:
-                    return item.type === "hotel";
-                  case 3:
-                    return item.type === "hotel";
-                  case 4:
-                    return item.type === "transport";
-                  case 5:
-                    return item.type === "guide";
-                  case 6:
-                    return item.type === "ziarath";
-                  default:
-                    return false;
-                }
-              });
+              const isCompleted = completedSteps.includes(index);
 
               return (
                 <button
                   key={step.id}
                   onClick={() => setActiveStep(index)}
-                  className={`flex flex-col items-center px-4 py-3 rounded-xl transition-all duration-200 min-w-[80px] ${
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : isCompleted
-                        ? "bg-accent text-primary border border-accent"
-                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
-                  }`}
+                  className={`flex flex-col items-center px-3 py-2 rounded-xl transition-all duration-200 min-w-[90px] h-[80px] shadow-sm
+                    ${
+                      isActive
+                        ? "bg-[#023f3a] text-white scale-105 shadow-lg ring-2 ring-[#eab308]/40 border border-[#eab308]"
+                        : isCompleted
+                          ? "bg-[#e6f4ea] text-[#023f3a] border border-[#eab308]/30"
+                          : "bg-[#f9fafb] text-[#023f3a] hover:bg-[#eab308]/10"
+                    }
+                  `}
+                  style={{ transition: "transform 0.2s, box-shadow 0.2s" }}
                 >
-                  <div className="relative">
-                    <Icon className="w-5 h-5 mb-1" />
+                  <div
+                    className={`relative flex items-center justify-center w-12 h-12 rounded-full mb-1
+                    ${isActive ? "bg-[#eab308] shadow-lg" : "bg-[#e6f4ea]"}
+                  `}
+                  >
+                    <Icon className="w-6 h-6" />
                     {isCompleted && !isActive && (
                       <Check className="w-3 h-3 absolute -top-1 -right-1 bg-green-500 text-white rounded-full p-0.5" />
                     )}
                   </div>
-                  <span className="text-xs font-medium">{step.title}</span>
+                  <span className="text-xs font-semibold leading-tight truncate">
+                    {step.title}
+                  </span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="px-4 py-6 pb-32">{renderStepContent()}</div>
+        {/* Main Content with Decorative Background */}
+        <div className="relative px-4 py-6 pb-32 min-h-[60vh] flex items-center justify-center bg-[#f9fafb] overflow-hidden">
+          {/* Decorative SVG geometric background */}
+          <svg
+            className="absolute inset-0 w-full h-full opacity-10 pointer-events-none select-none"
+            aria-hidden="true"
+          >
+            <pattern
+              id="geo"
+              width="40"
+              height="40"
+              patternUnits="userSpaceOnUse"
+            >
+              <circle
+                cx="20"
+                cy="20"
+                r="18"
+                fill="none"
+                stroke="#eab308"
+                strokeWidth="1"
+              />
+            </pattern>
+            <rect width="100%" height="100%" fill="url(#geo)" />
+          </svg>
+          {/* Main Card with glassy effect and improved contrast */}
+          <div className="relative z-10 max-w-3xl w-full mx-auto rounded-2xl shadow-2xl bg-white border border-[#eab308]/30 p-8">
+            <div className="flex items-center justify-center mb-6">
+              <span className="inline-block w-12 h-1 rounded-full bg-gradient-to-r from-[#eab308] to-[#023f3a]"></span>
+            </div>
+            <Card className="shadow-none border-none bg-transparent p-0">
+              <CardContent className="p-0 text-[#222]">
+                {renderStepContent()}
+              </CardContent>
+            </Card>
+            {/* Callout */}
+            <div className="mt-8 p-4 rounded-lg bg-[#fffbe6] border-l-4 border-[#eab308] text-[#b58900] text-sm italic">
+              “Did you know? Your Umrah journey can be fully customized for your
+              family's needs.”
+            </div>
+          </div>
+        </div>
 
         {/* Bottom Navigation */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30">
@@ -1293,9 +1489,39 @@ const BuildYourOwnUmrah = () => {
               <Button
                 className="flex-1 bg-primary hover:bg-primary/90 py-6"
                 disabled={activeStep === steps.length - 1}
-                onClick={() =>
-                  setActiveStep(Math.min(steps.length - 1, activeStep + 1))
-                }
+                onClick={() => {
+                  // Check if current step is valid and mark as completed
+                  let valid = false;
+                  switch (activeStep) {
+                    case 0: // Visa
+                      valid = cart.some((item) => item.type === "visa");
+                      break;
+                    case 1: // Flight
+                      valid = cart.some((item) => item.type === "flight");
+                      break;
+                    case 2: // Hotel (Makkah)
+                      valid = cart.some((item) => item.type === "hotel");
+                      break;
+                    case 3: // Hotel (Madinah)
+                      valid = cart.some((item) => item.type === "hotel");
+                      break;
+                    case 4: // Transport
+                      valid = cart.some((item) => item.type === "transport");
+                      break;
+                    case 5: // Guide
+                      valid = cart.some((item) => item.type === "guide");
+                      break;
+                    case 6: // Ziarath
+                      valid = cart.some((item) => item.type === "ziarath");
+                      break;
+                    default:
+                      valid = false;
+                  }
+                  if (valid && !completedSteps.includes(activeStep)) {
+                    setCompletedSteps((prev) => [...prev, activeStep]);
+                  }
+                  setActiveStep(Math.min(steps.length - 1, activeStep + 1));
+                }}
               >
                 {activeStep === steps.length - 1 ? "Complete" : "Continue"}
               </Button>

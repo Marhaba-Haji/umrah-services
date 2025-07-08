@@ -16,10 +16,13 @@ import HotelFilters from "../components/HotelFilters";
 import { createClient } from "@supabase/supabase-js";
 import {
   Dialog,
+  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+  DialogFooter,
+  DialogClose,
+} from "../components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -116,6 +119,47 @@ const HotelBooking = () => {
   const tomorrow = formatDate(addDays(new Date(), 1), "yyyy-MM-dd");
   const [nightCount, setNightCount] = useState<number | null>(null);
 
+  // New state for search fields
+  const [destination, setDestination] = useState("");
+  const [checkIn, setCheckIn] = useState(today);
+  const [checkOut, setCheckOut] = useState(tomorrow);
+  const [guests, setGuests] = useState(2);
+  const [rooms, setRooms] = useState(1);
+  const [freeCancellation, setFreeCancellation] = useState(false);
+  const [fourStarPlus, setFourStarPlus] = useState(false);
+
+  // Modal state for guests/rooms
+  const [guestModalOpen, setGuestModalOpen] = useState(false);
+  const [roomData, setRoomData] = useState([
+    { adults: 2, children: 0, childAges: [] as number[] },
+  ]);
+
+  // Helper: max 5 rooms, max 5 guests per room (adults + children age 9+)
+  const canAddRoom = roomData.length < 5;
+  const updateRoom = (
+    idx: number,
+    data: Partial<{ adults: number; children: number; childAges: number[] }>,
+  ) => {
+    setRoomData((prev) =>
+      prev.map((room, i) =>
+        i === idx
+          ? { ...room, ...data, childAges: data.childAges ?? room.childAges }
+          : room,
+      ),
+    );
+  };
+  const addRoom = () => {
+    if (canAddRoom)
+      setRoomData([...roomData, { adults: 1, children: 0, childAges: [] }]);
+  };
+  const removeRoom = (idx: number) => {
+    if (roomData.length > 1) setRoomData(roomData.filter((_, i) => i !== idx));
+  };
+  // Calculate summary
+  const totalAdults = roomData.reduce((sum, r) => sum + r.adults, 0);
+  const totalChildren = roomData.reduce((sum, r) => sum + r.children, 0);
+  const summary = `${totalAdults} adult${totalAdults > 1 ? "s" : ""}${totalChildren ? ", " + totalChildren + " child" + (totalChildren > 1 ? "ren" : "") : ""}, ${roomData.length} room${roomData.length > 1 ? "s" : ""}`;
+
   const fetchAndFilterHotels = async () => {
     setLoading(true);
     let query = supabase.from("hotels").select("*");
@@ -196,7 +240,7 @@ const HotelBooking = () => {
 
   useEffect(() => {
     fetchAndFilterHotels();
-  }, [activeFilters, sortBy]);
+  }, [activeFilters, sortBy, fetchAndFilterHotels]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -271,31 +315,6 @@ const HotelBooking = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setEnquiryForm({ ...enquiryForm, [e.target.name]: e.target.value });
-  };
-
-  const handleRoomGuestChange = (idx: number, value: number) => {
-    const newRooms = enquiryForm.rooms.map((room, i) =>
-      i === idx ? { guests: Math.max(1, Math.min(4, value)) } : room,
-    );
-    setEnquiryForm({ ...enquiryForm, rooms: newRooms });
-  };
-
-  const addRoom = () => {
-    if (enquiryForm.rooms.length < 5) {
-      setEnquiryForm({
-        ...enquiryForm,
-        rooms: [...enquiryForm.rooms, { guests: 1 }],
-      });
-    }
-  };
-
-  const removeRoom = (idx: number) => {
-    if (enquiryForm.rooms.length > 1) {
-      setEnquiryForm({
-        ...enquiryForm,
-        rooms: enquiryForm.rooms.filter((_, i) => i !== idx),
-      });
-    }
   };
 
   const handleEnquirySubmit = async (e: React.FormEvent) => {
@@ -421,6 +440,245 @@ const HotelBooking = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
       <Header />
+      {/* Title & Subtitle - moved above search box */}
+      <div className="w-full text-center mb-4 mt-6 md:mt-10">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+          🏨 Book Your <span className="text-emerald-600">Hotel</span>
+        </h1>
+        <p className="text-base text-gray-600 max-w-xl mx-auto mb-2">
+          Stay in premium approved hotels close to Haram. Comfortable
+          accommodations for your spiritual journey.
+        </p>
+      </div>
+      {/* Hotel Search Section - Modern UI, matches reference layout */}
+      <div className="w-full bg-background py-6 flex justify-center">
+        <div className="w-full max-w-5xl px-2">
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col md:flex-row gap-2 bg-white rounded-2xl shadow p-4 md:items-center">
+              <div className="flex-1 min-w-[220px]">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Where do you want to go?
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-lg border border-gray-200 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="Enter a destination or hotel name"
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                <div className="min-w-[140px]">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Check-in
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                  />
+                </div>
+                <div className="min-w-[140px]">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Check-out
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full rounded-lg border border-gray-200 px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                  />
+                </div>
+                {/* Guests and rooms single input */}
+                <div className="min-w-[180px]">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Guests and rooms
+                  </label>
+                  <Dialog
+                    open={guestModalOpen}
+                    onOpenChange={setGuestModalOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-2 text-base text-left focus:outline-none focus:ring-2 focus:ring-primary cursor-pointer bg-white"
+                      >
+                        {summary}
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Guests and Rooms</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                        {roomData.map((room, idx) => {
+                          // Count guests age 9+ for max 5 per room
+                          const guestsOver9 =
+                            room.adults +
+                            room.childAges.filter((age) => age >= 9).length;
+                          return (
+                            <div
+                              key={idx}
+                              className="border rounded-lg p-4 mb-2 bg-muted/30"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="font-semibold">
+                                  Room {idx + 1}
+                                </div>
+                                {roomData.length > 1 && (
+                                  <button
+                                    type="button"
+                                    className="text-red-500 text-xs ml-2"
+                                    onClick={() => removeRoom(idx)}
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+                              <div className="flex gap-4 mb-2">
+                                <div>
+                                  <label className="block text-xs font-medium mb-1">
+                                    Adults
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={
+                                      5 -
+                                      room.childAges.filter((age) => age >= 9)
+                                        .length
+                                    }
+                                    value={room.adults}
+                                    onChange={(e) => {
+                                      const val = Math.max(
+                                        1,
+                                        Math.min(
+                                          5 -
+                                            room.childAges.filter(
+                                              (age) => age >= 9,
+                                            ).length,
+                                          Number(e.target.value),
+                                        ),
+                                      );
+                                      updateRoom(idx, { adults: val });
+                                    }}
+                                    className="w-16 rounded border px-2 py-1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium mb-1">
+                                    Children
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={4}
+                                    value={room.children}
+                                    onChange={(e) => {
+                                      const val = Math.max(
+                                        0,
+                                        Math.min(4, Number(e.target.value)),
+                                      );
+                                      // Adjust childAges array
+                                      let newAges = [...room.childAges];
+                                      if (val > newAges.length) {
+                                        newAges = [
+                                          ...newAges,
+                                          ...Array(val - newAges.length).fill(
+                                            0,
+                                          ),
+                                        ];
+                                      } else {
+                                        newAges = newAges.slice(0, val);
+                                      }
+                                      updateRoom(idx, {
+                                        children: val,
+                                        childAges: newAges,
+                                      });
+                                    }}
+                                    className="w-16 rounded border px-2 py-1"
+                                  />
+                                </div>
+                              </div>
+                              {room.children > 0 && (
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {room.childAges.map((age, cidx) => (
+                                    <div key={cidx} className="flex flex-col">
+                                      <label className="block text-xs font-medium mb-1">
+                                        Child {cidx + 1} Age
+                                      </label>
+                                      <select
+                                        className="rounded border px-2 py-1"
+                                        value={age}
+                                        onChange={(e) => {
+                                          const newAges = [...room.childAges];
+                                          newAges[cidx] = Number(
+                                            e.target.value,
+                                          );
+                                          // Enforce max 5 guests age 9+ per room
+                                          const over9 =
+                                            room.adults +
+                                            newAges.filter((a) => a >= 9)
+                                              .length;
+                                          if (over9 <= 5) {
+                                            updateRoom(idx, {
+                                              childAges: newAges,
+                                            });
+                                          }
+                                        }}
+                                      >
+                                        {Array.from({ length: 18 }, (_, i) => (
+                                          <option key={i} value={i}>
+                                            {i}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="text-xs text-gray-500">
+                                Max 5 guests age 9+ per room
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                        <button
+                          type="button"
+                          className="px-4 py-2 rounded bg-primary text-white font-semibold disabled:opacity-50"
+                          onClick={addRoom}
+                          disabled={!canAddRoom}
+                        >
+                          Add Room
+                        </button>
+                        <DialogClose asChild>
+                          <button
+                            type="button"
+                            className="px-4 py-2 rounded bg-muted text-foreground font-semibold border border-gray-200"
+                          >
+                            Done
+                          </button>
+                        </DialogClose>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    className="ml-2 h-12 px-6 rounded-xl text-base font-semibold"
+                    type="button"
+                  >
+                    Search
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Hero Section */}
       <section className="relative py-4 md:py-6">
@@ -436,16 +694,6 @@ const HotelBooking = () => {
             </div>
             {/* Right Content - Hotels */}
             <div className="lg:col-span-3 flex flex-col items-center">
-              {/* Title & Subtitle */}
-              <div className="w-full text-center mb-4">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
-                  🏨 Book Your <span className="text-emerald-600">Hotel</span>
-                </h1>
-                <p className="text-base text-gray-600 max-w-xl mx-auto mb-2">
-                  Stay in premium approved hotels close to Haram. Comfortable
-                  accommodations for your spiritual journey.
-                </p>
-              </div>
               {/* Results Header and Sorting Dropdown in one row */}
               <div className="flex justify-between items-center w-full mb-4">
                 <div className="flex items-center gap-2">

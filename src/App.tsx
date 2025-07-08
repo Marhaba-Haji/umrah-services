@@ -7,6 +7,8 @@ import { HelmetProvider } from "react-helmet-async";
 import React, { Suspense, lazy, useState } from "react";
 import ZiarathActivityDetail from "./pages/ZiarathActivityDetail";
 import { CurrencyContext } from "./contexts/CurrencyContext";
+import { CartProvider } from "./contexts/CartContext";
+import FloatingCart from "./components/FloatingCart";
 
 const queryClient = new QueryClient();
 
@@ -54,82 +56,97 @@ const Loader = () => (
 const App = () => {
   const [currency, setCurrency] = useState("INR");
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrency }}>
-      <QueryClientProvider client={queryClient}>
-        <HelmetProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Suspense fallback={<Loader />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/about" element={<AboutUs />} />
-                  <Route path="/transport" element={<TransportBooking />} />
-                  <Route path="/hotel" element={<HotelBooking />} />
-                  <Route path="/apply" element={<UmrahApplication />} />
-                  <Route
-                    path="/apply-umrah-visa-online"
-                    element={<UmrahApplication />}
-                  />
-                  <Route path="/group-flights" element={<GroupFlights />} />
-                  <Route path="/services" element={<Services />} />
-                  <Route path="/umrah-packages" element={<UmrahPackages />} />
-                  <Route path="/group-packages" element={<GroupPackages />} />
-                  <Route
-                    path="/group-packages/:slug"
-                    element={<PackageDetailDynamic />}
-                  />
-                  <Route path="/custom-packages" element={<CustomPackages />} />
-                  <Route
-                    path="/custom-packages/:slug"
-                    element={<PackageDetailDynamic />}
-                  />
-                  <Route
-                    path="/package-details/:slug"
-                    element={<PackageDetailDynamic />}
-                  />
-                  <Route
-                    path="/advanced-package/:slug"
-                    element={<PackageDetailDynamic />}
-                  />
-                  <Route path="/blog-post" element={<Blogs />} />
-                  <Route path="/blog-post/:slug" element={<BlogDetail />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/faq" element={<FAQ />} />
-                  <Route path="/guide" element={<GuideBooking />} />
-                  <Route path="/ziarath" element={<ZiarathBooking />} />
-                  <Route
-                    path="/ziarath/:slug"
-                    element={<ZiarathActivityDetail />}
-                  />
-                  <Route
-                    path="/saudi-visa-services"
-                    element={<OtherSaudiVisas />}
-                  />
-                  <Route path="/control-panel" element={<ControlPanel />} />
-                  <Route
-                    path="/build-your-own-umrah"
-                    element={<BuildYourOwnUmrah />}
-                  />
-                  <Route path="/terms" element={<Terms />} />
-                  <Route path="/privacy" element={<Privacy />} />
-                  <Route path="/cancellation-and-refund" element={<Refund />} />
-                  <Route path="/travel-terms" element={<TravelTerms />} />
-                  <Route path="/support" element={<Support />} />
-                  <Route path="/careers" element={<Careers />} />
-                  <Route path="/payment/success" element={<PaymentSuccess />} />
-                  <Route path="/payment/failure" element={<PaymentFailure />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </TooltipProvider>
-        </HelmetProvider>
-      </QueryClientProvider>
-    </CurrencyContext.Provider>
+    <CartProvider>
+      <FloatingCart />
+      <CurrencyContext.Provider value={{ currency, setCurrency }}>
+        <QueryClientProvider client={queryClient}>
+          <HelmetProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Suspense fallback={<Loader />}>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/about" element={<AboutUs />} />
+                    <Route path="/transport" element={<TransportBooking />} />
+                    <Route path="/hotel" element={<HotelBooking />} />
+                    <Route path="/apply" element={<UmrahApplication />} />
+                    <Route
+                      path="/apply-umrah-visa-online"
+                      element={<UmrahApplication />}
+                    />
+                    <Route path="/group-flights" element={<GroupFlights />} />
+                    <Route path="/services" element={<Services />} />
+                    <Route path="/umrah-packages" element={<UmrahPackages />} />
+                    <Route path="/group-packages" element={<GroupPackages />} />
+                    <Route
+                      path="/group-packages/:slug"
+                      element={<PackageDetailDynamic />}
+                    />
+                    <Route
+                      path="/custom-packages"
+                      element={<CustomPackages />}
+                    />
+                    <Route
+                      path="/custom-packages/:slug"
+                      element={<PackageDetailDynamic />}
+                    />
+                    <Route
+                      path="/package-details/:slug"
+                      element={<PackageDetailDynamic />}
+                    />
+                    <Route
+                      path="/advanced-package/:slug"
+                      element={<PackageDetailDynamic />}
+                    />
+                    <Route path="/blog-post" element={<Blogs />} />
+                    <Route path="/blog-post/:slug" element={<BlogDetail />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/faq" element={<FAQ />} />
+                    <Route path="/guide" element={<GuideBooking />} />
+                    <Route path="/ziarath" element={<ZiarathBooking />} />
+                    <Route
+                      path="/ziarath/:slug"
+                      element={<ZiarathActivityDetail />}
+                    />
+                    <Route
+                      path="/saudi-visa-services"
+                      element={<OtherSaudiVisas />}
+                    />
+                    <Route path="/control-panel" element={<ControlPanel />} />
+                    <Route
+                      path="/build-your-own-umrah"
+                      element={<BuildYourOwnUmrah />}
+                    />
+                    <Route path="/terms" element={<Terms />} />
+                    <Route path="/privacy" element={<Privacy />} />
+                    <Route
+                      path="/cancellation-and-refund"
+                      element={<Refund />}
+                    />
+                    <Route path="/travel-terms" element={<TravelTerms />} />
+                    <Route path="/support" element={<Support />} />
+                    <Route path="/careers" element={<Careers />} />
+                    <Route
+                      path="/payment/success"
+                      element={<PaymentSuccess />}
+                    />
+                    <Route
+                      path="/payment/failure"
+                      element={<PaymentFailure />}
+                    />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </BrowserRouter>
+            </TooltipProvider>
+          </HelmetProvider>
+        </QueryClientProvider>
+      </CurrencyContext.Provider>
+    </CartProvider>
   );
 };
 

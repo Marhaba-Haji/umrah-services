@@ -305,7 +305,7 @@ export function BookingModal({
             </div>
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform"
+              className="w-full bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
               disabled={isLoading}
             >
               {isLoading ? "Booking..." : "Confirm Booking"}
@@ -323,7 +323,7 @@ export function BookingModal({
               We will contact you soon with confirmation details.
             </div>
             <button
-              className="mt-4 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white px-8 py-3 rounded-full shadow-lg"
+              className="mt-4 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
               onClick={() => {
                 setBookingSuccess(false);
                 onOpenChange(false);
@@ -498,64 +498,56 @@ const ZiarathBooking = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#e6f4f1] via-white to-[#f6f8f7]">
       <Header />
       {/* Luxurious Hero Section */}
-      <div className="relative w-full h-[340px] md:h-[420px] flex items-center justify-center bg-gradient-to-br from-[#023f3a] to-[#059669] overflow-hidden shadow-lg">
-        <img
-          src="/public/umrah-package-banner.jpg"
-          alt="Ziarath Hero"
-          className="absolute inset-0 w-full h-full object-cover opacity-60"
-        />
-        <div className="relative z-10 text-center text-white max-w-2xl mx-auto px-4">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 drop-shadow-lg tracking-tight">
-            Discover Sacred Ziarath Tours
+      <div className="relative w-full bg-gradient-to-r from-[#059669] via-[#059669] to-[#178ca4] py-6 md:py-8">
+        <div className="max-w-2xl mx-auto text-center px-4">
+          <div className="inline-block bg-white/20 text-white px-4 py-1 rounded-full font-semibold text-sm mb-2">
+            ✨ Premium Ziarath Experience
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white text-center mb-1">
+            Choose Your Ziarath Experience
           </h1>
-          <p className="text-lg md:text-xl font-medium mb-6 drop-shadow">
-            Experience the journey of a lifetime with our exclusive, luxury
-            Ziarath tours led by expert guides.
+          <p className="text-base md:text-lg text-white/90 text-center font-normal">
+            Select from our exclusive Ziarath tours or create your own
+            personalized spiritual journey
           </p>
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-[#fbbf24] to-[#023f3a] text-white text-lg px-8 py-4 rounded-full shadow-xl hover:scale-105 transition-transform"
-          >
-            Book Your Journey
-          </Button>
         </div>
       </div>
       {/* Trust/USP Bar */}
       <div className="flex flex-wrap justify-center gap-4 py-6 bg-white/80 shadow-sm border-b border-emerald-100">
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Licensed Guides
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-4 py-2 text-base font-semibold shadow"
+          className="bg-gradient-to-r from-amber-100 to-emerald-200 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Instant Booking
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Best Price Guarantee
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-4 py-2 text-base font-semibold shadow"
+          className="bg-gradient-to-r from-amber-100 to-emerald-200 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           5-Star Reviews
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-[#059669] to-[#fbbf24] text-white px-4 py-2 text-base font-semibold shadow"
+          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           24/7 Support
         </Badge>
       </div>
       {/* Floating Cart Button */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white rounded-full shadow-2xl flex items-center px-6 py-4 hover:scale-105 transition-transform border-4 border-white/80"
+        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 rounded-full shadow-2xl flex items-center px-6 py-4 hover:scale-105 transition-transform border-4 border-white/80 hover:from-emerald-300 hover:to-amber-200"
         onClick={() => setCartOpen(true)}
         style={{ boxShadow: "0 8px 32px 0 rgba(2, 63, 58, 0.25)" }}
       >
@@ -643,13 +635,9 @@ const ZiarathBooking = () => {
       )}
       <div className="container mx-auto px-4 py-10">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#023f3a] mb-2 tracking-tight">
+          <h2 className="text-3xl md:text-4xl font-bold text-primary mb-2 tracking-tight">
             Choose Your Ziarath Experience
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Handpicked luxury tours, curated for spiritual fulfillment and
-            comfort. Limited spots available—reserve yours now!
-          </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {activities
@@ -663,7 +651,7 @@ const ZiarathBooking = () => {
               return (
                 <Card
                   key={activity.id}
-                  className="relative group overflow-hidden border-0 shadow-xl rounded-3xl bg-white/90 hover:scale-[1.03] hover:shadow-2xl transition-transform"
+                  className="relative group overflow-hidden border-0 shadow-xl rounded-3xl bg-white hover:scale-[1.03] hover:shadow-2xl transition-transform"
                 >
                   <div className="relative h-56 w-full overflow-hidden rounded-t-3xl">
                     <img
@@ -672,34 +660,34 @@ const ZiarathBooking = () => {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     {activity.is_featured && (
-                      <Badge className="absolute top-4 left-4 bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-3 py-1 text-xs font-bold shadow-lg">
+                      <Badge className="absolute top-4 left-4 bg-gradient-to-r from-amber-200 to-emerald-200 text-amber-800 px-3 py-1 text-xs font-bold shadow-lg">
                         Featured
                       </Badge>
                     )}
-                    <Badge className="absolute top-4 right-4 bg-white/80 text-[#023f3a] px-3 py-1 text-xs font-bold shadow">
+                    <Badge className="absolute top-4 right-4 bg-white/80 text-primary px-3 py-1 text-xs font-bold shadow">
                       {activity.city}
                     </Badge>
                   </div>
                   <CardContent className="p-6 flex flex-col gap-3">
-                    <h3 className="text-2xl font-bold text-[#023f3a] mb-1 group-hover:text-[#fbbf24] transition-colors">
+                    <h3 className="text-2xl font-bold text-primary mb-1 group-hover:text-amber-600 transition-colors">
                       {activity.name}
                     </h3>
                     <p
-                      className="text-gray-700 text-base line-clamp-3 mb-2"
+                      className="text-muted-foreground text-base line-clamp-3 mb-2"
                       dangerouslySetInnerHTML={{ __html: activity.description }}
                     />
                     <div className="flex items-center gap-4 mb-2">
                       {activity.duration && (
-                        <span className="inline-flex items-center gap-1 text-sm text-gray-500">
+                        <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                           <Clock className="w-4 h-4" /> {activity.duration}
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1 text-sm text-gray-500">
-                        <Star className="w-4 h-4 text-[#fbbf24]" /> Luxury
+                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                        <Star className="w-4 h-4 text-amber-400" /> Luxury
                       </span>
                     </div>
                     <div className="flex items-center justify-between mt-2 gap-2">
-                      <span className="text-2xl font-extrabold text-[#fbbf24]">
+                      <span className="text-2xl font-extrabold text-amber-600">
                         {(() => {
                           const { value, symbol } = convertFromINR(
                             Number(activity.price),
@@ -710,7 +698,7 @@ const ZiarathBooking = () => {
                       </span>
                       <Button
                         size="lg"
-                        className="rounded-full px-6 py-2 text-lg font-bold shadow-lg bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white hover:scale-105 transition-transform"
+                        className="rounded-full px-6 py-2 text-lg font-bold shadow-lg bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 hover:scale-105 transition-transform border-0"
                         onClick={() => {
                           setModalActivity(activity);
                           setBookingModalOpen(true);
@@ -726,16 +714,16 @@ const ZiarathBooking = () => {
                       >
                         Book Now
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="ml-2"
-                        onClick={() => navigate(`/ziarath/${activity.slug}`)}
-                        disabled={!activity.slug}
-                      >
-                        View Details
-                      </Button>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-3 border-primary text-primary hover:bg-primary/10"
+                      onClick={() => navigate(`/ziarath/${activity.slug}`)}
+                      disabled={!activity.slug}
+                    >
+                      View Details
+                    </Button>
                   </CardContent>
                 </Card>
               );
@@ -1083,7 +1071,7 @@ const ZiarathBooking = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform"
+                    className="w-full bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
                     disabled={isLoading}
                   >
                     {isLoading ? "Booking..." : "Confirm Booking"}
@@ -1103,7 +1091,7 @@ const ZiarathBooking = () => {
                   We will contact you soon with confirmation details.
                 </div>
                 <Button
-                  className="mt-4 bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white px-8 py-3 rounded-full shadow-lg"
+                  className="mt-4 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     e.preventDefault();
                     setDrawerOpen(false);
