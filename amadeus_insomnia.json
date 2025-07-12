@@ -1,0 +1,90 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2025-07-12T09:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2024.4.0",
+  "resources": [
+    {
+      "_id": "req_1_get_token",
+      "parentId": "fld_amadeus_api",
+      "modified": 1720771200000,
+      "created": 1720771200000,
+      "url": "https://test.api.amadeus.com/v1/security/oauth2/token",
+      "name": "🔐 Get Access Token",
+      "description": "POST request to get access token using client_id and client_secret",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          {
+            "name": "grant_type",
+            "value": "client_credentials"
+          },
+          {
+            "name": "client_id",
+            "value": "{{ amadeus.client_id }}"
+          },
+          {
+            "name": "client_secret",
+            "value": "{{ amadeus.client_secret }}"
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1,
+      "type": "Request"
+    },
+    {
+      "_id": "req_2_get_airport_city",
+      "parentId": "fld_amadeus_api",
+      "modified": 1720771200000,
+      "created": 1720771200000,
+      "url": "https://test.api.amadeus.com/v1/reference-data/locations?keyword=BLR&subType=AIRPORT,CITY",
+      "name": "🧭 Get City/Airport by IATA",
+      "description": "GET request to retrieve location info using IATA code (e.g. BLR)",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ amadeus.access_token }}"
+      },
+      "metaSortKey": -2,
+      "type": "Request"
+    },
+    {
+      "_id": "fld_amadeus_api",
+      "parentId": "wrk_main_project",
+      "modified": 1720771200000,
+      "created": 1720771200000,
+      "name": "Amadeus API",
+      "type": "RequestGroup"
+    },
+    {
+      "_id": "wrk_main_project",
+      "parentId": null,
+      "modified": 1720771200000,
+      "created": 1720771200000,
+      "name": "Amadeus Setup",
+      "type": "Workspace"
+    },
+    {
+      "_id": "env_amadeus",
+      "parentId": "wrk_main_project",
+      "modified": 1720771200000,
+      "created": 1720771200000,
+      "name": "Base Environment",
+      "data": {
+        "amadeus": {
+          "client_id": "YOUR_API_KEY_HERE",
+          "client_secret": "YOUR_API_SECRET_HERE",
+          "access_token": "PASTE_ACCESS_TOKEN_HERE"
+        }
+      },
+      "type": "Environment"
+    }
+  ]
+}

@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 interface Activity {
   id: string;
@@ -144,6 +146,7 @@ const ActivityManager = () => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [galleryUploading, setGalleryUploading] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
 
   const fetchActivities = async (): Promise<void> => {
     setIsLoading(true);
@@ -182,6 +185,15 @@ const ActivityManager = () => {
 
   useEffect(() => {
     fetchActivities();
+    // Fetch vehicles for vehicle price selection
+    const fetchVehicles = async () => {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("id, vehicle_name, vehicle_type, capacity, vehicle_image")
+        .order("vehicle_name");
+      if (!error) setVehicles(data || []);
+    };
+    fetchVehicles();
   }, []);
 
   const openCreate = (): void => {
@@ -485,35 +497,80 @@ const ActivityManager = () => {
             onSubmit={handleSubmit}
             className="space-y-3 max-h-[70vh] overflow-y-auto"
           >
-            <Input
-              placeholder="Name"
-              value={formData.name}
-              onChange={(e) => handleChange("name", e.target.value)}
-              required
-            />
-            <Input
-              placeholder="City"
-              value={formData.city}
-              onChange={(e) => handleChange("city", e.target.value)}
-              required
-            />
-            <AutoExpandingTextarea
-              placeholder="Description"
-              value={formData.description}
-              onChange={(e) => handleChange("description", e.target.value)}
-              required
-            />
-            <Input
-              placeholder="Duration"
-              value={formData.duration}
-              onChange={(e) => handleChange("duration", e.target.value)}
-            />
-            <Input
-              type="number"
-              placeholder="Price"
-              value={formData.price}
-              onChange={(e) => handleChange("price", Number(e.target.value))}
-            />
+            <div>
+              <label
+                htmlFor="activity-name"
+                className="block text-sm font-medium mb-1"
+              >
+                Name
+              </label>
+              <Input
+                id="activity-name"
+                placeholder="Name"
+                value={formData.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-city"
+                className="block text-sm font-medium mb-1"
+              >
+                City
+              </label>
+              <Input
+                id="activity-city"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) => handleChange("city", e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-description"
+                className="block text-sm font-medium mb-1"
+              >
+                Description
+              </label>
+              <ReactQuill
+                id="activity-description"
+                theme="snow"
+                value={formData.description}
+                onChange={(value) => handleChange("description", value)}
+                className="bg-white"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-duration"
+                className="block text-sm font-medium mb-1"
+              >
+                Duration
+              </label>
+              <Input
+                id="activity-duration"
+                placeholder="Duration"
+                value={formData.duration}
+                onChange={(e) => handleChange("duration", e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-price"
+                className="block text-sm font-medium mb-1"
+              >
+                Price
+              </label>
+              <Input
+                id="activity-price"
+                type="number"
+                placeholder="Price"
+                value={formData.price}
+                onChange={(e) => handleChange("price", Number(e.target.value))}
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 Featured Image
@@ -537,34 +594,74 @@ const ActivityManager = () => {
                 </div>
               )}
             </div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={formData.is_featured}
-                onChange={(e) => handleChange("is_featured", e.target.checked)}
+            <div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.is_featured}
+                  onChange={(e) =>
+                    handleChange("is_featured", e.target.checked)
+                  }
+                />
+                <span>Is Featured</span>
+              </label>
+            </div>
+            <div>
+              <label
+                htmlFor="activity-inclusions"
+                className="block text-sm font-medium mb-1"
+              >
+                Inclusions (one per line)
+              </label>
+              <Textarea
+                id="activity-inclusions"
+                placeholder="Inclusions (one per line)"
+                value={formData.inclusions}
+                onChange={(e) => handleChange("inclusions", e.target.value)}
               />
-              <span>Is Featured</span>
-            </label>
-            <Textarea
-              placeholder="Inclusions (one per line)"
-              value={formData.inclusions}
-              onChange={(e) => handleChange("inclusions", e.target.value)}
-            />
-            <Textarea
-              placeholder="Exclusions (one per line)"
-              value={formData.exclusions}
-              onChange={(e) => handleChange("exclusions", e.target.value)}
-            />
-            <Textarea
-              placeholder="Sites (one per line)"
-              value={formData.sites}
-              onChange={(e) => handleChange("sites", e.target.value)}
-            />
-            <Textarea
-              placeholder="Features (comma or line separated)"
-              value={formData.features}
-              onChange={(e) => handleChange("features", e.target.value)}
-            />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-exclusions"
+                className="block text-sm font-medium mb-1"
+              >
+                Exclusions (one per line)
+              </label>
+              <Textarea
+                id="activity-exclusions"
+                placeholder="Exclusions (one per line)"
+                value={formData.exclusions}
+                onChange={(e) => handleChange("exclusions", e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-sites"
+                className="block text-sm font-medium mb-1"
+              >
+                Sites (one per line)
+              </label>
+              <Textarea
+                id="activity-sites"
+                placeholder="Sites (one per line)"
+                value={formData.sites}
+                onChange={(e) => handleChange("sites", e.target.value)}
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="activity-features"
+                className="block text-sm font-medium mb-1"
+              >
+                Features (comma or line separated)
+              </label>
+              <Textarea
+                id="activity-features"
+                placeholder="Features (comma or line separated)"
+                value={formData.features}
+                onChange={(e) => handleChange("features", e.target.value)}
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 Gallery Images
@@ -605,80 +702,286 @@ const ActivityManager = () => {
               <div className="font-semibold text-gray-700 mb-2">
                 SEO & Metadata
               </div>
+              <div>
+                <label
+                  htmlFor="activity-meta-title"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Meta Title
+                </label>
+                <Textarea
+                  id="activity-meta-title"
+                  placeholder="Meta Title"
+                  value={formData.meta_title}
+                  onChange={(e) => handleChange("meta_title", e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-meta-description"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Meta Description
+                </label>
+                <Textarea
+                  id="activity-meta-description"
+                  placeholder="Meta Description"
+                  value={formData.meta_description}
+                  onChange={(e) =>
+                    handleChange("meta_description", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-meta-keywords"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Meta Keywords
+                </label>
+                <Textarea
+                  id="activity-meta-keywords"
+                  placeholder="Meta Keywords"
+                  value={formData.meta_keywords}
+                  onChange={(e) =>
+                    handleChange("meta_keywords", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-og-title"
+                  className="block text-sm font-medium mb-1"
+                >
+                  OG Title
+                </label>
+                <Textarea
+                  id="activity-og-title"
+                  placeholder="OG Title"
+                  value={formData.og_title}
+                  onChange={(e) => handleChange("og_title", e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-og-description"
+                  className="block text-sm font-medium mb-1"
+                >
+                  OG Description
+                </label>
+                <Textarea
+                  id="activity-og-description"
+                  placeholder="OG Description"
+                  value={formData.og_description}
+                  onChange={(e) =>
+                    handleChange("og_description", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-og-image"
+                  className="block text-sm font-medium mb-1"
+                >
+                  OG Image URL
+                </label>
+                <Input
+                  id="activity-og-image"
+                  placeholder="OG Image URL"
+                  value={formData.og_image}
+                  onChange={(e) => handleChange("og_image", e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-canonical-url"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Canonical URL
+                </label>
+                <Input
+                  id="activity-canonical-url"
+                  placeholder="Canonical URL"
+                  value={formData.canonical_url}
+                  onChange={(e) =>
+                    handleChange("canonical_url", e.target.value)
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-slug"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Slug (unique)
+                </label>
+                <Input
+                  id="activity-slug"
+                  placeholder="Slug (unique)"
+                  value={formData.slug}
+                  onChange={(e) => handleChange("slug", e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="activity-page-schema"
+                  className="block text-sm font-medium mb-1"
+                >
+                  Page Schema (JSON object)
+                </label>
+                <Textarea
+                  id="activity-page-schema"
+                  value={JSON.stringify(formData.page_schema, null, 2)}
+                  onChange={(e) =>
+                    handleJsonChange("page_schema", e.target.value)
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="activity-terms-and-conditions"
+                className="block text-sm font-medium mb-1"
+              >
+                Terms and Conditions
+              </label>
               <Textarea
-                placeholder="Meta Title"
-                value={formData.meta_title}
-                onChange={(e) => handleChange("meta_title", e.target.value)}
-              />
-              <Textarea
-                placeholder="Meta Description"
-                value={formData.meta_description}
+                id="activity-terms-and-conditions"
+                placeholder="Terms and Conditions"
+                value={formData.terms_and_conditions}
                 onChange={(e) =>
-                  handleChange("meta_description", e.target.value)
-                }
-              />
-              <Textarea
-                placeholder="Meta Keywords"
-                value={formData.meta_keywords}
-                onChange={(e) => handleChange("meta_keywords", e.target.value)}
-              />
-              <Textarea
-                placeholder="OG Title"
-                value={formData.og_title}
-                onChange={(e) => handleChange("og_title", e.target.value)}
-              />
-              <Textarea
-                placeholder="OG Description"
-                value={formData.og_description}
-                onChange={(e) => handleChange("og_description", e.target.value)}
-              />
-              <Input
-                placeholder="OG Image URL"
-                value={formData.og_image}
-                onChange={(e) => handleChange("og_image", e.target.value)}
-              />
-              <Input
-                placeholder="Canonical URL"
-                value={formData.canonical_url}
-                onChange={(e) => handleChange("canonical_url", e.target.value)}
-              />
-              <Input
-                placeholder="Slug (unique)"
-                value={formData.slug}
-                onChange={(e) => handleChange("slug", e.target.value)}
-              />
-              <label>Page Schema (JSON object)</label>
-              <Textarea
-                value={JSON.stringify(formData.page_schema, null, 2)}
-                onChange={(e) =>
-                  handleJsonChange("page_schema", e.target.value)
+                  handleChange("terms_and_conditions", e.target.value)
                 }
               />
             </div>
-            <Textarea
-              placeholder="Terms and Conditions"
-              value={formData.terms_and_conditions}
-              onChange={(e) =>
-                handleChange("terms_and_conditions", e.target.value)
-              }
-            />
-            <Textarea
-              placeholder="Disclaimer"
-              value={formData.disclaimer}
-              onChange={(e) => handleChange("disclaimer", e.target.value)}
-            />
-            <label>FAQs (JSON array)</label>
-            <Textarea
-              value={JSON.stringify(formData.faqs, null, 2)}
-              onChange={(e) => handleJsonChange("faqs", e.target.value)}
-            />
-            <label>Vehicle Prices (JSON object)</label>
-            <Textarea
-              value={JSON.stringify(formData.vehicle_prices, null, 2)}
-              onChange={(e) =>
-                handleJsonChange("vehicle_prices", e.target.value)
-              }
-            />
+            <div>
+              <label
+                htmlFor="activity-disclaimer"
+                className="block text-sm font-medium mb-1"
+              >
+                Disclaimer
+              </label>
+              <Textarea
+                id="activity-disclaimer"
+                placeholder="Disclaimer"
+                value={formData.disclaimer}
+                onChange={(e) => handleChange("disclaimer", e.target.value)}
+              />
+            </div>
+            {/* FAQs Section */}
+            <div>
+              <label className="block text-sm font-medium mb-1">FAQs</label>
+              {formData.faqs && formData.faqs.length > 0 && (
+                <div className="space-y-2">
+                  {formData.faqs.map((faq, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input
+                        className="flex-1"
+                        placeholder="Question"
+                        value={faq.q}
+                        onChange={(e) => {
+                          const newFaqs = [...formData.faqs];
+                          newFaqs[idx] = { ...newFaqs[idx], q: e.target.value };
+                          setFormData({ ...formData, faqs: newFaqs });
+                        }}
+                      />
+                      <Input
+                        className="flex-1"
+                        placeholder="Answer"
+                        value={faq.a}
+                        onChange={(e) => {
+                          const newFaqs = [...formData.faqs];
+                          newFaqs[idx] = { ...newFaqs[idx], a: e.target.value };
+                          setFormData({ ...formData, faqs: newFaqs });
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => {
+                          const newFaqs = formData.faqs.filter(
+                            (_, i) => i !== idx,
+                          );
+                          setFormData({ ...formData, faqs: newFaqs });
+                        }}
+                        className="text-red-500"
+                        title="Remove FAQ"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-2"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    faqs: [...(formData.faqs || []), { q: "", a: "" }],
+                  })
+                }
+              >
+                Add FAQ
+              </Button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Vehicle Prices
+              </label>
+              <div className="space-y-2">
+                {vehicles.map((vehicle) => {
+                  const checked =
+                    formData.vehicle_prices &&
+                    formData.vehicle_prices[vehicle.id] !== undefined;
+                  return (
+                    <div key={vehicle.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const newPrices = { ...formData.vehicle_prices };
+                          if (e.target.checked) {
+                            newPrices[vehicle.id] = newPrices[vehicle.id] || "";
+                          } else {
+                            delete newPrices[vehicle.id];
+                          }
+                          setFormData({
+                            ...formData,
+                            vehicle_prices: newPrices,
+                          });
+                        }}
+                      />
+                      <span className="min-w-[120px]">
+                        {vehicle.vehicle_name}
+                      </span>
+                      <Input
+                        type="number"
+                        placeholder="Price"
+                        value={
+                          formData.vehicle_prices &&
+                          formData.vehicle_prices[vehicle.id] !== undefined
+                            ? formData.vehicle_prices[vehicle.id]
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const newPrices = { ...formData.vehicle_prices };
+                          newPrices[vehicle.id] = e.target.value;
+                          setFormData({
+                            ...formData,
+                            vehicle_prices: newPrices,
+                          });
+                        }}
+                        disabled={!checked}
+                        className="w-32"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
             {formError && (
               <div className="text-red-600 text-sm">{formError}</div>
             )}

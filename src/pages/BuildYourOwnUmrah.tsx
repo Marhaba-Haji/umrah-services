@@ -96,6 +96,24 @@ const BuildYourOwnUmrah = () => {
   const [ziarathVehicleSelections, setZiarathVehicleSelections] = useState<
     Record<string, string>
   >({});
+  const [vehicles, setVehicles] = useState<
+    Database["public"]["Tables"]["vehicles"]["Row"][]
+  >([]);
+  // Track vehicle counts for each activity and vehicle type
+  const [vehicleCounts, setVehicleCounts] = useState<
+    Record<string, Record<string, number>>
+  >({});
+  // Madinah hotel state
+  const [madinahCheckin, setMadinahCheckin] = useState("");
+  const [madinahCheckout, setMadinahCheckout] = useState("");
+  const [madinahRooms, setMadinahRooms] = useState([{ guests: 1 }]);
+  // Persisted search results for hotels and flights
+  const [makkahHotelResults, setMakkahHotelResults] = useState([]);
+  const [madinahHotelResults, setMadinahHotelResults] = useState([]);
+  const [flightResults, setFlightResults] = useState([]);
+  // Persisted search state for hotels
+  const [makkahHasSearched, setMakkahHasSearched] = useState(false);
+  const [madinahHasSearched, setMadinahHasSearched] = useState(false);
 
   const totalGroupSize =
     adultCount + childWithBedCount + childWithoutBedCount + infantCount;
@@ -178,6 +196,12 @@ const BuildYourOwnUmrah = () => {
       setGuideLoading(false);
     };
     fetchGuides();
+
+    const fetchVehicles = async () => {
+      const { data, error } = await supabase.from("vehicles").select("*");
+      if (!error && data) setVehicles(data);
+    };
+    fetchVehicles();
   }, []);
 
   useEffect(() => {
@@ -744,6 +768,10 @@ const BuildYourOwnUmrah = () => {
         checkOutDate={makkahCheckout}
         rooms={makkahRooms}
         onHotelSelect={addToCart}
+        results={makkahHotelResults}
+        setResults={setMakkahHotelResults}
+        hasSearched={makkahHasSearched}
+        setHasSearched={setMakkahHasSearched}
       />
     </div>
   );
@@ -798,16 +826,16 @@ const BuildYourOwnUmrah = () => {
             <input
               type="date"
               className="border rounded px-3 py-2 w-full"
-              value={makkahCheckin}
+              value={madinahCheckin}
               min={madinahTodayStr}
               onChange={(e) => {
-                setMakkahCheckin(e.target.value);
+                setMadinahCheckin(e.target.value);
                 if (
-                  makkahCheckout &&
+                  madinahCheckout &&
                   e.target.value &&
-                  makkahCheckout <= e.target.value
+                  madinahCheckout <= e.target.value
                 ) {
-                  setMakkahCheckout("");
+                  setMadinahCheckout("");
                 }
               }}
             />
@@ -851,18 +879,18 @@ const BuildYourOwnUmrah = () => {
             <input
               type="date"
               className="border rounded px-3 py-2 w-full"
-              value={makkahCheckout}
-              min={madinahMinCheckout}
-              disabled={!makkahCheckin}
+              value={madinahCheckout}
+              min={madinahCheckin || madinahTodayStr}
+              disabled={!madinahCheckin}
               onChange={(e) => {
-                if (e.target.value <= makkahCheckin) {
+                if (e.target.value <= madinahCheckin) {
                   setMadinahDateError(
                     "Checkout must be at least 1 day after check-in",
                   );
                 } else {
                   setMadinahDateError(null);
                 }
-                setMakkahCheckout(e.target.value);
+                setMadinahCheckout(e.target.value);
               }}
             />
             {madinahDateError && (
@@ -876,13 +904,15 @@ const BuildYourOwnUmrah = () => {
           <label className="font-medium mb-1 flex items-center gap-2">
             Rooms & Guests
             <span className="text-xs text-gray-500">
-              ({makkahRooms.length} room{makkahRooms.length > 1 ? "s" : ""},{" "}
-              {makkahRooms.reduce((sum, r) => sum + r.guests, 0)} guest
-              {makkahRooms.reduce((sum, r) => sum + r.guests, 0) > 1 ? "s" : ""}
+              ({madinahRooms.length} room{madinahRooms.length > 1 ? "s" : ""},{" "}
+              {madinahRooms.reduce((sum, r) => sum + r.guests, 0)} guest
+              {madinahRooms.reduce((sum, r) => sum + r.guests, 0) > 1
+                ? "s"
+                : ""}
               )
             </span>
           </label>
-          {makkahRooms.map((room, idx) => (
+          {madinahRooms.map((room, idx) => (
             <div key={idx} className="flex items-center gap-2 mb-2">
               <span className="font-semibold">Room {idx + 1}:</span>
               <span>Guests:</span>
@@ -890,9 +920,9 @@ const BuildYourOwnUmrah = () => {
                 className="border rounded px-2 py-1"
                 value={room.guests}
                 onChange={(e) => {
-                  const newRooms = [...makkahRooms];
+                  const newRooms = [...madinahRooms];
                   newRooms[idx].guests = Number(e.target.value);
-                  setMakkahRooms(newRooms);
+                  setMadinahRooms(newRooms);
                 }}
               >
                 {[1, 2, 3, 4].map((n) => (
@@ -901,12 +931,12 @@ const BuildYourOwnUmrah = () => {
                   </option>
                 ))}
               </select>
-              {makkahRooms.length > 1 && (
+              {madinahRooms.length > 1 && (
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    setMakkahRooms(makkahRooms.filter((_, i) => i !== idx))
+                    setMadinahRooms(madinahRooms.filter((_, i) => i !== idx))
                   }
                 >
                   Remove
@@ -914,11 +944,11 @@ const BuildYourOwnUmrah = () => {
               )}
             </div>
           ))}
-          {makkahRooms.length < 5 && (
+          {madinahRooms.length < 5 && (
             <Button
               size="sm"
               className="w-full mb-2"
-              onClick={() => setMakkahRooms([...makkahRooms, { guests: 1 }])}
+              onClick={() => setMadinahRooms([...madinahRooms, { guests: 1 }])}
             >
               Add Room
             </Button>
@@ -928,10 +958,14 @@ const BuildYourOwnUmrah = () => {
 
       <HotelSearch
         city="madinah"
-        checkInDate={makkahCheckin}
-        checkOutDate={makkahCheckout}
-        rooms={makkahRooms}
+        checkInDate={madinahCheckin}
+        checkOutDate={madinahCheckout}
+        rooms={madinahRooms}
         onHotelSelect={addToCart}
+        results={madinahHotelResults}
+        setResults={setMadinahHotelResults}
+        hasSearched={madinahHasSearched}
+        setHasSearched={setMadinahHasSearched}
       />
     </div>
   );
@@ -945,7 +979,13 @@ const BuildYourOwnUmrah = () => {
       case 2:
         return renderVisaStep();
       case 3:
-        return <FlightStep onFlightSelect={addToCart} />;
+        return (
+          <FlightStep
+            onFlightSelect={addToCart}
+            results={flightResults}
+            setResults={setFlightResults}
+          />
+        );
       case 4:
         return renderMakkahHotelStep();
       case 5:
@@ -1206,15 +1246,28 @@ const BuildYourOwnUmrah = () => {
                 )}
               {!ziarathLoading &&
                 !ziarathError &&
-                ziarathOptions.map((ziarath) => {
-                  let vehicleOptions: VehicleOption[] = [];
-                  if (
-                    ziarath.vehicle_prices &&
-                    typeof ziarath.vehicle_prices === "object"
-                  ) {
-                    vehicleOptions = Object.entries(ziarath.vehicle_prices).map(
-                      ([vehicleId, price]) => {
-                        const vehicle = transportOptions.find(
+                ziarathOptions
+                  .filter((z) => {
+                    const name = (z.name || "").toLowerCase().trim();
+                    return (
+                      name !== "umrah tawaf" &&
+                      name !== ".sa'i" &&
+                      name !== "umrah tawaf & sa'i" &&
+                      name !== "umrah tawaf & sa’i" &&
+                      name !== "umrah tawaf and sa'i" &&
+                      name !== "umrah tawaf and sa’i"
+                    );
+                  })
+                  .map((ziarath) => {
+                    let vehicleOptions: VehicleOption[] = [];
+                    if (
+                      ziarath.vehicle_prices &&
+                      typeof ziarath.vehicle_prices === "object"
+                    ) {
+                      vehicleOptions = Object.entries(
+                        ziarath.vehicle_prices,
+                      ).map(([vehicleId, price]) => {
+                        const vehicle = vehicles.find(
                           (v) => v.id === vehicleId,
                         );
                         return {
@@ -1224,112 +1277,167 @@ const BuildYourOwnUmrah = () => {
                             vehicle?.vehicle_name || `Vehicle ${vehicleId}`,
                           capacity: vehicle?.capacity || "-",
                         };
-                      },
-                    );
-                  }
-                  const selectedVehicleId =
-                    ziarathVehicleSelections[ziarath.id] ||
-                    (vehicleOptions[0]?.id ?? "");
-                  const selectedVehicle = vehicleOptions.find(
-                    (v) => v.id === selectedVehicleId,
-                  );
-                  return (
-                    <Card
-                      key={ziarath.id}
-                      className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer ${
-                        ziarath.popular
-                          ? "border-primary shadow-md"
-                          : "border-gray-200 hover:border-primary/30"
-                      }`}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex gap-4 items-start">
-                          {ziarath.featured_image && (
-                            <img
-                              src={ziarath.featured_image}
-                              alt={ziarath.name}
-                              className="w-28 h-20 object-cover rounded-xl border mb-2"
-                              style={{ flexShrink: 0 }}
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="text-lg font-semibold text-gray-900 mb-1">
-                              {ziarath.name}
-                            </h4>
-                            <div className="space-y-1">
-                              <p className="text-sm text-gray-600">
+                      });
+                    }
+                    return (
+                      <Card
+                        key={ziarath.id}
+                        className={`border-2 transition-all duration-200 hover:shadow-lg cursor-pointer w-full max-w-full overflow-x-hidden ${
+                          ziarath.popular
+                            ? "border-primary shadow-md"
+                            : "border-gray-200 hover:border-primary/30"
+                        }`}
+                      >
+                        <CardContent className="p-4 w-full max-w-full overflow-x-hidden">
+                          <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-stretch w-full max-w-full">
+                            {/* Activity info: stacked on mobile, left column on desktop */}
+                            <div className="flex flex-col items-start w-full md:min-w-[200px] md:max-w-[260px] md:w-auto">
+                              {ziarath.featured_image && (
+                                <img
+                                  src={ziarath.featured_image}
+                                  alt={ziarath.name}
+                                  className="w-full max-w-[220px] h-28 object-cover rounded-xl border mb-2 md:w-32 md:h-24"
+                                  style={{ flexShrink: 0 }}
+                                />
+                              )}
+                              <h4 className="text-base md:text-lg font-semibold text-gray-900 mb-1 mt-1 w-full truncate">
+                                {ziarath.name}
+                              </h4>
+                              <p className="text-xs md:text-sm text-gray-600 mb-0.5">
                                 City: {ziarath.city}
                               </p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs md:text-sm text-gray-600">
                                 Duration: {ziarath.duration}
                               </p>
                             </div>
-                            {/* Vehicle selection dropdown */}
-                            {vehicleOptions.length > 0 && (
-                              <div className="mt-2">
-                                <label
-                                  className="mr-2 font-medium text-gray-700"
-                                  htmlFor={`ziarath-vehicle-${ziarath.id}`}
-                                >
-                                  Vehicle:
-                                </label>
-                                <select
-                                  id={`ziarath-vehicle-${ziarath.id}`}
-                                  className="border rounded px-3 py-2"
-                                  value={selectedVehicleId}
-                                  onChange={(e) =>
-                                    setZiarathVehicleSelections((sel) => ({
-                                      ...sel,
-                                      [ziarath.id]: e.target.value,
-                                    }))
-                                  }
-                                >
-                                  {vehicleOptions.map((vehicle) => (
-                                    <option key={vehicle.id} value={vehicle.id}>
-                                      `${vehicle.vehicle_name} ($
-                                      {vehicle.capacity} seats) - ₹$
-                                      {vehicle.price?.toLocaleString()}`
-                                    </option>
-                                  ))}
-                                </select>
+                            {/* Vehicle options: horizontal scroll on mobile, row on desktop */}
+                            <div className="w-full md:flex-1">
+                              <div
+                                className="flex flex-row flex-nowrap items-stretch w-full max-w-full max-w-[100vw] overflow-x-auto pb-2 pr-6 touch-pan-x space-x-3 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+                                style={{ WebkitOverflowScrolling: "touch" }}
+                              >
+                                {vehicleOptions.map((vehicle) => {
+                                  const count =
+                                    vehicleCounts[ziarath.id]?.[vehicle.id] ||
+                                    0;
+                                  return (
+                                    <div
+                                      key={vehicle.id}
+                                      className={`relative border rounded-lg p-2 md:p-3 flex flex-col justify-between w-[160px] md:w-[220px] flex-shrink-0 transition-colors duration-200 ${
+                                        isVehicleSelected(
+                                          ziarath.id,
+                                          vehicle.id,
+                                        )
+                                          ? "bg-green-50 border-green-400"
+                                          : "bg-gray-50"
+                                      }`}
+                                    >
+                                      {isVehicleSelected(
+                                        ziarath.id,
+                                        vehicle.id,
+                                      ) && (
+                                        <span className="absolute top-2 right-2 text-green-600 text-lg font-bold">
+                                          ✔
+                                        </span>
+                                      )}
+                                      <div className="flex flex-col gap-1">
+                                        <span className="font-medium text-xs md:text-base">
+                                          {vehicle.vehicle_name}
+                                        </span>
+                                        <span className="text-[10px] md:text-xs text-gray-600">
+                                          ({vehicle.capacity} seats)
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <button
+                                          className="px-2 py-1 border rounded text-base md:text-lg min-w-[32px] min-h-[32px]"
+                                          onClick={() =>
+                                            handleDecrement(
+                                              ziarath.id,
+                                              vehicle.id,
+                                            )
+                                          }
+                                          disabled={count <= 0}
+                                          aria-label="Decrease vehicle count"
+                                        >
+                                          -
+                                        </button>
+                                        <span className="w-6 text-center text-base md:text-lg">
+                                          {count}
+                                        </span>
+                                        <button
+                                          className="px-2 py-1 border rounded text-base md:text-lg min-w-[32px] min-h-[32px]"
+                                          onClick={() =>
+                                            handleIncrement(
+                                              ziarath.id,
+                                              vehicle.id,
+                                            )
+                                          }
+                                          aria-label="Increase vehicle count"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center justify-between mt-2">
+                                        <span className="text-primary font-bold text-sm md:text-lg">
+                                          ₹{vehicle.price?.toLocaleString()}
+                                        </span>
+                                        <Button
+                                          className="bg-primary hover:bg-primary/90 text-white px-2 py-1 md:px-3 md:py-1 text-xs md:text-sm"
+                                          onClick={() => {
+                                            if (count > 0) {
+                                              // Check if item already exists in cart
+                                              const itemId = `${ziarath.id}_${vehicle.id}`;
+                                              const existing = cart.find(
+                                                (item) =>
+                                                  item.id === itemId &&
+                                                  item.type === "ziarath",
+                                              );
+                                              if (existing) {
+                                                // Update quantity
+                                                updateQuantity(
+                                                  itemId,
+                                                  (existing.quantity || 0) +
+                                                    count,
+                                                );
+                                              } else {
+                                                addToCart({
+                                                  id: itemId,
+                                                  type: "ziarath",
+                                                  name: `${ziarath.name} (${vehicle.vehicle_name})`,
+                                                  price: vehicle.price,
+                                                  quantity: count,
+                                                  details: {
+                                                    duration: ziarath.duration,
+                                                    city: ziarath.city,
+                                                    vehicle:
+                                                      vehicle.vehicle_name,
+                                                    vehicle_id: vehicle.id,
+                                                  },
+                                                });
+                                              }
+                                              // Do NOT reset count to zero
+                                            }
+                                          }}
+                                          disabled={!count}
+                                        >
+                                          Add{count > 1 ? ` ${count}` : ""}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            )}
+                              {/* Mobile scroll indicator */}
+                              <div className="block md:hidden text-xs text-gray-400 mt-1 pl-1">
+                                ⇠ scroll for more vehicles ⇢
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-right min-w-[120px] flex flex-col items-end gap-2">
-                            <p className="text-xl font-bold text-primary">
-                              ₹
-                              {selectedVehicle?.price
-                                ? selectedVehicle.price.toLocaleString()
-                                : ziarath.price?.toLocaleString() || "-"}
-                            </p>
-                            <Button
-                              className="mt-2 w-full bg-primary hover:bg-primary/90 text-white"
-                              onClick={() => {
-                                if (selectedVehicle) {
-                                  addToCart({
-                                    id: `${ziarath.id}_${selectedVehicle.id}`,
-                                    type: "ziarath",
-                                    name: `${ziarath.name} (${selectedVehicle.vehicle_name})`,
-                                    price: selectedVehicle.price,
-                                    details: {
-                                      duration: ziarath.duration,
-                                      city: ziarath.city,
-                                      vehicle: selectedVehicle.vehicle_name,
-                                      vehicle_id: selectedVehicle.id,
-                                    },
-                                  });
-                                }
-                              }}
-                              disabled={!selectedVehicle}
-                            >
-                              Add to Package
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
             </div>
             {console.log("Ziarath options:", ziarathOptions)}
             {console.log("Transport options:", transportOptions)}
@@ -1338,6 +1446,34 @@ const BuildYourOwnUmrah = () => {
       default:
         return null;
     }
+  };
+
+  // Handlers for incrementing/decrementing vehicle counts
+  const handleIncrement = (activityId: string, vehicleId: string) => {
+    setVehicleCounts((prev) => ({
+      ...prev,
+      [activityId]: {
+        ...prev[activityId],
+        [vehicleId]: (prev[activityId]?.[vehicleId] || 0) + 1,
+      },
+    }));
+  };
+  const handleDecrement = (activityId: string, vehicleId: string) => {
+    setVehicleCounts((prev) => ({
+      ...prev,
+      [activityId]: {
+        ...prev[activityId],
+        [vehicleId]: Math.max((prev[activityId]?.[vehicleId] || 0) - 1, 0),
+      },
+    }));
+  };
+
+  // Utility to check if a vehicle for an activity is in the cart
+  const isVehicleSelected = (activityId: string, vehicleId: string) => {
+    return cart.some(
+      (item) =>
+        item.type === "ziarath" && item.id === `${activityId}_${vehicleId}`,
+    );
   };
 
   return (
@@ -1391,9 +1527,7 @@ const BuildYourOwnUmrah = () => {
                   style={{ transition: "transform 0.2s, box-shadow 0.2s" }}
                 >
                   <div
-                    className={`relative flex items-center justify-center w-12 h-12 rounded-full mb-1
-                    ${isActive ? "bg-[#eab308] shadow-lg" : "bg-[#e6f4ea]"}
-                  `}
+                    className={`relative flex items-center justify-center w-12 h-12 rounded-full mb-1 ${isActive ? "bg-[#eab308] shadow-lg" : "bg-[#e6f4ea]"}`}
                   >
                     <Icon className="w-6 h-6" />
                     {isCompleted && !isActive && (

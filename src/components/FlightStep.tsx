@@ -36,10 +36,16 @@ interface CartItem {
 }
 
 interface FlightStepProps {
-  onFlightSelect: (flight: Omit<CartItem, "quantity">) => void;
+  onFlightSelect: (flight: FlightCartDetails) => void;
+  results: FlightOffer[];
+  setResults: (flights: FlightOffer[]) => void;
 }
 
-const FlightStep: React.FC<FlightStepProps> = ({ onFlightSelect }) => {
+const FlightStep: React.FC<FlightStepProps> = ({
+  onFlightSelect,
+  results,
+  setResults,
+}) => {
   return (
     <FlightSearch
       onFlightSelect={(flight, searchParams) => {
