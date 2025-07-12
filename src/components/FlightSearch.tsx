@@ -421,7 +421,49 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       console.log("Flight search response:", data);
       const flights = data.data || [];
       console.log("Flight offers received:", flights.length);
-      setFlightOffers(flights);
+      
+      // Transform Amadeus API response to expected FlightOffer format
+      const transformedFlights = flights.map((offer: any, index: number) => {
+        console.log("Processing flight offer:", index, offer);
+        
+        // Get the first itinerary and first segment for simplicity
+        const itinerary = offer.itineraries?.[0];
+        const firstSegment = itinerary?.segments?.[0];
+        const lastSegment = itinerary?.segments?.[itinerary.segments.length - 1];
+        
+        if (!firstSegment || !lastSegment) {
+          console.warn("Invalid flight data structure for offer:", index, offer);
+          return null;
+        }
+        
+        return {
+          id: offer.id || `flight-${index}`,
+          airline: firstSegment.carrierCode || "Unknown",
+          flightNumber: firstSegment.number || "Unknown",
+          departure: {
+            iataCode: firstSegment.departure?.iataCode || "Unknown",
+            terminal: firstSegment.departure?.terminal,
+            at: firstSegment.departure?.at || new Date().toISOString()
+          },
+          arrival: {
+            iataCode: lastSegment.arrival?.iataCode || "Unknown", 
+            terminal: lastSegment.arrival?.terminal,
+            at: lastSegment.arrival?.at || new Date().toISOString()
+          },
+          duration: itinerary?.duration || "Unknown",
+          stops: (itinerary?.segments?.length || 1) - 1,
+          cabin: firstSegment.cabin || "ECONOMY",
+          aircraft: firstSegment.aircraft?.code,
+          price: {
+            total: offer.price?.total || "0",
+            currency: offer.price?.currency || "EUR"
+          },
+          rawOffer: offer // Keep raw data for detailed processing
+        };
+      }).filter(Boolean); // Remove null entries
+      
+      console.log("Transformed flights:", transformedFlights);
+      setFlightOffers(transformedFlights);
       
       // Show user feedback if no flights found
       if (flights.length === 0) {
