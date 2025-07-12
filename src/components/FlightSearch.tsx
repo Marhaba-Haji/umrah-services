@@ -419,7 +419,14 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       }
 
       console.log("Flight search response:", data);
-      setFlightOffers(data.data || []);
+      const flights = data.data || [];
+      console.log("Flight offers received:", flights.length);
+      setFlightOffers(flights);
+      
+      // Show user feedback if no flights found
+      if (flights.length === 0) {
+        console.log("No flights found - showing user message");
+      }
     } catch (error) {
       console.error("Error during flight search:", error);
       setFlightOffers([]);
@@ -887,37 +894,62 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
         )}
       </Button>
 
-      {flightOffers.length > 0 && (
+      {/* Flight Results Section */}
+      {!isLoading && searchParams.originLocationCode && searchParams.destinationLocationCode && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Flight Offers</h2>
-          {flightOffers.map((offer) => (
-            <div key={offer.id} className="border rounded p-4 mb-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="font-semibold">
-                    {offer.airline} {offer.flightNumber}
-                  </h3>
-                  <p>
-                    {offer.departure.iataCode} → {offer.arrival.iataCode}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Duration: {offer.duration}
-                  </p>
+          {flightOffers.length > 0 ? (
+            <>
+              <h2 className="text-xl font-bold mb-4">Flight Offers ({flightOffers.length} found)</h2>
+              {flightOffers.map((offer) => (
+                <div key={offer.id} className="border rounded p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="font-semibold">
+                        {offer.airline} {offer.flightNumber}
+                      </h3>
+                      <p>
+                        {offer.departure.iataCode} → {offer.arrival.iataCode}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Duration: {offer.duration}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-lg">
+                        {offer.price.total} {offer.price.currency}
+                      </p>
+                      <Button
+                        onClick={() => onFlightSelect?.(offer, searchParams)}
+                        className="mt-2"
+                      >
+                        Select Flight
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg">
-                    {offer.price.total} {offer.price.currency}
-                  </p>
-                  <Button
-                    onClick={() => onFlightSelect?.(offer, searchParams)}
-                    className="mt-2"
-                  >
-                    Select Flight
-                  </Button>
-                </div>
+              ))}
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="mb-4">
+                <Plane className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No flights found</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  We couldn't find any flights for your search criteria.
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+                <h4 className="font-medium text-blue-900 mb-2">Try adjusting your search:</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Check if airport codes are correct (e.g., BLR for Bangalore, BOM for Mumbai)</li>
+                  <li>• Try different dates (some routes may not be available on all dates)</li>
+                  <li>• Consider nearby airports or cities</li>
+                  <li>• Try reducing the number of passengers</li>
+                  <li>• Switch between one-way and round-trip options</li>
+                </ul>
               </div>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

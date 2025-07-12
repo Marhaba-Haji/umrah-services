@@ -146,11 +146,18 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Searching flights with params:", searchParams);
     const results = await amadeus.searchFlights(searchParams);
 
+    console.log("Flight search response:", JSON.stringify(results, null, 2));
     console.log(
       "Flight search successful, found:",
       results.data?.length || 0,
       "offers",
     );
+
+    // If no results, add helpful message
+    if (!results.data || results.data.length === 0) {
+      console.log("No flights found for criteria:", searchParams);
+      console.log("Suggestions: Try different dates, routes, or fewer passengers");
+    }
 
     return new Response(JSON.stringify(results), {
       status: 200,
