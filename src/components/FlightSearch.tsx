@@ -115,6 +115,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
     nonStop: false,
   });
 
+  // Separate state for display values
+  const [originDisplayValue, setOriginDisplayValue] = useState("");
+  const [destDisplayValue, setDestDisplayValue] = useState("");
+
   const [flightOffers, setFlightOffers] = useState<FlightOffer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -164,8 +168,28 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
 
       console.log("API response data:", data);
 
-      // Ensure we have the correct data structure
-      const suggestions = data.data || data || [];
+      // Ensure we have the correct data structure and filter/sort for better accuracy
+      let suggestions = data.data || data || [];
+      
+      // Sort suggestions: exact IATA code matches first, then by relevance
+      suggestions = suggestions.sort((a: AirportSuggestion, b: AirportSuggestion) => {
+        const aExact = a.iataCode?.toLowerCase() === val.toLowerCase();
+        const bExact = b.iataCode?.toLowerCase() === val.toLowerCase();
+        const aStart = a.iataCode?.toLowerCase().startsWith(val.toLowerCase());
+        const bStart = b.iataCode?.toLowerCase().startsWith(val.toLowerCase());
+        const aNameStart = a.name?.toLowerCase().startsWith(val.toLowerCase());
+        const bNameStart = b.name?.toLowerCase().startsWith(val.toLowerCase());
+        
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        if (aStart && !bStart) return -1;
+        if (!aStart && bStart) return 1;
+        if (aNameStart && !bNameStart) return -1;
+        if (!aNameStart && bNameStart) return 1;
+        
+        return 0;
+      });
+      
       console.log("Processed suggestions:", suggestions);
       setOriginSuggestions(suggestions);
       setApiAvailable(true);
@@ -200,8 +224,28 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
 
       console.log("API response data:", data);
 
-      // Ensure we have the correct data structure
-      const suggestions = data.data || data || [];
+      // Ensure we have the correct data structure and filter/sort for better accuracy
+      let suggestions = data.data || data || [];
+      
+      // Sort suggestions: exact IATA code matches first, then by relevance
+      suggestions = suggestions.sort((a: AirportSuggestion, b: AirportSuggestion) => {
+        const aExact = a.iataCode?.toLowerCase() === val.toLowerCase();
+        const bExact = b.iataCode?.toLowerCase() === val.toLowerCase();
+        const aStart = a.iataCode?.toLowerCase().startsWith(val.toLowerCase());
+        const bStart = b.iataCode?.toLowerCase().startsWith(val.toLowerCase());
+        const aNameStart = a.name?.toLowerCase().startsWith(val.toLowerCase());
+        const bNameStart = b.name?.toLowerCase().startsWith(val.toLowerCase());
+        
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
+        if (aStart && !bStart) return -1;
+        if (!aStart && bStart) return 1;
+        if (aNameStart && !bNameStart) return -1;
+        if (!aNameStart && bNameStart) return 1;
+        
+        return 0;
+      });
+      
       console.log("Processed suggestions:", suggestions);
       setDestSuggestions(suggestions);
       setApiAvailable(true);
@@ -337,30 +381,44 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
 
   // Update handleSearchFlights to call the Amadeus API for flight offers using the form values
   const handleSearchFlights = async () => {
+    if (!searchParams.originLocationCode || !searchParams.destinationLocationCode) {
+      console.error("Origin and destination are required");
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // Call your backend or edge function to fetch flight offers from Amadeus
+      console.log("Searching flights with params:", searchParams);
+      
+      // Format dates for the API call
+      const formatDate = (date: Date) => date.toISOString().split('T')[0];
+      
+      const requestBody = {
+        originLocationCode: searchParams.originLocationCode,
+        destinationLocationCode: searchParams.destinationLocationCode,
+        departureDate: formatDate(searchParams.departureDate),
+        ...(searchParams.tripType === "ROUND_TRIP" && searchParams.returnDate && {
+          returnDate: formatDate(searchParams.returnDate)
+        }),
+        adults: searchParams.adults,
+        ...(searchParams.children > 0 && { children: searchParams.children }),
+        ...(searchParams.infants > 0 && { infants: searchParams.infants }),
+        travelClass: searchParams.travelClass,
+        max: 10 // Limit results for better performance
+      };
+
+      console.log("Flight search request body:", requestBody);
+
       const { data, error } = await supabase.functions.invoke('amadeus-flight-search', {
-        body: {
-          origin: searchParams.originLocationCode,
-          destination: searchParams.destinationLocationCode,
-          departureDate: searchParams.departureDate,
-          returnDate:
-            searchParams.tripType === "ROUND_TRIP"
-              ? searchParams.returnDate
-              : undefined,
-          adults: searchParams.adults,
-          children: searchParams.children,
-          infants: searchParams.infants,
-          travelClass: searchParams.travelClass,
-          tripType: searchParams.tripType,
-        }
+        body: requestBody
       });
 
       if (error) {
+        console.error("Flight search error:", error);
         throw new Error(error.message);
       }
 
+      console.log("Flight search response:", data);
       setFlightOffers(data.data || []);
     } catch (error) {
       console.error("Error during flight search:", error);
@@ -652,12 +710,13 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
               type="text"
               id="origin"
               placeholder="Enter origin airport or city"
-              value={searchParams.originLocationCode}
+              value={originDisplayValue || searchParams.originLocationCode}
               autoComplete="off"
               onFocus={() => setShowOriginDropdown(true)}
               onBlur={() => setTimeout(() => setShowOriginDropdown(false), 200)}
               onChange={(e) => {
                 const val = e.target.value;
+                setOriginDisplayValue(val);
                 setSearchParams((prev) => ({
                   ...prev,
                   originLocationCode: val,
@@ -690,6 +749,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
                               ...prev,
                               originLocationCode: formatted.iataCode,
                             }));
+                            setOriginDisplayValue(formatted.display);
                             setShowOriginDropdown(false);
                           }}
                         >
@@ -732,12 +792,13 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
               type="text"
               id="destination"
               placeholder="Enter destination airport or city"
-              value={searchParams.destinationLocationCode}
+              value={destDisplayValue || searchParams.destinationLocationCode}
               autoComplete="off"
               onFocus={() => setShowDestDropdown(true)}
               onBlur={() => setTimeout(() => setShowDestDropdown(false), 200)}
               onChange={(e) => {
                 const val = e.target.value;
+                setDestDisplayValue(val);
                 setSearchParams((prev) => ({
                   ...prev,
                   destinationLocationCode: val,
@@ -770,6 +831,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
                               ...prev,
                               destinationLocationCode: formatted.iataCode,
                             }));
+                            setDestDisplayValue(formatted.display);
                             setShowDestDropdown(false);
                           }}
                         >

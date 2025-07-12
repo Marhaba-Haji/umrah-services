@@ -49,11 +49,13 @@ const FlightStep: React.FC<FlightStepProps> = ({
   return (
     <FlightSearch
       onFlightSelect={(flight, searchParams) => {
-        // Extract per-traveler-type prices from rawOffer if available
+    // Extract per-traveler-type prices from rawOffer if available
         let adultPrice = 0,
           childPrice = 0,
           infantPrice = 0;
-        if (flight.rawOffer && flight.rawOffer.travelerPricings) {
+        
+        if (flight.rawOffer && typeof flight.rawOffer === 'object' && 'travelerPricings' in flight.rawOffer) {
+          const rawOffer = flight.rawOffer as AmadeusFlightOffer;
           const getInr = (p: AmadeusFlightOffer["travelerPricings"][number]) =>
             p
               ? Math.round(
@@ -65,13 +67,13 @@ const FlightStep: React.FC<FlightStepProps> = ({
                         : 1),
                 )
               : 0;
-          const adult = flight.rawOffer.travelerPricings.find(
+          const adult = rawOffer.travelerPricings.find(
             (p) => p.travelerType === "ADULT",
           );
-          const child = flight.rawOffer.travelerPricings.find(
+          const child = rawOffer.travelerPricings.find(
             (p) => p.travelerType === "CHILD",
           );
-          const infant = flight.rawOffer.travelerPricings.find(
+          const infant = rawOffer.travelerPricings.find(
             (p) =>
               p.travelerType === "HELD_INFANT" || p.travelerType === "INFANT",
           );
@@ -79,29 +81,25 @@ const FlightStep: React.FC<FlightStepProps> = ({
           childPrice = getInr(child);
           infantPrice = getInr(infant);
         }
-        const cartItem: Omit<CartItem, "quantity"> = {
-          id: flight.id,
-          type: "flight",
-          name: `${flight.airline} ${flight.flightNumber} - ${flight.departure.iataCode} to ${flight.arrival.iataCode}`,
-          price: parseFloat(flight.price.total), // will be recalculated in cart
-          details: {
-            airline: flight.airline,
-            flightNumber: flight.flightNumber,
-            departure: flight.departure,
-            arrival: flight.arrival,
-            duration: flight.duration,
-            stops: flight.stops,
-            cabin: flight.cabin,
-            aircraft: flight.aircraft,
-            adultPrice,
-            childPrice,
-            infantPrice,
-            adults: searchParams.adults,
-            children: searchParams.children,
-            infants: searchParams.infants,
-          },
+        
+        const flightDetails: FlightCartDetails = {
+          airline: flight.airline,
+          flightNumber: flight.flightNumber,
+          departure: flight.departure,
+          arrival: flight.arrival,
+          duration: flight.duration,
+          stops: flight.stops,
+          cabin: flight.cabin,
+          aircraft: flight.aircraft,
+          adultPrice,
+          childPrice,
+          infantPrice,
+          adults: searchParams.adults,
+          children: searchParams.children,
+          infants: searchParams.infants,
         };
-        onFlightSelect(cartItem);
+        
+        onFlightSelect(flightDetails);
       }}
     />
   );
