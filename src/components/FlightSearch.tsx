@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface FlightOffer {
   id: string;
@@ -153,33 +154,15 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
     setOriginError(null);
     try {
       console.log("Fetching origin suggestions for:", val);
-      const res = await fetch(
-        "https://rjyhoikoqhephrkjgebo.supabase.co/functions/v1/amadeus-airport-suggest",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: val, subType: "AIRPORT,CITY" }),
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('amadeus-airport-suggest', {
+        body: { keyword: val, subType: "AIRPORT,CITY" }
+      });
 
-      console.log("Response status:", res.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(res.headers.entries()),
-      );
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("HTTP error response:", errorText);
-        throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const data = await res.json();
       console.log("API response data:", data);
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
 
       // Ensure we have the correct data structure
       const suggestions = data.data || data || [];
@@ -207,33 +190,15 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
     setDestError(null);
     try {
       console.log("Fetching destination suggestions for:", val);
-      const res = await fetch(
-        "https://rjyhoikoqhephrkjgebo.supabase.co/functions/v1/amadeus-airport-suggest",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: val, subType: "AIRPORT,CITY" }),
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('amadeus-airport-suggest', {
+        body: { keyword: val, subType: "AIRPORT,CITY" }
+      });
 
-      console.log("Response status:", res.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(res.headers.entries()),
-      );
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("HTTP error response:", errorText);
-        throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const data = await res.json();
       console.log("API response data:", data);
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
 
       // Ensure we have the correct data structure
       const suggestions = data.data || data || [];
@@ -255,26 +220,17 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
   const testAPI = async () => {
     try {
       console.log("Testing Amadeus API...");
-      const res = await fetch(
-        "https://rjyhoikoqhephrkjgebo.supabase.co/functions/v1/amadeus-airport-suggest",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ keyword: "delhi", subType: "AIRPORT,CITY" }),
-        },
-      );
+      const { data, error } = await supabase.functions.invoke('amadeus-airport-suggest', {
+        body: { keyword: "delhi", subType: "AIRPORT,CITY" }
+      });
 
-      console.log("API Test Response Status:", res.status);
-      const data = await res.text();
-      console.log("API Test Response:", data);
-
-      if (res.ok) {
-        console.log("✅ API is working correctly");
-        setApiAvailable(true);
-      } else {
-        console.log("❌ API is not working. Status:", res.status);
-        console.log("Response:", data);
+      if (error) {
+        console.log("❌ API is not working. Error:", error.message);
         setApiAvailable(false);
+      } else {
+        console.log("✅ API is working correctly");
+        console.log("API Test Response:", data);
+        setApiAvailable(true);
       }
     } catch (error) {
       console.error("❌ API test failed:", error);
@@ -384,28 +340,27 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
     setIsLoading(true);
     try {
       // Call your backend or edge function to fetch flight offers from Amadeus
-      const res = await fetch(
-        "https://rjyhoikoqhephrkjgebo.supabase.co/functions/v1/amadeus-flight-search",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            origin: searchParams.originLocationCode,
-            destination: searchParams.destinationLocationCode,
-            departureDate: searchParams.departureDate,
-            returnDate:
-              searchParams.tripType === "ROUND_TRIP"
-                ? searchParams.returnDate
-                : undefined,
-            adults: searchParams.adults,
-            children: searchParams.children,
-            infants: searchParams.infants,
-            travelClass: searchParams.travelClass,
-            tripType: searchParams.tripType,
-          }),
-        },
-      );
-      const data = await res.json();
+      const { data, error } = await supabase.functions.invoke('amadeus-flight-search', {
+        body: {
+          origin: searchParams.originLocationCode,
+          destination: searchParams.destinationLocationCode,
+          departureDate: searchParams.departureDate,
+          returnDate:
+            searchParams.tripType === "ROUND_TRIP"
+              ? searchParams.returnDate
+              : undefined,
+          adults: searchParams.adults,
+          children: searchParams.children,
+          infants: searchParams.infants,
+          travelClass: searchParams.travelClass,
+          tripType: searchParams.tripType,
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       setFlightOffers(data.data || []);
     } catch (error) {
       console.error("Error during flight search:", error);
