@@ -171,16 +171,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       if (!res.ok) {
         const errorText = await res.text();
         console.error("HTTP error response:", errorText);
-
-        // If the API is not available, use mock data for testing
-        if (res.status === 500 || res.status === 503) {
-          console.log("Using mock data due to API unavailability");
-          setApiAvailable(false);
-          const mockSuggestions = getMockAirportSuggestions(val);
-          setOriginSuggestions(mockSuggestions);
-          return;
-        }
-
         throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
       }
 
@@ -198,13 +188,11 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       setApiAvailable(true);
     } catch (e) {
       console.error("Error fetching origin suggestions:", e);
-
-      // Use mock data as fallback
-      console.log("Using mock data as fallback");
+      setOriginError(
+        `Failed to load suggestions: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
+      setOriginSuggestions([]);
       setApiAvailable(false);
-      const mockSuggestions = getMockAirportSuggestions(val);
-      setOriginSuggestions(mockSuggestions);
-      setOriginError(null); // Clear error since we have fallback data
     }
     setOriginLoading(false);
   }, 300);
@@ -237,16 +225,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       if (!res.ok) {
         const errorText = await res.text();
         console.error("HTTP error response:", errorText);
-
-        // If the API is not available, use mock data for testing
-        if (res.status === 500 || res.status === 503) {
-          console.log("Using mock data due to API unavailability");
-          setApiAvailable(false);
-          const mockSuggestions = getMockAirportSuggestions(val);
-          setDestSuggestions(mockSuggestions);
-          return;
-        }
-
         throw new Error(`HTTP error! status: ${res.status} - ${errorText}`);
       }
 
@@ -264,129 +242,14 @@ const FlightSearch: React.FC<FlightSearchProps> = ({ onFlightSelect }) => {
       setApiAvailable(true);
     } catch (e) {
       console.error("Error fetching destination suggestions:", e);
-
-      // Use mock data as fallback
-      console.log("Using mock data as fallback");
+      setDestError(
+        `Failed to load suggestions: ${e instanceof Error ? e.message : "Unknown error"}`,
+      );
+      setDestSuggestions([]);
       setApiAvailable(false);
-      const mockSuggestions = getMockAirportSuggestions(val);
-      setDestSuggestions(mockSuggestions);
-      setDestError(null); // Clear error since we have fallback data
     }
     setDestLoading(false);
   }, 300);
-
-  // Mock airport suggestions for testing when API is not available
-  const getMockAirportSuggestions = (keyword: string): AirportSuggestion[] => {
-    const mockData = [
-      {
-        id: "DEL",
-        iataCode: "DEL",
-        name: "Indira Gandhi International Airport",
-        address: { cityName: "Delhi", countryName: "India" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "DEL_CITY",
-        iataCode: "DEL",
-        name: "Delhi",
-        address: { cityName: "Delhi", countryName: "India" },
-        subType: "CITY",
-      },
-      {
-        id: "BOM",
-        iataCode: "BOM",
-        name: "Chhatrapati Shivaji Maharaj International Airport",
-        address: { cityName: "Mumbai", countryName: "India" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "BOM_CITY",
-        iataCode: "BOM",
-        name: "Mumbai",
-        address: { cityName: "Mumbai", countryName: "India" },
-        subType: "CITY",
-      },
-      {
-        id: "BLR",
-        iataCode: "BLR",
-        name: "Kempegowda International Airport",
-        address: { cityName: "Bangalore", countryName: "India" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "BLR_CITY",
-        iataCode: "BLR",
-        name: "Bangalore",
-        address: { cityName: "Bangalore", countryName: "India" },
-        subType: "CITY",
-      },
-      {
-        id: "MAA",
-        iataCode: "MAA",
-        name: "Chennai International Airport",
-        address: { cityName: "Chennai", countryName: "India" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "MAA_CITY",
-        iataCode: "MAA",
-        name: "Chennai",
-        address: { cityName: "Chennai", countryName: "India" },
-        subType: "CITY",
-      },
-      {
-        id: "JED",
-        iataCode: "JED",
-        name: "King Abdulaziz International Airport",
-        address: { cityName: "Jeddah", countryName: "Saudi Arabia" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "JED_CITY",
-        iataCode: "JED",
-        name: "Jeddah",
-        address: { cityName: "Jeddah", countryName: "Saudi Arabia" },
-        subType: "CITY",
-      },
-      {
-        id: "RUH",
-        iataCode: "RUH",
-        name: "King Khalid International Airport",
-        address: { cityName: "Riyadh", countryName: "Saudi Arabia" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "RUH_CITY",
-        iataCode: "RUH",
-        name: "Riyadh",
-        address: { cityName: "Riyadh", countryName: "Saudi Arabia" },
-        subType: "CITY",
-      },
-      {
-        id: "DMM",
-        iataCode: "DMM",
-        name: "King Fahd International Airport",
-        address: { cityName: "Dammam", countryName: "Saudi Arabia" },
-        subType: "AIRPORT",
-      },
-      {
-        id: "DMM_CITY",
-        iataCode: "DMM",
-        name: "Dammam",
-        address: { cityName: "Dammam", countryName: "Saudi Arabia" },
-        subType: "CITY",
-      },
-    ];
-
-    const keywordLower = keyword.toLowerCase();
-    return mockData.filter(
-      (item) =>
-        item.iataCode.toLowerCase().includes(keywordLower) ||
-        item.name.toLowerCase().includes(keywordLower) ||
-        item.address?.cityName?.toLowerCase().includes(keywordLower) ||
-        item.address?.countryName?.toLowerCase().includes(keywordLower),
-    );
-  };
 
   // Test function to check API status
   const testAPI = async () => {
