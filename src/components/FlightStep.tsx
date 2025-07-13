@@ -39,22 +39,28 @@ interface FlightStepProps {
   onFlightSelect: (flight: FlightCartDetails) => void;
   results: FlightOffer[];
   setResults: (flights: FlightOffer[]) => void;
+  onDrawerOpenChange?: (open: boolean) => void;
 }
 
 const FlightStep: React.FC<FlightStepProps> = ({
   onFlightSelect,
   results,
   setResults,
+  onDrawerOpenChange,
 }) => {
   return (
     <FlightSearch
       onFlightSelect={(flight, searchParams) => {
-    // Extract per-traveler-type prices from rawOffer if available
+        // Extract per-traveler-type prices from rawOffer if available
         let adultPrice = 0,
           childPrice = 0,
           infantPrice = 0;
-        
-        if (flight.rawOffer && typeof flight.rawOffer === 'object' && 'travelerPricings' in flight.rawOffer) {
+
+        if (
+          flight.rawOffer &&
+          typeof flight.rawOffer === "object" &&
+          "travelerPricings" in flight.rawOffer
+        ) {
           const rawOffer = flight.rawOffer as AmadeusFlightOffer;
           const getInr = (p: AmadeusFlightOffer["travelerPricings"][number]) =>
             p
@@ -81,7 +87,7 @@ const FlightStep: React.FC<FlightStepProps> = ({
           childPrice = getInr(child);
           infantPrice = getInr(infant);
         }
-        
+
         const flightDetails: FlightCartDetails = {
           airline: flight.airline,
           flightNumber: flight.flightNumber,
@@ -98,9 +104,12 @@ const FlightStep: React.FC<FlightStepProps> = ({
           children: searchParams.children,
           infants: searchParams.infants,
         };
-        
+
         onFlightSelect(flightDetails);
       }}
+      results={results}
+      setResults={setResults}
+      onDrawerOpenChange={onDrawerOpenChange}
     />
   );
 };

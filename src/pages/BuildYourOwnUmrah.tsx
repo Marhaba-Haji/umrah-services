@@ -114,6 +114,7 @@ const BuildYourOwnUmrah = () => {
   // Persisted search state for hotels
   const [makkahHasSearched, setMakkahHasSearched] = useState(false);
   const [madinahHasSearched, setMadinahHasSearched] = useState(false);
+  const [isFlightDrawerOpen, setIsFlightDrawerOpen] = useState(false);
 
   const totalGroupSize =
     adultCount + childWithBedCount + childWithoutBedCount + infantCount;
@@ -984,6 +985,7 @@ const BuildYourOwnUmrah = () => {
             onFlightSelect={addToCart}
             results={flightResults}
             setResults={setFlightResults}
+            onDrawerOpenChange={setIsFlightDrawerOpen}
           />
         );
       case 4:
@@ -1478,7 +1480,7 @@ const BuildYourOwnUmrah = () => {
 
   return (
     <>
-      <Header />
+      {!isFlightDrawerOpen && <Header />}
       <div className="min-h-screen bg-gray-50">
         {/* Page Header */}
         <div className="text-center py-8 bg-gradient-to-r from-primary/10 to-accent/10 rounded-b-3xl shadow mb-4">
@@ -1586,82 +1588,84 @@ const BuildYourOwnUmrah = () => {
         </div>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30">
-          <div className="px-4 py-4">
-            {cart.length > 0 && (
-              <div className="mb-4 p-4 bg-accent rounded-xl">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {getTotalItems()} items selected
-                    </p>
-                    <p className="text-xl font-bold text-primary">
-                      ₹{getTotalPrice().toLocaleString()}
-                    </p>
+        {!isFlightDrawerOpen && (
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-30">
+            <div className="px-4 py-4">
+              {cart.length > 0 && (
+                <div className="mb-4 p-4 bg-accent rounded-xl">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {getTotalItems()} items selected
+                      </p>
+                      <p className="text-xl font-bold text-primary">
+                        ₹{getTotalPrice().toLocaleString()}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowCart(true)}
+                      className="text-primary border-primary"
+                    >
+                      View Cart
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowCart(true)}
-                    className="text-primary border-primary"
-                  >
-                    View Cart
-                  </Button>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                className="flex-1 py-6"
-                disabled={activeStep === 0}
-                onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
-              >
-                Previous
-              </Button>
-              <Button
-                className="flex-1 bg-primary hover:bg-primary/90 py-6"
-                disabled={activeStep === steps.length - 1}
-                onClick={() => {
-                  // Check if current step is valid and mark as completed
-                  let valid = false;
-                  switch (activeStep) {
-                    case 0: // Visa
-                      valid = cart.some((item) => item.type === "visa");
-                      break;
-                    case 1: // Flight
-                      valid = cart.some((item) => item.type === "flight");
-                      break;
-                    case 2: // Hotel (Makkah)
-                      valid = cart.some((item) => item.type === "hotel");
-                      break;
-                    case 3: // Hotel (Madinah)
-                      valid = cart.some((item) => item.type === "hotel");
-                      break;
-                    case 4: // Transport
-                      valid = cart.some((item) => item.type === "transport");
-                      break;
-                    case 5: // Guide
-                      valid = cart.some((item) => item.type === "guide");
-                      break;
-                    case 6: // Ziarath
-                      valid = cart.some((item) => item.type === "ziarath");
-                      break;
-                    default:
-                      valid = false;
-                  }
-                  if (valid && !completedSteps.includes(activeStep)) {
-                    setCompletedSteps((prev) => [...prev, activeStep]);
-                  }
-                  setActiveStep(Math.min(steps.length - 1, activeStep + 1));
-                }}
-              >
-                {activeStep === steps.length - 1 ? "Complete" : "Continue"}
-              </Button>
+              <div className="flex space-x-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 py-6"
+                  disabled={activeStep === 0}
+                  onClick={() => setActiveStep(Math.max(0, activeStep - 1))}
+                >
+                  Previous
+                </Button>
+                <Button
+                  className="flex-1 bg-primary hover:bg-primary/90 py-6"
+                  disabled={activeStep === steps.length - 1}
+                  onClick={() => {
+                    // Check if current step is valid and mark as completed
+                    let valid = false;
+                    switch (activeStep) {
+                      case 0: // Visa
+                        valid = cart.some((item) => item.type === "visa");
+                        break;
+                      case 1: // Flight
+                        valid = cart.some((item) => item.type === "flight");
+                        break;
+                      case 2: // Hotel (Makkah)
+                        valid = cart.some((item) => item.type === "hotel");
+                        break;
+                      case 3: // Hotel (Madinah)
+                        valid = cart.some((item) => item.type === "hotel");
+                        break;
+                      case 4: // Transport
+                        valid = cart.some((item) => item.type === "transport");
+                        break;
+                      case 5: // Guide
+                        valid = cart.some((item) => item.type === "guide");
+                        break;
+                      case 6: // Ziarath
+                        valid = cart.some((item) => item.type === "ziarath");
+                        break;
+                      default:
+                        valid = false;
+                    }
+                    if (valid && !completedSteps.includes(activeStep)) {
+                      setCompletedSteps((prev) => [...prev, activeStep]);
+                    }
+                    setActiveStep(Math.min(steps.length - 1, activeStep + 1));
+                  }}
+                >
+                  {activeStep === steps.length - 1 ? "Complete" : "Continue"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <Footer />
 
