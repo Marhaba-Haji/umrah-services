@@ -24,6 +24,7 @@ import {
   ChevronUp,
   Clock,
   Briefcase,
+  Filter,
 } from "lucide-react";
 import ResponsiveBanner from "../components/ResponsiveBanner";
 import {
@@ -34,8 +35,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { searchFlights } from "@/services/flightService";
-import airportsData from "../../public/airports.json";
+import {
+  ttsFlightSearch,
+  TTSFlightSearchParams,
+} from "@/services/ttsFlightService";
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "../components/ui/drawer";
 
 type AirportSuggestion = {
   code: string;
@@ -48,6 +59,159 @@ type AirportType = {
   city: string;
   country: string;
   name: string;
+};
+
+// Add this type above fetchAirportSuggestions
+interface AmadeusAirportSuggestItem {
+  iataCode: string;
+  address?: {
+    cityName?: string;
+    countryName?: string;
+  };
+  name: string;
+}
+
+// --- Add FlightCard component at the top (after imports) ---
+const FlightCard = ({ offer, onSelect, isBest, isCheapest, isFastest }) => {
+  const onwardSegments = offer.itineraries?.[0]?.segments || [];
+  const returnSegments = offer.itineraries?.[1]?.segments || [];
+  const airlineName =
+    offer.dictionaries?.carriers?.[onwardSegments[0]?.carrierCode] ||
+    onwardSegments[0]?.carrierCode ||
+    "";
+  const price = offer.price?.total || "-";
+  const currency = offer.price?.currency || "INR";
+  const getCurrencySymbol = (currency) => {
+    switch ((currency || "INR").toUpperCase()) {
+      case "INR":
+        return "₹";
+      case "USD":
+        return "$";
+      case "SAR":
+        return "﷼";
+      default:
+        return currency ? currency.toUpperCase() + " " : "₹";
+    }
+  };
+  const formatTime = (t) => (t ? t.slice(11, 16) : "-");
+  const formatAirport = (seg) =>
+    seg?.departure?.iataCode || seg?.arrival?.iataCode || "-";
+  const formatDuration = (d) => {
+    if (!d || typeof d !== "string") return "-";
+    if (typeof d === "number") {
+      // If duration is in minutes
+      const h = Math.floor(d / 60);
+      const m = d % 60;
+      return `${h ? h + "h " : ""}${m ? m + "m" : ""}`.trim();
+    }
+    const match = d.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    const h = match && match[1] ? parseInt(match[1]) : 0;
+    const m = match && match[2] ? parseInt(match[2]) : 0;
+    return `${h ? h + "h " : ""}${m ? m + "m" : ""}`.trim();
+  };
+  const getLayoverDuration = (prevArrival, nextDeparture) => {
+    if (!prevArrival || !nextDeparture) return null;
+    const prev = new Date(prevArrival);
+    const next = new Date(nextDeparture);
+    const diff = (next - prev) / 60000; // minutes
+    if (diff <= 0 || isNaN(diff)) return null;
+    const h = Math.floor(diff / 60);
+    const m = Math.round(diff % 60);
+    return `${h ? h + "h " : ""}${m ? m + "m" : ""}`.trim();
+  };
+
+  // Helper to render a journey (onward or return)
+  const renderJourneySegments = (segments, label) => (
+    <div className="mb-2">
+      <div className="text-xs font-semibold text-emerald-700 mb-1">{label}</div>
+      <div className="flex flex-col gap-0.5">
+        {segments.map((seg, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && (
+              <div className="flex items-center justify-center text-xs text-gray-500 my-1">
+                <span className="px-2 py-0.5 bg-emerald-50 rounded">
+                  Layover at {segments[i - 1]?.arrival?.iataCode || "-"}
+                  {(() => {
+                    const layover = getLayoverDuration(
+                      segments[i - 1]?.arrival?.at,
+                      seg?.departure?.at,
+                    );
+                    return layover ? ` — ${layover}` : "";
+                  })()}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between border rounded-lg px-2 py-1 bg-gray-50 mb-1">
+              <div className="flex flex-col items-center min-w-[60px]">
+                <span className="font-bold text-base text-emerald-900">
+                  {formatTime(seg?.departure?.at)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {seg?.departure?.iataCode}
+                </span>
+              </div>
+              <div className="flex-1 flex flex-col items-center">
+                <span className="text-xs text-gray-500">
+                  {formatDuration(seg?.duration)}
+                </span>
+                <span className="w-12 h-0.5 bg-emerald-100 my-1" />
+                <span className="text-xs text-gray-400">
+                  {seg?.carrierCode} {seg?.number}
+                </span>
+              </div>
+              <div className="flex flex-col items-center min-w-[60px]">
+                <span className="font-bold text-base text-emerald-900">
+                  {formatTime(seg?.arrival?.at)}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {seg?.arrival?.iataCode}
+                </span>
+              </div>
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-xl shadow-md bg-white p-4 mb-4 border border-emerald-100 overflow-hidden w-full">
+      {/* Airline and Favorite */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <img
+            src={`https://content.airhex.com/content/logos/airlines_${onwardSegments[0]?.carrierCode?.toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
+            alt={airlineName}
+            className="h-6 w-6 object-contain rounded bg-white border"
+            onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
+          />
+          <span className="font-semibold text-emerald-900">{airlineName}</span>
+        </div>
+      </div>
+      {/* Outbound Journey Segments */}
+      {onwardSegments.length > 0 &&
+        renderJourneySegments(onwardSegments, "Onward Journey")}
+      {/* Return Journey Segments */}
+      {returnSegments.length > 0 &&
+        renderJourneySegments(returnSegments, "Return Journey")}
+      {/* Price and Select */}
+      <div className="flex items-center justify-between border-t pt-3 mt-2">
+        <div>
+          <div className="text-xs text-gray-500">1 deal from</div>
+          <div className="font-bold text-xl text-emerald-900">
+            {getCurrencySymbol(currency)}
+            {parseInt(price).toLocaleString()}
+          </div>
+        </div>
+        <button
+          className="bg-emerald-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-emerald-700 transition flex items-center gap-1"
+          onClick={onSelect}
+        >
+          Select <span aria-hidden>→</span>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const PackageDetailDynamic = () => {
@@ -112,6 +276,13 @@ const PackageDetailDynamic = () => {
   // Add state for sorting
   const [sortBy, setSortBy] = useState("best");
   const [selectedFlight, setSelectedFlight] = useState(null);
+  const [flightFilters, setFlightFilters] = useState({
+    departureTimes: [], // e.g. ["early", "morning", ...]
+    airlines: [], // e.g. ["EK", "SV"]
+    stops: [], // e.g. [0, 1, 2]
+    price: [0, 100000], // min, max
+  });
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -258,31 +429,20 @@ const PackageDetailDynamic = () => {
     setLoading: (l: boolean) => void,
   ) => {
     setLoading(true);
-    const local = airportsData.filter(
-      (a: AirportType) =>
-        a.code.toLowerCase().includes(input.toLowerCase()) ||
-        a.city.toLowerCase().includes(input.toLowerCase()) ||
-        a.name.toLowerCase().includes(input.toLowerCase()),
-    );
-    if (local.length > 0) {
-      setSuggestions(local.slice(0, 6));
-      setLoading(false);
-      return;
-    }
-    // If not found locally, call Amadeus API
     try {
-      const { AmadeusAPI } = await import("@/utils/amadeusApi");
-      const amadeus = new AmadeusAPI(
-        import.meta.env.VITE_AMADEUS_API_KEY,
-        import.meta.env.VITE_AMADEUS_API_SECRET,
+      const { data, error } = await supabase.functions.invoke(
+        "amadeus-airport-suggest",
+        {
+          body: { keyword: input, subType: "AIRPORT" },
+        },
       );
-      const res = await amadeus.getAirportInfo(input);
+      if (error) throw error;
       setSuggestions(
-        (res.data || []).map((item: Record<string, unknown>) => ({
-          code: item.iataCode as string,
-          city: item.address?.cityName as string,
-          country: item.address?.countryName as string,
-          name: item.name as string,
+        (data.data || data || []).map((item: AmadeusAirportSuggestItem) => ({
+          code: item.iataCode,
+          city: item.address?.cityName,
+          country: item.address?.countryName,
+          name: item.name,
         })),
       );
     } catch (e) {
@@ -300,6 +460,7 @@ const PackageDetailDynamic = () => {
 
   // Helper function to format duration
   const formatDuration = (duration: string) => {
+    if (typeof duration !== "string") return "";
     return duration.replace("PT", "").toLowerCase();
   };
 
@@ -358,10 +519,17 @@ const PackageDetailDynamic = () => {
 
   // Helper function to get baggage info
   const getBaggageInfo = (offer: Record<string, unknown>) => {
-    const segments =
-      (
-        offer.itineraries as Array<{ segments: Array<Record<string, unknown>> }>
-      )[0]?.segments || [];
+    const itineraries = offer.itineraries as Array<{
+      segments: Array<Record<string, unknown>>;
+    }>;
+    if (
+      !Array.isArray(itineraries) ||
+      !itineraries[0] ||
+      !Array.isArray(itineraries[0].segments)
+    ) {
+      return [];
+    }
+    const segments = itineraries[0].segments;
     const baggageInfo = segments.map((segment: Record<string, unknown>) => {
       const fareDetails = (
         offer.travelerPricings as Array<Record<string, unknown>>
@@ -390,7 +558,7 @@ const PackageDetailDynamic = () => {
 
   // Helper to get total duration in minutes
   const getMinutes = (durationStr) => {
-    if (!durationStr) return 0;
+    if (!durationStr || typeof durationStr !== "string") return 0;
     // Format: PT13H40M
     const match = durationStr.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
     const hours = match && match[1] ? parseInt(match[1]) : 0;
@@ -398,31 +566,104 @@ const PackageDetailDynamic = () => {
     return hours * 60 + mins;
   };
 
+  // Compute available airlines from results
+  const availableAirlines = useMemo(() => {
+    if (!flightSearchResults?.data || !Array.isArray(flightSearchResults.data))
+      return [];
+    const map = new Map();
+    flightSearchResults.data.forEach((offer) => {
+      const code = offer.itineraries?.[0]?.segments?.[0]?.carrierCode;
+      const name = offer.dictionaries?.carriers?.[code] || code;
+      if (code && !map.has(code)) {
+        map.set(code, {
+          code,
+          name,
+          logo: `https://content.airhex.com/content/logos/airlines_${code?.toLowerCase()}_350_100_r.png?background=fff&pad=auto`,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [flightSearchResults]);
+
   // Compute sorted results
   const sortedResults = useMemo(() => {
-    if (!flightSearchResults?.data) return [];
-    const data = [...flightSearchResults.data];
+    if (!flightSearchResults?.data || !Array.isArray(flightSearchResults.data))
+      return [];
+    let data = [...flightSearchResults.data];
+    // --- FILTERING ---
+    // Departure time
+    if (flightFilters.departureTimes.length > 0) {
+      data = data.filter((offer) => {
+        const dep = offer.itineraries?.[0]?.segments?.[0]?.departure?.at;
+        if (!dep) return false;
+        const hour = new Date(dep).getHours();
+        return flightFilters.departureTimes.some((group) => {
+          if (group === "early") return hour >= 0 && hour < 6;
+          if (group === "morning") return hour >= 6 && hour < 12;
+          if (group === "afternoon") return hour >= 12 && hour < 18;
+          if (group === "evening") return hour >= 18 && hour < 24;
+          return false;
+        });
+      });
+    }
+    // Airlines
+    if (flightFilters.airlines.length > 0) {
+      data = data.filter((offer) => {
+        const code = offer.itineraries?.[0]?.segments?.[0]?.carrierCode;
+        return flightFilters.airlines.includes(code);
+      });
+    }
+    // Stops
+    if (flightFilters.stops.length > 0) {
+      data = data.filter((offer) => {
+        const stops = (offer.itineraries?.[0]?.segments?.length ?? 1) - 1;
+        return flightFilters.stops.includes(stops);
+      });
+    }
+    // Price
+    if (flightFilters.price) {
+      data = data.filter((offer) => {
+        const price = parseInt(offer.price?.total || "0");
+        return (
+          price >= flightFilters.price[0] && price <= flightFilters.price[1]
+        );
+      });
+    }
+    // --- SORTING (existing logic) ---
     if (data.length === 0) return data;
     if (sortBy === "cheapest") {
       data.sort(
         (a, b) =>
-          convertToINR(parseFloat(a.price.total), a.price.currency) -
-          convertToINR(parseFloat(b.price.total), b.price.currency),
+          convertToINR(
+            parseFloat(a?.price?.total ?? 0),
+            a?.price?.currency ?? "INR",
+          ) -
+          convertToINR(
+            parseFloat(b?.price?.total ?? 0),
+            b?.price?.currency ?? "INR",
+          ),
       );
     } else if (sortBy === "fastest") {
       data.sort(
         (a, b) =>
-          getMinutes(a.itineraries[0].duration) -
-          getMinutes(b.itineraries[0].duration),
+          getMinutes(a?.itineraries?.[0]?.duration ?? "PT0M") -
+          getMinutes(b?.itineraries?.[0]?.duration ?? "PT0M"),
       );
     } else {
       // best
       // Normalize price, duration, stops
-      const prices = data.map((f) =>
-        convertToINR(parseFloat(f.price.total), f.price.currency),
+      const prices = (data ?? []).map((f) =>
+        convertToINR(
+          parseFloat(f?.price?.total ?? 0),
+          f?.price?.currency ?? "INR",
+        ),
       );
-      const durations = data.map((f) => getMinutes(f.itineraries[0].duration));
-      const stops = data.map((f) => f.itineraries[0].segments.length - 1);
+      const durations = (data ?? []).map((f) =>
+        getMinutes(f?.itineraries?.[0]?.duration ?? "PT0M"),
+      );
+      const stops = (data ?? []).map(
+        (f) => (f?.itineraries?.[0]?.segments?.length ?? 1) - 1,
+      );
       const minPrice = Math.min(...prices),
         maxPrice = Math.max(...prices);
       const minDur = Math.min(...durations),
@@ -435,10 +676,69 @@ const PackageDetailDynamic = () => {
         const normStops = (stops[i] - minStops) / (maxStops - minStops || 1);
         f._score = normPrice * 0.5 + normDur * 0.3 + normStops * 0.2;
       });
-      data.sort((a, b) => a._score - b._score);
+      data.sort((a, b) => (a._score ?? 0) - (b._score ?? 0));
     }
     return data;
-  }, [flightSearchResults, sortBy]);
+  }, [flightSearchResults, sortBy, flightFilters]);
+
+  // Add these useMemo hooks after sortedResults:
+  const cheapestResult = useMemo(() => {
+    if (!flightSearchResults?.data || !Array.isArray(flightSearchResults.data))
+      return null;
+    const filtered = sortedResults;
+    if (!filtered.length) return null;
+    return [...filtered].sort(
+      (a, b) =>
+        parseInt(a.price?.total || "0") - parseInt(b.price?.total || "0"),
+    )[0];
+  }, [flightSearchResults, sortedResults]);
+
+  const fastestResult = useMemo(() => {
+    if (!flightSearchResults?.data || !Array.isArray(flightSearchResults.data))
+      return null;
+    const filtered = sortedResults;
+    if (!filtered.length) return null;
+    return [...filtered].sort(
+      (a, b) =>
+        getMinutes(a.itineraries?.[0]?.duration) -
+        getMinutes(b.itineraries?.[0]?.duration),
+    )[0];
+  }, [flightSearchResults, sortedResults]);
+
+  const bestResult = useMemo(() => {
+    if (!flightSearchResults?.data || !Array.isArray(flightSearchResults.data))
+      return null;
+    const filtered = sortedResults;
+    if (!filtered.length) return null;
+    // Use the same scoring as in the 'best' sort
+    const data = [...filtered];
+    const prices = data.map((f) =>
+      convertToINR(
+        parseFloat(f?.price?.total ?? 0),
+        f?.price?.currency ?? "INR",
+      ),
+    );
+    const durations = data.map((f) =>
+      getMinutes(f?.itineraries?.[0]?.duration ?? "PT0M"),
+    );
+    const stops = data.map(
+      (f) => (f?.itineraries?.[0]?.segments?.length ?? 1) - 1,
+    );
+    const minPrice = Math.min(...prices),
+      maxPrice = Math.max(...prices);
+    const minDur = Math.min(...durations),
+      maxDur = Math.max(...durations);
+    const minStops = Math.min(...stops),
+      maxStops = Math.max(...stops);
+    data.forEach((f, i) => {
+      const normPrice = (prices[i] - minPrice) / (maxPrice - minPrice || 1);
+      const normDur = (durations[i] - minDur) / (maxDur - minDur || 1);
+      const normStops = (stops[i] - minStops) / (maxStops - minStops || 1);
+      f._score = normPrice * 0.5 + normDur * 0.3 + normStops * 0.2;
+    });
+    data.sort((a, b) => (a._score ?? 0) - (b._score ?? 0));
+    return data[0];
+  }, [flightSearchResults, sortedResults]);
 
   if (loading)
     return (
@@ -1080,74 +1380,70 @@ const PackageDetailDynamic = () => {
                                         />
                                       </div>
                                     )}
-                                    <div className="flex-1 min-w-[140px] flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
-                                      <Users className="w-4 h-4 text-emerald-600 mr-2" />
-                                      <select
-                                        id="adults"
-                                        className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium min-w-0 w-full"
-                                        value={flightForm.adults}
-                                        onChange={(e) =>
-                                          setFlightForm((f) => ({
-                                            ...f,
-                                            adults: Number(e.target.value),
-                                          }))
-                                        }
-                                      >
-                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(
-                                          (n) => (
+                                    {/* All passenger selectors in a single row */}
+                                    <div className="flex flex-nowrap gap-2 w-full">
+                                      <div className="flex-1 min-w-[120px] flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
+                                        <Users className="w-4 h-4 text-emerald-600 mr-2" />
+                                        <select
+                                          id="adults"
+                                          className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium min-w-0 w-full"
+                                          value={flightForm.adults}
+                                          onChange={(e) =>
+                                            setFlightForm((f) => ({
+                                              ...f,
+                                              adults: Number(e.target.value),
+                                            }))
+                                          }
+                                        >
+                                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(
+                                            (n) => (
+                                              <option key={n} value={n}>
+                                                {n} Adult{n > 1 ? "s" : ""}
+                                              </option>
+                                            ),
+                                          )}
+                                        </select>
+                                      </div>
+                                      <div className="flex-1 min-w-[120px] flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
+                                        <Users className="w-4 h-4 text-emerald-600 mr-2" />
+                                        <select
+                                          id="children"
+                                          className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium min-w-0 w-full"
+                                          value={flightForm.children}
+                                          onChange={(e) =>
+                                            setFlightForm((f) => ({
+                                              ...f,
+                                              children: Number(e.target.value),
+                                            }))
+                                          }
+                                        >
+                                          {[0, 1, 2, 3, 4, 5].map((n) => (
                                             <option key={n} value={n}>
-                                              {n} Adult{n > 1 ? "s" : ""}
+                                              {n} Child{n !== 1 ? "ren" : ""}
                                             </option>
-                                          ),
-                                        )}
-                                      </select>
-                                    </div>
-                                  </div>
-                                  {/* Children and infants selectors */}
-                                  <div className="flex gap-2">
-                                    <div className="flex-1 flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
-                                      <span className="mr-2 text-emerald-600">
-                                        <Users className="w-4 h-4" />
-                                      </span>
-                                      <select
-                                        id="children"
-                                        className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium"
-                                        value={flightForm.children}
-                                        onChange={(e) =>
-                                          setFlightForm((f) => ({
-                                            ...f,
-                                            children: Number(e.target.value),
-                                          }))
-                                        }
-                                      >
-                                        {[0, 1, 2, 3, 4, 5].map((n) => (
-                                          <option key={n} value={n}>
-                                            {n} Child{n !== 1 ? "ren" : ""}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div className="flex-1 flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
-                                      <span className="mr-2 text-emerald-600">
-                                        <Users className="w-4 h-4" />
-                                      </span>
-                                      <select
-                                        id="infants"
-                                        className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium"
-                                        value={flightForm.infants}
-                                        onChange={(e) =>
-                                          setFlightForm((f) => ({
-                                            ...f,
-                                            infants: Number(e.target.value),
-                                          }))
-                                        }
-                                      >
-                                        {[0, 1, 2, 3, 4, 5].map((n) => (
-                                          <option key={n} value={n}>
-                                            {n} Infant{n !== 1 ? "s" : ""}
-                                          </option>
-                                        ))}
-                                      </select>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="flex-1 min-w-[120px] flex items-center bg-white border border-emerald-100 rounded-lg px-3 py-2">
+                                        <Users className="w-4 h-4 text-emerald-600 mr-2" />
+                                        <select
+                                          id="infants"
+                                          className="flex-1 border-none bg-transparent focus:ring-0 text-emerald-900 font-medium min-w-0 w-full"
+                                          value={flightForm.infants}
+                                          onChange={(e) =>
+                                            setFlightForm((f) => ({
+                                              ...f,
+                                              infants: Number(e.target.value),
+                                            }))
+                                          }
+                                        >
+                                          {[0, 1, 2, 3, 4, 5].map((n) => (
+                                            <option key={n} value={n}>
+                                              {n} Infant{n !== 1 ? "s" : ""}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
                                     </div>
                                   </div>
                                   {/* Direct flights checkbox */}
@@ -1181,29 +1477,162 @@ const PackageDetailDynamic = () => {
                                         setFlightSearchResults(null);
                                         setFlightSearchError(null);
                                         try {
-                                          const params = {
-                                            originLocationCode:
-                                              flightForm.origin,
-                                            destinationLocationCode:
-                                              flightForm.destination,
-                                            departureDate:
-                                              flightForm.departureDate,
-                                            returnDate:
-                                              flightForm.tripType ===
-                                              "roundtrip"
-                                                ? flightForm.returnDate
-                                                : undefined,
-                                            adults: flightForm.adults,
-                                            children: flightForm.children,
-                                            infants: flightForm.infants,
-                                            travelClass:
-                                              flightForm.classType?.toUpperCase(),
-                                            nonStop: flightForm.directFlights,
-                                            max: 10,
-                                          };
-                                          const results =
-                                            await searchFlights(params);
-                                          setFlightSearchResults(results);
+                                          // Map form fields to TTSFlightSearchParams
+                                          const ttsParams: TTSFlightSearchParams =
+                                            {
+                                              UserIp: "122.161.64.143", // TODO: Replace with dynamic IP if available
+                                              Adult: flightForm.adults,
+                                              Child: flightForm.children,
+                                              Infant: flightForm.infants,
+                                              DirectFlight:
+                                                flightForm.directFlights,
+                                              JourneyType:
+                                                flightForm.tripType ===
+                                                "roundtrip"
+                                                  ? 2
+                                                  : 1,
+                                              PreferredCarriers: [],
+                                              CabinClass:
+                                                [
+                                                  "economy",
+                                                  "premium_economy",
+                                                  "business",
+                                                  "first",
+                                                ].indexOf(
+                                                  flightForm.classType?.toLowerCase() ||
+                                                    "economy",
+                                                ) + 1,
+                                              SeriesFare: null,
+                                              AirSegments: [
+                                                {
+                                                  Origin: flightForm.origin,
+                                                  Destination:
+                                                    flightForm.destination,
+                                                  PreferredTime:
+                                                    flightForm.departureDate +
+                                                    "T00:00:00",
+                                                },
+                                                ...(flightForm.tripType ===
+                                                  "roundtrip" &&
+                                                flightForm.returnDate
+                                                  ? [
+                                                      {
+                                                        Origin:
+                                                          flightForm.destination,
+                                                        Destination:
+                                                          flightForm.origin,
+                                                        PreferredTime:
+                                                          flightForm.returnDate +
+                                                          "T00:00:00",
+                                                      },
+                                                    ]
+                                                  : []),
+                                              ],
+                                            };
+                                          const ttsResults =
+                                            await ttsFlightSearch(ttsParams);
+                                          // TTS API returns Result: [ [ { Segments, FareList, ... } ] ]
+                                          const flights =
+                                            Array.isArray(ttsResults.Result) &&
+                                            Array.isArray(ttsResults.Result[0])
+                                              ? ttsResults.Result[0].flatMap(
+                                                  (flight, idx) => {
+                                                    // For each FareList entry, create a separate offer (if needed)
+                                                    if (
+                                                      Array.isArray(
+                                                        flight.FareList,
+                                                      ) &&
+                                                      flight.FareList.length > 0
+                                                    ) {
+                                                      return flight.FareList.map(
+                                                        (fare, fareIdx) => {
+                                                          // Build itineraries array: [onward, return]
+                                                          const itineraries = (
+                                                            flight.Segments ||
+                                                            []
+                                                          ).map((segArr) => ({
+                                                            segments:
+                                                              segArr.map(
+                                                                (seg) => ({
+                                                                  departure: {
+                                                                    iataCode:
+                                                                      seg.Origin
+                                                                        .AirportCode,
+                                                                    at: seg
+                                                                      .Origin
+                                                                      .DepartTime,
+                                                                  },
+                                                                  arrival: {
+                                                                    iataCode:
+                                                                      seg
+                                                                        .Destination
+                                                                        .AirportCode,
+                                                                    at: seg
+                                                                      .Destination
+                                                                      .ArrivalTime,
+                                                                  },
+                                                                  carrierCode:
+                                                                    seg.Airline
+                                                                      .AirlineCode,
+                                                                  number:
+                                                                    seg.Airline
+                                                                      .FlightNumber,
+                                                                  duration:
+                                                                    seg.TotalDuration,
+                                                                  cabin:
+                                                                    fare.CabinClass ||
+                                                                    "Economy",
+                                                                  aircraft:
+                                                                    seg.Craft,
+                                                                }),
+                                                              ),
+                                                            duration:
+                                                              segArr.reduce(
+                                                                (acc, seg) =>
+                                                                  acc +
+                                                                  (seg.TotalDuration ||
+                                                                    0),
+                                                                0,
+                                                              ),
+                                                          }));
+                                                          return {
+                                                            id: `${idx}-${fareIdx}`,
+                                                            itineraries,
+                                                            price: {
+                                                              total:
+                                                                fare.Fare.PublishedPrice?.toString() ||
+                                                                "0",
+                                                              currency: "INR",
+                                                            },
+                                                            dictionaries: {
+                                                              carriers: {
+                                                                [flight
+                                                                  .Segments?.[0]?.[0]
+                                                                  ?.Airline
+                                                                  ?.AirlineCode]:
+                                                                  flight
+                                                                    .Segments?.[0]?.[0]
+                                                                    ?.Airline
+                                                                    ?.AirlineName,
+                                                              },
+                                                            },
+                                                            travelerPricings:
+                                                              [], // You can map FareBreakdown if needed
+                                                            _raw: {
+                                                              flight,
+                                                              fare,
+                                                            },
+                                                          };
+                                                        },
+                                                      );
+                                                    }
+                                                    return [];
+                                                  },
+                                                )
+                                              : [];
+                                          setFlightSearchResults({
+                                            data: flights,
+                                          });
                                           setShowSearchForm(false);
                                         } catch (err: unknown) {
                                           setFlightSearchError(
@@ -1262,496 +1691,444 @@ const PackageDetailDynamic = () => {
                                 </form>
                               ) : (
                                 <div className="px-6 pt-4 flex flex-col h-full">
-                                  <Button
-                                    type="button"
-                                    className="mb-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-4 py-2 rounded self-start"
-                                    onClick={() => setShowSearchForm(true)}
-                                  >
-                                    Modify Search
-                                  </Button>
-                                  {/* Above the flight results list, add the sorting dropdown: */}
-                                  <div className="flex items-center gap-3 mb-4">
-                                    <label
-                                      htmlFor="flight-sort"
-                                      className="text-sm font-medium text-gray-700"
+                                  <div className="flex items-center justify-between mb-4 gap-2">
+                                    <Button
+                                      type="button"
+                                      className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-semibold px-4 py-2 rounded"
+                                      onClick={() => setShowSearchForm(true)}
                                     >
-                                      Sort by:
-                                    </label>
-                                    <select
-                                      id="flight-sort"
-                                      value={sortBy}
-                                      onChange={(e) =>
-                                        setSortBy(e.target.value)
-                                      }
-                                      className="border border-emerald-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                      Modify Search
+                                    </Button>
+                                    <Drawer
+                                      open={filterDrawerOpen}
+                                      onOpenChange={setFilterDrawerOpen}
                                     >
-                                      <option value="best">Best</option>
-                                      <option value="cheapest">Cheapest</option>
-                                      <option value="fastest">Fastest</option>
-                                    </select>
-                                  </div>
-                                  {sortedResults.length > 0 ? (
-                                    sortedResults.map(
-                                      (offer: Record<string, unknown>, idx) => {
-                                        const isExpanded =
-                                          expandedFlightId === offer.id;
-                                        const onwardSegments =
-                                          offer.itineraries?.[0]?.segments ||
-                                          [];
-                                        const returnSegments =
-                                          offer.itineraries?.[1]?.segments ||
-                                          [];
-                                        const totalSegments = [
-                                          ...onwardSegments,
-                                          ...returnSegments,
-                                        ];
-                                        // Get first and last segment for times
-                                        const firstSegment = onwardSegments[0];
-                                        const lastSegment =
-                                          onwardSegments[
-                                            onwardSegments.length - 1
-                                          ];
-                                        // Departure and arrival times
-                                        const departureTime = firstSegment
-                                          ? formatTime(
-                                              firstSegment.departure.at,
-                                            )
-                                          : "";
-                                        const arrivalTime = lastSegment
-                                          ? formatTime(lastSegment.arrival.at)
-                                          : "";
-                                        // Total duration
-                                        const totalDuration = offer
-                                          .itineraries?.[0]?.duration
-                                          ? formatDuration(
-                                              offer.itineraries[0].duration,
-                                            )
-                                          : "";
-                                        // Always define baggageInfo and mealsInfo here for use in expanded details
-                                        const baggageInfo =
-                                          getBaggageInfo(offer);
-                                        const mealsInfo = getMealsInfo(offer);
-                                        const isSelected =
-                                          selectedFlight &&
-                                          selectedFlight.id === offer.id;
-                                        return (
-                                          <div
-                                            key={offer.id || idx}
-                                            id={`flight-card-${offer.id}`}
-                                            className="border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow p-4 mb-4 cursor-pointer flex flex-col gap-2"
-                                            onClick={() =>
-                                              setExpandedFlightId(
-                                                isExpanded ? null : offer.id,
-                                              )
-                                            }
-                                          >
-                                            {/* Onward Journey Row */}
-                                            {onwardSegments.length > 0 && (
-                                              <div className="flex items-center gap-3 min-w-0">
-                                                <img
-                                                  src={getAirlineLogo(
-                                                    onwardSegments[0]
-                                                      .carrierCode,
-                                                  )}
-                                                  alt={
-                                                    offer.dictionaries
-                                                      ?.carriers?.[
-                                                      onwardSegments[0]
-                                                        .carrierCode
-                                                    ] ||
-                                                    onwardSegments[0]
-                                                      .carrierCode
-                                                  }
-                                                  className="w-7 h-7 object-contain flex-shrink-0"
-                                                  onError={(e) => {
-                                                    e.currentTarget.style.display =
-                                                      "none";
-                                                  }}
-                                                />
-                                                <span className="font-semibold text-base text-gray-900">
-                                                  {
-                                                    onwardSegments[0]?.departure
-                                                      .iataCode
-                                                  }
-                                                </span>
-                                                <span className="text-gray-500">
-                                                  →
-                                                </span>
-                                                <span className="font-semibold text-base text-gray-900">
-                                                  {
-                                                    onwardSegments[
-                                                      onwardSegments.length - 1
-                                                    ]?.arrival.iataCode
-                                                  }
-                                                </span>
-                                                <span className="ml-2 text-sm font-medium text-gray-800">
-                                                  {onwardSegments[0]
-                                                    ? formatTime(
-                                                        onwardSegments[0]
-                                                          .departure.at,
-                                                      )
-                                                    : ""}{" "}
-                                                  -{" "}
-                                                  {onwardSegments[
-                                                    onwardSegments.length - 1
-                                                  ]
-                                                    ? formatTime(
-                                                        onwardSegments[
-                                                          onwardSegments.length -
-                                                            1
-                                                        ].arrival.at,
-                                                      )
-                                                    : ""}
-                                                </span>
-                                                <span
-                                                  className="ml-2 text-xs px-2 py-1 rounded-full font-semibold"
-                                                  style={{
-                                                    background:
-                                                      onwardSegments.length ===
-                                                      1
-                                                        ? "#e6f9f0"
-                                                        : "#fff4f4",
-                                                    color:
-                                                      onwardSegments.length ===
-                                                      1
-                                                        ? "#059669"
-                                                        : "#e11d48",
-                                                  }}
-                                                >
-                                                  {onwardSegments.length === 1
-                                                    ? "Direct"
-                                                    : `${onwardSegments.length - 1} stop${onwardSegments.length - 1 > 1 ? "s" : ""}`}
-                                                </span>
-                                                <span className="ml-2 text-xs text-gray-500">
-                                                  {offer.itineraries?.[0]
-                                                    ?.duration
-                                                    ? formatDuration(
-                                                        offer.itineraries[0]
-                                                          .duration,
-                                                      )
-                                                    : ""}
-                                                </span>
-                                              </div>
-                                            )}
-                                            {/* Return Journey Row */}
-                                            {returnSegments.length > 0 && (
-                                              <div className="flex items-center gap-3 min-w-0">
-                                                <img
-                                                  src={getAirlineLogo(
-                                                    returnSegments[0]
-                                                      .carrierCode,
-                                                  )}
-                                                  alt={
-                                                    offer.dictionaries
-                                                      ?.carriers?.[
-                                                      returnSegments[0]
-                                                        .carrierCode
-                                                    ] ||
-                                                    returnSegments[0]
-                                                      .carrierCode
-                                                  }
-                                                  className="w-7 h-7 object-contain flex-shrink-0"
-                                                  onError={(e) => {
-                                                    e.currentTarget.style.display =
-                                                      "none";
-                                                  }}
-                                                />
-                                                <span className="font-semibold text-base text-gray-900">
-                                                  {
-                                                    returnSegments[0]?.departure
-                                                      .iataCode
-                                                  }
-                                                </span>
-                                                <span className="text-gray-500">
-                                                  →
-                                                </span>
-                                                <span className="font-semibold text-base text-gray-900">
-                                                  {
-                                                    returnSegments[
-                                                      returnSegments.length - 1
-                                                    ]?.arrival.iataCode
-                                                  }
-                                                </span>
-                                                <span className="ml-2 text-sm font-medium text-gray-800">
-                                                  {returnSegments[0]
-                                                    ? formatTime(
-                                                        returnSegments[0]
-                                                          .departure.at,
-                                                      )
-                                                    : ""}{" "}
-                                                  -{" "}
-                                                  {returnSegments[
-                                                    returnSegments.length - 1
-                                                  ]
-                                                    ? formatTime(
-                                                        returnSegments[
-                                                          returnSegments.length -
-                                                            1
-                                                        ].arrival.at,
-                                                      )
-                                                    : ""}
-                                                </span>
-                                                <span
-                                                  className="ml-2 text-xs px-2 py-1 rounded-full font-semibold"
-                                                  style={{
-                                                    background:
-                                                      returnSegments.length ===
-                                                      1
-                                                        ? "#e6f9f0"
-                                                        : "#fff4f4",
-                                                    color:
-                                                      returnSegments.length ===
-                                                      1
-                                                        ? "#059669"
-                                                        : "#e11d48",
-                                                  }}
-                                                >
-                                                  {returnSegments.length === 1
-                                                    ? "Direct"
-                                                    : `${returnSegments.length - 1} stop${returnSegments.length - 1 > 1 ? "s" : ""}`}
-                                                </span>
-                                                <span className="ml-2 text-xs text-gray-500">
-                                                  {offer.itineraries?.[1]
-                                                    ?.duration
-                                                    ? formatDuration(
-                                                        offer.itineraries[1]
-                                                          .duration,
-                                                      )
-                                                    : ""}
-                                                </span>
-                                              </div>
-                                            )}
-                                            {/* Price and Passenger Info */}
-                                            <div className="flex items-center justify-between mt-2">
-                                              <div className="flex items-center gap-2"></div>
-                                              <div className="flex flex-col items-end">
-                                                <span className="text-emerald-900 text-xl font-bold">
-                                                  ₹{" "}
-                                                  {convertToINR(
-                                                    parseFloat(
-                                                      offer.price.total,
-                                                    ),
-                                                    offer.price.currency,
-                                                  ).toLocaleString()}
-                                                </span>
-                                                <span className="text-xs text-gray-500">
-                                                  {flightForm.adults +
-                                                    flightForm.children +
-                                                    flightForm.infants}{" "}
-                                                  people
-                                                </span>
-                                                <button
-                                                  type="button"
-                                                  className={`mt-2 px-4 py-2 rounded font-semibold text-sm transition ${isSelected ? "bg-emerald-600 text-white cursor-not-allowed" : "bg-emerald-100 hover:bg-emerald-200 text-emerald-800"}`}
-                                                  disabled={isSelected}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // Extract per-traveler-type prices from offer.travelerPricings
-                                                    let adultPrice = 0,
-                                                      childPrice = 0,
-                                                      infantPrice = 0;
-                                                    if (
-                                                      offer.travelerPricings
-                                                    ) {
-                                                      const getInr = (p) =>
-                                                        p
-                                                          ? Math.round(
-                                                              parseFloat(
-                                                                p.price.total,
-                                                              ) *
-                                                                (p.price
-                                                                  .currency ===
-                                                                "INR"
-                                                                  ? 1
-                                                                  : p.price
-                                                                        .currency ===
-                                                                      "USD"
-                                                                    ? 83.5
-                                                                    : 1),
-                                                            )
-                                                          : 0;
-                                                      const adult =
-                                                        offer.travelerPricings.find(
-                                                          (p) =>
-                                                            p.travelerType ===
-                                                            "ADULT",
-                                                        );
-                                                      const child =
-                                                        offer.travelerPricings.find(
-                                                          (p) =>
-                                                            p.travelerType ===
-                                                            "CHILD",
-                                                        );
-                                                      const infant =
-                                                        offer.travelerPricings.find(
-                                                          (p) =>
-                                                            p.travelerType ===
-                                                              "HELD_INFANT" ||
-                                                            p.travelerType ===
-                                                              "INFANT",
-                                                        );
-                                                      adultPrice =
-                                                        getInr(adult);
-                                                      childPrice =
-                                                        getInr(child);
-                                                      infantPrice =
-                                                        getInr(infant);
-                                                    }
-                                                    // Extract onward and return segments
-                                                    const onwardSegments =
-                                                      offer.itineraries?.[0]
-                                                        ?.segments || [];
-                                                    const returnSegments =
-                                                      offer.itineraries?.[1]
-                                                        ?.segments || [];
-                                                    const onward =
-                                                      onwardSegments[0];
-                                                    const onwardLast =
-                                                      onwardSegments[
-                                                        onwardSegments.length -
-                                                          1
-                                                      ];
-                                                    const returnFirst =
-                                                      returnSegments[0];
-                                                    const returnLast =
-                                                      returnSegments[
-                                                        returnSegments.length -
-                                                          1
-                                                      ];
-                                                    setSelectedFlight({
-                                                      id: offer.id,
-                                                      airline:
-                                                        offer.dictionaries
-                                                          ?.carriers?.[
-                                                          onward?.carrierCode
-                                                        ] ||
-                                                        onward?.carrierCode ||
-                                                        "",
-                                                      flightNumber:
-                                                        onward?.carrierCode +
-                                                        " " +
-                                                        onward?.number,
-                                                      price: parseFloat(
-                                                        offer.price.total,
-                                                      ),
-                                                      details: {
-                                                        airline:
-                                                          offer.dictionaries
-                                                            ?.carriers?.[
-                                                            onward?.carrierCode
-                                                          ] ||
-                                                          onward?.carrierCode ||
-                                                          "",
-                                                        flightNumber:
-                                                          onward?.carrierCode +
-                                                          " " +
-                                                          onward?.number,
-                                                        departure:
-                                                          onward?.departure,
-                                                        arrival:
-                                                          onwardLast?.arrival,
-                                                        duration:
-                                                          offer.itineraries?.[0]
-                                                            ?.duration || "",
-                                                        stops:
-                                                          onwardSegments.length -
-                                                          1,
-                                                        cabin:
-                                                          offer
-                                                            .travelerPricings?.[0]
-                                                            ?.fareDetailsBySegment?.[0]
-                                                            ?.cabin || "",
-                                                        aircraft:
-                                                          onward?.aircraft
-                                                            ?.code,
-                                                        adultPrice,
-                                                        childPrice,
-                                                        infantPrice,
-                                                        adults:
-                                                          flightForm.adults,
-                                                        children:
-                                                          flightForm.children,
-                                                        infants:
-                                                          flightForm.infants,
-                                                        // Add returnFlight if present and valid
-                                                        ...(returnSegments.length >
-                                                          0 &&
-                                                        returnFirst &&
-                                                        returnLast
-                                                          ? {
-                                                              returnFlight: {
-                                                                airline:
-                                                                  offer
-                                                                    .dictionaries
-                                                                    ?.carriers?.[
-                                                                    returnFirst
-                                                                      ?.carrierCode
-                                                                  ] ||
-                                                                  returnFirst?.carrierCode ||
-                                                                  "",
-                                                                flightNumber:
-                                                                  returnFirst?.carrierCode +
-                                                                  " " +
-                                                                  returnFirst?.number,
-                                                                departure:
-                                                                  returnFirst?.departure,
-                                                                arrival:
-                                                                  returnLast?.arrival,
-                                                                duration:
-                                                                  offer
-                                                                    .itineraries?.[1]
-                                                                    ?.duration ||
-                                                                  "",
-                                                                stops:
-                                                                  returnSegments.length -
-                                                                  1,
-                                                                cabin:
-                                                                  offer
-                                                                    .travelerPricings?.[0]
-                                                                    ?.fareDetailsBySegment?.[1]
-                                                                    ?.cabin ||
-                                                                  "",
-                                                                aircraft:
-                                                                  returnFirst
-                                                                    ?.aircraft
-                                                                    ?.code,
-                                                              },
-                                                            }
-                                                          : {}),
-                                                      },
-                                                    });
-                                                    setFlightModalOpen(false);
-                                                  }}
-                                                >
-                                                  {isSelected
-                                                    ? "Selected"
-                                                    : "Add to Package"}
-                                                </button>
-                                              </div>
+                                      <DrawerTrigger asChild>
+                                        <button
+                                          className="flex items-center gap-1 px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 font-semibold shadow hover:bg-emerald-50 transition ml-auto"
+                                          aria-label="Filter flights"
+                                        >
+                                          <Filter className="w-5 h-5" />
+                                          <span>Filters</span>
+                                        </button>
+                                      </DrawerTrigger>
+                                      <DrawerContent className="max-w-lg w-full mx-auto relative">
+                                        <DrawerHeader className="sticky top-0 z-10 bg-white pb-2 border-b">
+                                          <DrawerTitle>
+                                            Flight Filters
+                                          </DrawerTitle>
+                                          <DrawerClose asChild>
+                                            <button
+                                              className="absolute right-4 top-4 p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                              aria-label="Close filter box"
+                                              type="button"
+                                            >
+                                              <X className="w-5 h-5" />
+                                            </button>
+                                          </DrawerClose>
+                                        </DrawerHeader>
+                                        <div className="p-4 space-y-6 overflow-y-auto max-h-[70vh]">
+                                          {/* Departure Time Groups */}
+                                          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                                            <div className="font-semibold mb-2">
+                                              Departure Time
                                             </div>
-                                            {isExpanded && (
-                                              <div className="border-t bg-gray-50 p-4 transition-all duration-300 ease-in-out animate-fade-in">
-                                                <div className="flex justify-end mb-2">
-                                                  <button
-                                                    type="button"
-                                                    className="text-gray-500 hover:text-emerald-700 text-sm flex items-center gap-1"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setExpandedFlightId(null);
-                                                    }}
-                                                    aria-label="Collapse details"
-                                                  >
-                                                    <ChevronUp className="w-4 h-4" />{" "}
-                                                    Close
-                                                  </button>
-                                                </div>
-                                                {/* ...existing Tabs and tab content... */}
-                                              </div>
-                                            )}
+                                            <div className="grid grid-cols-2 gap-2">
+                                              {[
+                                                {
+                                                  label:
+                                                    "Early Morning (00:00-06:00)",
+                                                  value: "early",
+                                                },
+                                                {
+                                                  label:
+                                                    "Morning (06:00-12:00)",
+                                                  value: "morning",
+                                                },
+                                                {
+                                                  label:
+                                                    "Afternoon (12:00-18:00)",
+                                                  value: "afternoon",
+                                                },
+                                                {
+                                                  label:
+                                                    "Evening (18:00-24:00)",
+                                                  value: "evening",
+                                                },
+                                              ].map((opt) => (
+                                                <label
+                                                  key={opt.value}
+                                                  className="flex items-center gap-2 cursor-pointer"
+                                                >
+                                                  <input
+                                                    type="checkbox"
+                                                    className="accent-emerald-600"
+                                                    checked={flightFilters.departureTimes.includes(
+                                                      opt.value,
+                                                    )}
+                                                    onChange={(e) =>
+                                                      setFlightFilters((f) => ({
+                                                        ...f,
+                                                        departureTimes: e.target
+                                                          .checked
+                                                          ? [
+                                                              ...f.departureTimes,
+                                                              opt.value,
+                                                            ]
+                                                          : f.departureTimes.filter(
+                                                              (v) =>
+                                                                v !== opt.value,
+                                                            ),
+                                                      }))
+                                                    }
+                                                  />
+                                                  {opt.label}
+                                                </label>
+                                              ))}
+                                            </div>
                                           </div>
-                                        );
-                                      },
-                                    )
+                                          {/* Airlines (with logo, price, multi-checkbox) */}
+                                          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                                            <div className="font-semibold mb-2">
+                                              Airlines
+                                            </div>
+                                            <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-2">
+                                              {availableAirlines.length ===
+                                                0 && (
+                                                <div className="text-gray-400 text-sm">
+                                                  No airlines found
+                                                </div>
+                                              )}
+                                              {availableAirlines.map((air) => {
+                                                // Find the lowest price for this airline in the results
+                                                let minPrice = null;
+                                                if (
+                                                  flightSearchResults?.data &&
+                                                  Array.isArray(
+                                                    flightSearchResults.data,
+                                                  )
+                                                ) {
+                                                  flightSearchResults.data.forEach(
+                                                    (offer) => {
+                                                      const code =
+                                                        offer.itineraries?.[0]
+                                                          ?.segments?.[0]
+                                                          ?.carrierCode;
+                                                      if (code === air.code) {
+                                                        const offered =
+                                                          offer._raw?.fare
+                                                            ?.OfferedPrice;
+                                                        const published =
+                                                          offer.price?.total;
+                                                        const price = offered
+                                                          ? parseInt(offered)
+                                                          : published
+                                                            ? parseInt(
+                                                                published,
+                                                              )
+                                                            : null;
+                                                        if (
+                                                          price !== null &&
+                                                          (minPrice === null ||
+                                                            price < minPrice)
+                                                        )
+                                                          minPrice = price;
+                                                      }
+                                                    },
+                                                  );
+                                                }
+                                                return (
+                                                  <label
+                                                    key={air.code}
+                                                    className="flex items-center gap-2 cursor-pointer"
+                                                  >
+                                                    <input
+                                                      type="checkbox"
+                                                      className="accent-emerald-600"
+                                                      checked={flightFilters.airlines.includes(
+                                                        air.code,
+                                                      )}
+                                                      onChange={(e) =>
+                                                        setFlightFilters(
+                                                          (f) => ({
+                                                            ...f,
+                                                            airlines: e.target
+                                                              .checked
+                                                              ? [
+                                                                  ...f.airlines,
+                                                                  air.code,
+                                                                ]
+                                                              : f.airlines.filter(
+                                                                  (v) =>
+                                                                    v !==
+                                                                    air.code,
+                                                                ),
+                                                          }),
+                                                        )
+                                                      }
+                                                    />
+                                                    <img
+                                                      src={air.logo}
+                                                      alt={air.name}
+                                                      className="h-5 w-8 object-contain bg-white border rounded"
+                                                      onError={(e) =>
+                                                        (e.currentTarget.src =
+                                                          "/placeholder.svg")
+                                                      }
+                                                    />
+                                                    <span className="truncate max-w-[120px]">
+                                                      {air.name}
+                                                    </span>
+                                                    <span className="ml-auto text-xs text-gray-500 font-semibold">
+                                                      {minPrice !== null
+                                                        ? `from ₹${minPrice.toLocaleString()}`
+                                                        : ""}
+                                                    </span>
+                                                  </label>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                          {/* Stops */}
+                                          <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-100">
+                                            <div className="font-semibold mb-2">
+                                              Stops
+                                            </div>
+                                            <div className="flex gap-2 flex-wrap">
+                                              {[
+                                                { label: "Direct", value: 0 },
+                                                { label: "1 Stop", value: 1 },
+                                                { label: "2+ Stops", value: 2 },
+                                              ].map((opt) => (
+                                                <label
+                                                  key={opt.value}
+                                                  className="flex items-center gap-2 cursor-pointer"
+                                                >
+                                                  <input
+                                                    type="checkbox"
+                                                    className="accent-emerald-600"
+                                                    checked={flightFilters.stops.includes(
+                                                      opt.value,
+                                                    )}
+                                                    onChange={(e) =>
+                                                      setFlightFilters((f) => ({
+                                                        ...f,
+                                                        stops: e.target.checked
+                                                          ? [
+                                                              ...f.stops,
+                                                              opt.value,
+                                                            ]
+                                                          : f.stops.filter(
+                                                              (v) =>
+                                                                v !== opt.value,
+                                                            ),
+                                                      }))
+                                                    }
+                                                  />
+                                                  {opt.label}
+                                                </label>
+                                              ))}
+                                            </div>
+                                          </div>
+                                          <div className="flex justify-between gap-2 mt-6">
+                                            <button
+                                              className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300"
+                                              onClick={() =>
+                                                setFlightFilters({
+                                                  departureTimes: [],
+                                                  airlines: [],
+                                                  stops: [],
+                                                  price: [0, 100000],
+                                                })
+                                              }
+                                              type="button"
+                                            >
+                                              Clear Filters
+                                            </button>
+                                            <DrawerClose asChild>
+                                              <button className="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+                                                Apply Filters
+                                              </button>
+                                            </DrawerClose>
+                                          </div>
+                                        </div>
+                                      </DrawerContent>
+                                    </Drawer>
+                                  </div>
+                                  {/* Existing tabs */}
+                                  <div className="flex gap-2 w-full mb-4">
+                                    <div
+                                      className={`flex-1 rounded-t-lg p-3 text-center font-bold shadow ${sortBy === "best" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
+                                      onClick={() => setSortBy("best")}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      Best
+                                      <br />
+                                      <span className="text-2xl">
+                                        {bestResult
+                                          ? `₹${parseInt(bestResult.price?.total || "0").toLocaleString()}`
+                                          : "-"}
+                                      </span>
+                                      <br />
+                                      <span className="text-xs">
+                                        {bestResult
+                                          ? formatDuration(
+                                              bestResult.itineraries?.[0]
+                                                ?.duration,
+                                            ) + " average"
+                                          : "-"}
+                                      </span>
+                                    </div>
+                                    <div
+                                      className={`flex-1 rounded-t-lg p-3 text-center font-bold shadow ${sortBy === "cheapest" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
+                                      onClick={() => setSortBy("cheapest")}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      Cheapest
+                                      <br />
+                                      <span className="text-2xl">
+                                        {cheapestResult
+                                          ? `₹${parseInt(cheapestResult.price?.total || "0").toLocaleString()}`
+                                          : "-"}
+                                      </span>
+                                      <br />
+                                      <span className="text-xs">
+                                        {cheapestResult
+                                          ? formatDuration(
+                                              cheapestResult.itineraries?.[0]
+                                                ?.duration,
+                                            ) + " average"
+                                          : "-"}
+                                      </span>
+                                    </div>
+                                    <div
+                                      className={`flex-1 rounded-t-lg p-3 text-center font-bold shadow ${sortBy === "fastest" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
+                                      onClick={() => setSortBy("fastest")}
+                                      style={{ cursor: "pointer" }}
+                                    >
+                                      Fastest
+                                      <br />
+                                      <span className="text-2xl">
+                                        {fastestResult
+                                          ? `₹${parseInt(fastestResult.price?.total || "0").toLocaleString()}`
+                                          : "-"}
+                                      </span>
+                                      <br />
+                                      <span className="text-xs">
+                                        {fastestResult
+                                          ? formatDuration(
+                                              fastestResult.itineraries?.[0]
+                                                ?.duration,
+                                            ) + " average"
+                                          : "-"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {/* Info Banner */}
+                                  {flightSearchLoading ? (
+                                    <div className="text-center text-emerald-700 py-8">
+                                      Searching flights...
+                                    </div>
+                                  ) : flightSearchError ? (
+                                    <div className="text-center text-red-600 py-8">
+                                      {flightSearchError}
+                                    </div>
+                                  ) : sortedResults.length > 0 ? (
+                                    sortedResults.map((offer, idx) => (
+                                      <FlightCard
+                                        key={offer.id || idx}
+                                        offer={offer}
+                                        onSelect={() => {
+                                          setSelectedFlight({
+                                            details: {
+                                              airline:
+                                                offer.dictionaries?.carriers?.[
+                                                  offer.itineraries?.[0]
+                                                    ?.segments?.[0]?.carrierCode
+                                                ] ||
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[0]?.carrierCode,
+                                              flightNumber:
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[0]?.carrierCode +
+                                                " " +
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[0]?.number,
+                                              departure:
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[0]?.departure,
+                                              arrival:
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[
+                                                  offer.itineraries?.[0]
+                                                    ?.segments?.length - 1
+                                                ]?.arrival,
+                                              duration:
+                                                offer.itineraries?.[0]
+                                                  ?.duration,
+                                              cabin:
+                                                offer.itineraries?.[0]
+                                                  ?.segments?.[0]?.cabin,
+                                              adultPrice: parseInt(
+                                                offer.price?.total || "0",
+                                              ),
+                                              childPrice: 0,
+                                              infantPrice: 0,
+                                              adults: flightForm.adults,
+                                              children: flightForm.children,
+                                              infants: flightForm.infants,
+                                              returnFlight: offer
+                                                .itineraries?.[1]
+                                                ? {
+                                                    airline:
+                                                      offer.dictionaries
+                                                        ?.carriers?.[
+                                                        offer.itineraries?.[1]
+                                                          ?.segments?.[0]
+                                                          ?.carrierCode
+                                                      ] ||
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[0]
+                                                        ?.carrierCode,
+                                                    flightNumber:
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[0]
+                                                        ?.carrierCode +
+                                                      " " +
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[0]?.number,
+                                                    departure:
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[0]
+                                                        ?.departure,
+                                                    arrival:
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[
+                                                        offer.itineraries?.[1]
+                                                          ?.segments?.length - 1
+                                                      ]?.arrival,
+                                                    duration:
+                                                      offer.itineraries?.[1]
+                                                        ?.duration,
+                                                    cabin:
+                                                      offer.itineraries?.[1]
+                                                        ?.segments?.[0]?.cabin,
+                                                  }
+                                                : null,
+                                            },
+                                            offer,
+                                          });
+                                          setFlightModalOpen(false);
+                                        }}
+                                        isBest={sortBy === "best" && idx === 0}
+                                        isCheapest={
+                                          sortBy === "cheapest" && idx === 0
+                                        }
+                                        isFastest={
+                                          sortBy === "fastest" && idx === 0
+                                        }
+                                      />
+                                    ))
                                   ) : (
                                     <div className="text-gray-500 text-center">
                                       No flights found.

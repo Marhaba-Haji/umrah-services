@@ -1429,122 +1429,178 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
             open={passengerModalOpen}
             onOpenChange={setPassengerModalOpen}
           >
-            <DialogContent>
+            <DialogContent className="max-w-lg w-full">
               <DialogHeader>
                 <DialogTitle>Select Passengers</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span>
-                    Adults{" "}
+              {/* Passenger selectors in a single row */}
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-row flex-nowrap items-end justify-between gap-2">
+                  {/* Adults */}
+                  <div className="flex-1 min-w-0 flex flex-col items-center px-1">
+                    <span className="font-medium text-sm">Adults</span>
                     <span className="text-xs text-gray-500">(12+ yrs)</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.adults <= ADULT_MIN}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          adults: Math.max(ADULT_MIN, p.adults - 1),
-                        }))
-                      }
-                    >
-                      -
-                    </Button>
-                    <span>{searchParams.adults}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.adults >= ADULT_MAX}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          adults: Math.min(ADULT_MAX, p.adults + 1),
-                        }))
-                      }
-                    >
-                      +
-                    </Button>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={searchParams.adults <= ADULT_MIN}
+                        onClick={() =>
+                          setSearchParams((p) => {
+                            // If infants > new adults, reduce infants as well
+                            const newAdults = Math.max(ADULT_MIN, p.adults - 1);
+                            let newInfants = p.infants;
+                            if (newInfants > newAdults) newInfants = newAdults;
+                            return {
+                              ...p,
+                              adults: newAdults,
+                              infants: newInfants,
+                            };
+                          })
+                        }
+                      >
+                        -
+                      </Button>
+                      <span>{searchParams.adults}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={
+                          searchParams.adults >= ADULT_MAX ||
+                          searchParams.adults +
+                            searchParams.children +
+                            searchParams.infants >=
+                            9
+                        }
+                        onClick={() =>
+                          setSearchParams((p) => {
+                            if (p.adults + p.children + p.infants >= 9)
+                              return p;
+                            return {
+                              ...p,
+                              adults: Math.min(ADULT_MAX, p.adults + 1),
+                            };
+                          })
+                        }
+                      >
+                        +
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>
-                    Children{" "}
+                  {/* Children */}
+                  <div className="flex-1 min-w-0 flex flex-col items-center px-1">
+                    <span className="font-medium text-sm">Children</span>
                     <span className="text-xs text-gray-500">(2-11 yrs)</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.children <= CHILD_MIN}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          children: Math.max(CHILD_MIN, p.children - 1),
-                        }))
-                      }
-                    >
-                      -
-                    </Button>
-                    <span>{searchParams.children}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.children >= CHILD_MAX}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          children: Math.min(CHILD_MAX, p.children + 1),
-                        }))
-                      }
-                    >
-                      +
-                    </Button>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={searchParams.children <= CHILD_MIN}
+                        onClick={() =>
+                          setSearchParams((p) => ({
+                            ...p,
+                            children: Math.max(CHILD_MIN, p.children - 1),
+                          }))
+                        }
+                      >
+                        -
+                      </Button>
+                      <span>{searchParams.children}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={
+                          searchParams.children >= CHILD_MAX ||
+                          searchParams.adults +
+                            searchParams.children +
+                            searchParams.infants >=
+                            9
+                        }
+                        onClick={() =>
+                          setSearchParams((p) => {
+                            if (p.adults + p.children + p.infants >= 9)
+                              return p;
+                            return {
+                              ...p,
+                              children: Math.min(CHILD_MAX, p.children + 1),
+                            };
+                          })
+                        }
+                      >
+                        +
+                      </Button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>
-                    Infants{" "}
+                  {/* Infants */}
+                  <div className="flex-1 min-w-0 flex flex-col items-center px-1">
+                    <span className="font-medium text-sm">Infants</span>
                     <span className="text-xs text-gray-500">(&lt;2 yrs)</span>
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.infants <= INFANT_MIN}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          infants: Math.max(INFANT_MIN, p.infants - 1),
-                        }))
-                      }
-                    >
-                      -
-                    </Button>
-                    <span>{searchParams.infants}</span>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      disabled={searchParams.infants >= INFANT_MAX}
-                      onClick={() =>
-                        setSearchParams((p) => ({
-                          ...p,
-                          infants: Math.min(INFANT_MAX, p.infants + 1),
-                        }))
-                      }
-                    >
-                      +
-                    </Button>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={searchParams.infants <= INFANT_MIN}
+                        onClick={() =>
+                          setSearchParams((p) => ({
+                            ...p,
+                            infants: Math.max(INFANT_MIN, p.infants - 1),
+                          }))
+                        }
+                      >
+                        -
+                      </Button>
+                      <span>{searchParams.infants}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={
+                          searchParams.infants >= searchParams.adults ||
+                          searchParams.infants >= INFANT_MAX ||
+                          searchParams.adults +
+                            searchParams.children +
+                            searchParams.infants >=
+                            9
+                        }
+                        onClick={() =>
+                          setSearchParams((p) => {
+                            if (
+                              p.infants >= p.adults ||
+                              p.adults + p.children + p.infants >= 9
+                            )
+                              return p;
+                            return {
+                              ...p,
+                              infants: Math.min(INFANT_MAX, p.infants + 1),
+                            };
+                          })
+                        }
+                      >
+                        +
+                      </Button>
+                    </div>
                   </div>
                 </div>
+                {/* Helper message for limits */}
+                {searchParams.adults +
+                  searchParams.children +
+                  searchParams.infants >=
+                  9 && (
+                  <div className="text-xs text-red-500 text-center mt-2">
+                    Maximum 9 passengers allowed in total.
+                  </div>
+                )}
+                {searchParams.infants >= searchParams.adults &&
+                  searchParams.adults > 0 && (
+                    <div className="text-xs text-red-500 text-center mt-1">
+                      Only 1 infant per adult allowed.
+                    </div>
+                  )}
               </div>
               <DialogFooter>
                 <Button
