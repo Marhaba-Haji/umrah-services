@@ -333,24 +333,6 @@ interface SelectedFlight {
   [key: string]: unknown;
 }
 
-// 1. Add runtime type guards and parsing for fields that may be stringified JSON
-function parseJsonField<T>(field: unknown, fallback: T): T {
-  if (Array.isArray(fallback) && Array.isArray(field)) return field as T;
-  if (typeof field === "string") {
-    try {
-      const parsed = JSON.parse(field);
-      if (Array.isArray(fallback) && Array.isArray(parsed)) return parsed as T;
-      if (typeof fallback === "object" && typeof parsed === "object")
-        return parsed as T;
-      return fallback;
-    } catch {
-      return fallback;
-    }
-  }
-  if (typeof field === "object" && field !== null) return field as T;
-  return fallback;
-}
-
 const PackageDetailDynamic = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -366,13 +348,23 @@ const PackageDetailDynamic = () => {
     infants: 0,
   });
   const [totalCost, setTotalCost] = useState(0);
-  const [activityDetails, setActivityDetails] = useState<Activity[]>([]);
-  const [hotelDetails, setHotelDetails] = useState<HotelDetails>({});
+  const [activityDetails, setActivityDetails] = useState<
+    Array<{
+      id: string;
+      name: string;
+      description?: string;
+      featured_image?: string;
+      city?: string;
+      duration?: string;
+    }>
+  >([]);
+  const [hotelDetails, setHotelDetails] = useState<{
+    makkah?: Record<string, unknown>;
+    madinah?: Record<string, unknown>;
+  }>({});
   const [flightModalOpen, setFlightModalOpen] = useState(false);
   const [showFlightSearch, setShowFlightSearch] = useState(true);
-  const [selectedFlight, setSelectedFlight] = useState<SelectedFlight | null>(
-    null,
-  );
+  const [selectedFlight, setSelectedFlight] = useState(null);
   const [originLoading, setOriginLoading] = useState(false);
   const [destinationLoading, setDestinationLoading] = useState(false);
   const [expandedFlightId, setExpandedFlightId] = useState<string | null>(null);
@@ -407,11 +399,11 @@ const PackageDetailDynamic = () => {
           setError("Package not found.");
           setPkg(null);
         } else {
-          setPkg(data2 as UmrahPackage); // type assertion for Supabase result
+          setPkg(data2);
           setError(null);
         }
       } else {
-        setPkg(data as UmrahPackage); // type assertion for Supabase result
+        setPkg(data);
         setError(null);
       }
       setLoading(false);
@@ -434,31 +426,69 @@ const PackageDetailDynamic = () => {
 
   useEffect(() => {
     if (!pkg) return;
-    const newHotelDetails: HotelDetails = {};
-    // Parse hotels if stringified
-    const makkahHotel = parseJsonField<HotelDetails["makkah"]>(
-      pkg.makkah_hotel,
-      undefined,
-    );
-    const madinahHotel = parseJsonField<HotelDetails["madinah"]>(
-      pkg.madinah_hotel,
-      undefined,
-    );
-    if (makkahHotel) newHotelDetails.makkah = makkahHotel;
-    if (madinahHotel) newHotelDetails.madinah = madinahHotel;
-    setHotelDetails(newHotelDetails);
+    const fetchHotels = async () => {
+      const newHotelDetails: Record<string, unknown> = {};
+      // Fetch Makkah hotel if needed
+      if (
+        pkg.makkah_hotel &&
+        (typeof pkg.makkah_hotel === "string" ||
+          !pkg.makkah_hotel.featured_image)
+      ) {
+        const makkahId =
+          typeof pkg.makkah_hotel === "string"
+            ? pkg.makkah_hotel
+            : pkg.makkah_hotel.id;
+        if (makkahId) {
+          const { data } = await supabase
+            .from("hotels")
+            .select("*")
+            .eq("id", makkahId)
+            .single();
+          if (data) newHotelDetails.makkah = data;
+        }
+      } else if (pkg.makkah_hotel) {
+        newHotelDetails.makkah = pkg.makkah_hotel;
+      }
+      // Fetch Madinah hotel if needed
+      if (
+        pkg.madinah_hotel &&
+        (typeof pkg.madinah_hotel === "string" ||
+          !pkg.madinah_hotel.featured_image)
+      ) {
+        const madinahId =
+          typeof pkg.madinah_hotel === "string"
+            ? pkg.madinah_hotel
+            : pkg.madinah_hotel.id;
+        if (madinahId) {
+          const { data } = await supabase
+            .from("hotels")
+            .select("*")
+            .eq("id", madinahId)
+            .single();
+          if (data) newHotelDetails.madinah = data;
+        }
+      } else if (pkg.madinah_hotel) {
+        newHotelDetails.madinah = pkg.madinah_hotel;
+      }
+      setHotelDetails(newHotelDetails);
+    };
+    fetchHotels();
   }, [pkg]);
 
   useEffect(() => {
     if (!pkg) return;
-    // Parse activities if stringified
-    const activities = parseJsonField<Activity[]>(pkg.activities, []);
-    if (
-      activities.length > 0 &&
-      typeof activities[0] === "object" &&
-      "name" in activities[0]
-    ) {
-      setActivityDetails(activities);
+    // If activities are already objects with name, skip fetch
+    if (typeof pkg.activities[0] === "object" && pkg.activities[0].name) {
+      setActivityDetails(
+        pkg.activities as Array<{
+          id: string;
+          name: string;
+          description?: string;
+          featured_image?: string;
+          city?: string;
+          duration?: string;
+        }>,
+      );
       return;
     }
     // Otherwise, fetch activity details by IDs
@@ -466,8 +496,18 @@ const PackageDetailDynamic = () => {
       const { data, error } = await supabase
         .from("activities")
         .select("id, name, description, featured_image")
-        .in("id", activities);
-      if (!error && data) setActivityDetails(data as Activity[]);
+        .in("id", pkg.activities);
+      if (!error && data)
+        setActivityDetails(
+          data as Array<{
+            id: string;
+            name: string;
+            description?: string;
+            featured_image?: string;
+            city?: string;
+            duration?: string;
+          }>,
+        );
     };
     fetchActivities();
   }, [pkg]);
@@ -560,40 +600,24 @@ const PackageDetailDynamic = () => {
   };
 
   // Helper function to get price by traveler type in INR
-  const getPriceByType = (
-    offer: {
-      travelerPricings?: {
-        travelerType: string;
-        price: { currency: string; total: string };
-      }[];
-    },
-    type: string,
-  ) => {
-    const pricing = offer.travelerPricings?.find(
-      (p) => p.travelerType === type,
-    );
+  const getPriceByType = (offer: Record<string, unknown>, type: string) => {
+    const pricing = (
+      offer.travelerPricings as Array<Record<string, unknown>>
+    )?.find((p) => p.travelerType === type);
     return pricing
-      ? pricing.price.currency +
+      ? (pricing.price as { currency: string; total: string }).currency +
           " " +
-          parseFloat(pricing.price.total).toLocaleString()
+          parseFloat(
+            (pricing.price as { total: string }).total,
+          ).toLocaleString()
       : "N/A";
   };
 
   // Helper function to get baggage info
-  const getBaggageInfo = (offer: {
-    itineraries?: {
-      segments: {
-        id: string;
-        departure: { iataCode: string };
-        arrival: { iataCode: string };
-      }[];
-    }[];
-    travelerPricings?: {
-      segmentId: string;
-      includedCheckedBags?: { quantity?: number };
-    }[];
-  }) => {
-    const itineraries = offer.itineraries || [];
+  const getBaggageInfo = (offer: Record<string, unknown>) => {
+    const itineraries = offer.itineraries as Array<{
+      segments: Array<Record<string, unknown>>;
+    }>;
     if (
       !Array.isArray(itineraries) ||
       !itineraries[0] ||
@@ -602,10 +626,10 @@ const PackageDetailDynamic = () => {
       return [];
     }
     const segments = itineraries[0].segments;
-    const baggageInfo = segments.map((segment) => {
-      const fareDetails = offer.travelerPricings?.find(
-        (f) => f.segmentId === segment.id,
-      );
+    const baggageInfo = segments.map((segment: Record<string, unknown>) => {
+      const fareDetails = (
+        offer.travelerPricings as Array<Record<string, unknown>>
+      )?.find((f: Record<string, unknown>) => f.segmentId === segment.id);
       return {
         segment: `${segment.departure.iataCode} → ${segment.arrival.iataCode}`,
         baggage: fareDetails?.includedCheckedBags?.quantity || 0,
@@ -615,16 +639,13 @@ const PackageDetailDynamic = () => {
   };
 
   // Helper function to get meals info (if available)
-  const getMealsInfo = (offer: {
-    itineraries?: {
-      segments: {
-        departure: { iataCode: string };
-        arrival: { iataCode: string };
-      }[];
-    }[];
-  }) => {
+  const getMealsInfo = (offer: Record<string, unknown>) => {
+    // This would need to be implemented based on available API data
+    // For now, we'll show a placeholder
     return (
-      offer.itineraries?.[0]?.segments?.map((segment) => ({
+      (
+        offer.itineraries as Array<{ segments: Array<Record<string, unknown>> }>
+      )[0]?.segments?.map((segment: Record<string, unknown>) => ({
         segment: `${segment.departure.iataCode} → ${segment.arrival.iataCode}`,
         meals: "Meal information not available",
       })) || []
@@ -852,50 +873,61 @@ const PackageDetailDynamic = () => {
   // Helper to render selected flight info in sidebar
   const renderSelectedFlightSidebar = () => {
     if (!selectedFlight) return null;
-    const { flight, searchParams, details } = selectedFlight;
+    const {
+      airline,
+      flightNumber,
+      departure,
+      arrival,
+      duration,
+      cabin,
+      adultPrice,
+      childPrice,
+      infantPrice,
+      adults,
+      children,
+      infants,
+      returnFlight,
+    } = selectedFlight.details;
     const total =
-      details.adults * details.adultPrice +
-      details.children * details.childPrice +
-      details.infants * details.infantPrice;
+      adults * adultPrice + children * childPrice + infants * infantPrice;
     return (
       <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
         {/* Onward Flight */}
         <div className="flex items-center gap-2 mb-2">
           <img
-            src={`https://content.airhex.com/content/logos/airlines_${flight.flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
-            alt={flight.airline}
+            src={`https://content.airhex.com/content/logos/airlines_${flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
+            alt={airline}
             className="w-10 h-7 object-contain rounded bg-white border"
             onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
           />
           <div className="font-semibold text-base">
-            {flight.airline}{" "}
-            <span className="text-xs text-gray-500">{flight.flightNumber}</span>
+            {airline}{" "}
+            <span className="text-xs text-gray-500">{flightNumber}</span>
           </div>
         </div>
         <div className="text-xs text-emerald-700 font-semibold mb-1">
           Onward Journey
         </div>
         <div className="text-sm text-gray-700 mb-1">
-          {flight.departure.iataCode} → {flight.arrival.iataCode} |{" "}
-          {flight.cabin} | {flight.duration}
+          {departure.iataCode} → {arrival.iataCode} | {cabin} | {duration}
         </div>
         <div className="text-xs text-gray-500 mb-2">
-          {flight.departure.at} → {flight.arrival.at}
+          {departure.at} → {arrival.at}
         </div>
         {/* Return Flight (if present) */}
-        {selectedFlight.returnFlight && (
+        {returnFlight && (
           <>
             <div className="mt-2 flex items-center gap-2 mb-2">
               <img
-                src={`https://content.airhex.com/content/logos/airlines_${selectedFlight.returnFlight.flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
-                alt={selectedFlight.returnFlight.airline}
+                src={`https://content.airhex.com/content/logos/airlines_${returnFlight.flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
+                alt={returnFlight.airline}
                 className="w-10 h-7 object-contain rounded bg-white border"
                 onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
               />
               <div className="font-semibold text-base">
-                {selectedFlight.returnFlight.airline}{" "}
+                {returnFlight.airline}{" "}
                 <span className="text-xs text-gray-500">
-                  {selectedFlight.returnFlight.flightNumber}
+                  {returnFlight.flightNumber}
                 </span>
               </div>
             </div>
@@ -903,33 +935,30 @@ const PackageDetailDynamic = () => {
               Return Journey
             </div>
             <div className="text-sm text-gray-700 mb-1">
-              {selectedFlight.returnFlight.departure.iataCode} →{" "}
-              {selectedFlight.returnFlight.arrival.iataCode} |{" "}
-              {selectedFlight.returnFlight.cabin} |{" "}
-              {selectedFlight.returnFlight.duration}
+              {returnFlight.departure.iataCode} →{" "}
+              {returnFlight.arrival.iataCode} | {returnFlight.cabin} |{" "}
+              {returnFlight.duration}
             </div>
             <div className="text-xs text-gray-500 mb-2">
-              {selectedFlight.returnFlight.departure.at} →{" "}
-              {selectedFlight.returnFlight.arrival.at}
+              {returnFlight.departure.at} → {returnFlight.arrival.at}
             </div>
           </>
         )}
         <div className="flex flex-col gap-1 text-sm mb-2">
           <div>
-            Adults: <span className="font-semibold">{details.adults}</span> × ₹
-            {details.adultPrice.toLocaleString()}
+            Adults: <span className="font-semibold">{adults}</span> × ₹
+            {adultPrice.toLocaleString()}
           </div>
-          {details.children > 0 && (
+          {children > 0 && (
             <div>
-              Children:{" "}
-              <span className="font-semibold">{details.children}</span> × ₹
-              {details.childPrice.toLocaleString()}
+              Children: <span className="font-semibold">{children}</span> × ₹
+              {childPrice.toLocaleString()}
             </div>
           )}
-          {details.infants > 0 && (
+          {infants > 0 && (
             <div>
-              Infants: <span className="font-semibold">{details.infants}</span>{" "}
-              × ₹{details.infantPrice.toLocaleString()}
+              Infants: <span className="font-semibold">{infants}</span> × ₹
+              {infantPrice.toLocaleString()}
             </div>
           )}
         </div>
@@ -950,10 +979,7 @@ const PackageDetailDynamic = () => {
           <button
             type="button"
             className="text-xs text-red-600 underline"
-            onClick={() => {
-              setSelectedFlight(null);
-              setShowFlightSearch(false);
-            }}
+            onClick={() => setSelectedFlight(null)}
           >
             Remove Flight
           </button>
@@ -1019,6 +1045,11 @@ const PackageDetailDynamic = () => {
                 pkg.cities_covered.length > 0
                   ? pkg.cities_covered.join(" & ")
                   : "Cities not specified"}
+              </div>
+              <div className="flex items-center">
+                <CreditCard className="w-5 h-5 mr-2" />
+                {getCurrencySymbol(pkg.currency)}
+                {pkg.price?.toLocaleString()}
               </div>
             </div>
           </div>
@@ -1123,12 +1154,6 @@ const PackageDetailDynamic = () => {
                       {getCurrencySymbol(pkg.currency)}
                       {pkg.price?.toLocaleString()}
                     </span>
-                    {pkg.meal_plan && (
-                      <span className="inline-flex items-center bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-bold gap-1 ml-2">
-                        <Utensils className="w-4 h-4" />
-                        {pkg.meal_plan}
-                      </span>
-                    )}
                   </div>
                 </div>
                 {/* Info Cards Row */}

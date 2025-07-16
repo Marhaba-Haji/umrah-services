@@ -142,6 +142,12 @@ const Header = () => {
               Umrah Packages
             </button>
             <button
+              onClick={() => handleNavigation("/hajj-packages")}
+              className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium"
+            >
+              Hajj Packages
+            </button>
+            <button
               onClick={() => handleNavigation("/hotel")}
               className="text-gray-700 hover:text-[#023f3a] transition-colors font-medium"
             >

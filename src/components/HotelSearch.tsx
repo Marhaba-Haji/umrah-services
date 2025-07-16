@@ -144,15 +144,25 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
         onClick={handleSearch}
         disabled={loading || !checkInDate || !checkOutDate}
       >
-        {loading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Searching Hotels...
-          </>
-        ) : (
-          `Search Hotels in ${city === "makkah" ? "Makkah" : "Madinah"}`
-        )}
+        {loading
+          ? "Searching Hotels..."
+          : `Search Hotels in ${city === "makkah" ? "Makkah" : "Madinah"}`}
       </Button>
+
+      {/* Overlay loading GIF when loading */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <img
+            src={
+              city === "makkah"
+                ? "https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/Kaaba_loading_eq7pby.gif"
+                : "https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/madinah_loading_onc9td.gif"
+            }
+            alt="Loading..."
+            className="w-32 h-32 md:w-48 md:h-48 object-contain"
+          />
+        </div>
+      )}
 
       {hasSearched && (
         <div className="space-y-4">

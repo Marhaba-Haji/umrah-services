@@ -15,17 +15,29 @@ import BlogManager from "@/components/cms/BlogManager";
 import SEOManager from "@/components/seo/SEOManager";
 import LeadManager from "@/components/crm/LeadManager";
 import SaudiVisasManager from "@/components/cms/SaudiVisasManager";
+import HajjPackagesManager from "@/components/cms/HajjPackagesManager";
+import MarkupManagement from "@/components/cms/MarkupManagement";
+import AnimatedCounter from "@/components/AnimatedCounter";
 
 const APP_NAME = "Marhaba Admin";
 
 const ControlPanel = () => {
-  const [activeTab, setActiveTab] = useState("package-manager");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const menuSections = [
+    {
+      heading: "Dashboard",
+      items: [{ id: "dashboard", label: "Dashboard", icon: "📊" }],
+    },
     {
       heading: "Management",
       items: [
         { id: "package-manager", label: "Package Manager", icon: "📦" },
+        {
+          id: "hajj-packages-manager",
+          label: "Hajj Packages Manager",
+          icon: "🏛️",
+        },
         { id: "users-manager", label: "Users Manager", icon: "👤" },
         { id: "bookings-manager", label: "Bookings Manager", icon: "📅" },
         { id: "flights-manager", label: "Flights Manager", icon: "✈️" },
@@ -44,6 +56,7 @@ const ControlPanel = () => {
       items: [
         { id: "payment-gateway", label: "Payment Gateway", icon: "🔒" },
         { id: "seo-manager", label: "SEO Settings", icon: "🔍" },
+        { id: "markup-management", label: "Markup Management", icon: "📝" }, // Added Markup Management
       ],
     },
   ];
@@ -52,10 +65,50 @@ const ControlPanel = () => {
     window.location.href = "/login";
   };
 
+  const renderDashboard = () => {
+    // Placeholder for now, will fetch and show stats in next step
+    const modules = [
+      { key: "bookings", label: "Bookings" },
+      { key: "leads", label: "Leads" },
+      { key: "umrahPackages", label: "Umrah Packages" },
+      { key: "hajjPackages", label: "Hajj Packages" },
+      { key: "groupFlights", label: "Group Flights" },
+      { key: "visas", label: "Saudi Visas" },
+      { key: "hotels", label: "Hotels" },
+      { key: "transport", label: "Transport" },
+      { key: "activities", label: "Activities" },
+      { key: "guides", label: "Guides" },
+      { key: "ziarath", label: "Ziarath" },
+    ];
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {modules.map((mod) => (
+          <Card key={mod.key} className="shadow border border-gray-100">
+            <CardHeader>
+              <CardTitle>{mod.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl">
+                <AnimatedCounter end={0} />
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Total {mod.label}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
+      case "dashboard":
+        return renderDashboard();
       case "package-manager":
         return <PackageManager />;
+      case "hajj-packages-manager":
+        return <HajjPackagesManager />;
       case "users-manager":
         return <UsersManager />;
       case "bookings-manager":
@@ -80,13 +133,15 @@ const ControlPanel = () => {
         return <BlogManager />;
       case "seo-manager":
         return <SEOManager />;
+      case "markup-management":
+        return <MarkupManagement />;
       case "lead-manager":
         return <LeadManager />;
       case "logout":
         handleLogout();
         return null;
       default:
-        return <PackageManager />;
+        return renderDashboard();
     }
   };
 

@@ -9,6 +9,7 @@ import ZiarathActivityDetail from "./pages/ZiarathActivityDetail";
 import { CurrencyContext } from "./contexts/CurrencyContext";
 import { CartProvider } from "./contexts/CartContext";
 import FloatingCart from "./components/FloatingCart";
+import CustomPackageDetail from "./pages/CustomPackageDetail";
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,8 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const PaymentFailure = lazy(() => import("./pages/PaymentFailure"));
 const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const HajjPackages = lazy(() => import("./pages/HajjPackages"));
+const HajjPackageDetail = lazy(() => import("./pages/HajjPackageDetail"));
 
 const Loader = () => (
   <div style={{ textAlign: "center", marginTop: "3rem" }}>Loading...</div>
@@ -95,7 +98,7 @@ const App = () => {
                     />
                     <Route
                       path="/custom-packages/:slug"
-                      element={<PackageDetailDynamic />}
+                      element={<CustomPackageDetail />}
                     />
                     <Route
                       path="/package-details/:slug"
@@ -143,6 +146,11 @@ const App = () => {
                     />
                     <Route path="/login" element={<Login />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/hajj-packages" element={<HajjPackages />} />
+                    <Route
+                      path="/hajj-packages/:id"
+                      element={<HajjPackageDetail />}
+                    />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Suspense>

@@ -98,6 +98,7 @@ interface FlightSearchProps {
     searchParams: FlightSearchParams,
   ) => void;
   onDrawerOpenChange?: (open: boolean) => void;
+  onResults?: (results: FlightOffer[]) => void;
 }
 
 function debounce<T extends (...args: unknown[]) => void>(
@@ -585,6 +586,7 @@ function FlightDetailsModal({
 const FlightSearch: React.FC<FlightSearchProps> = ({
   onFlightSelect,
   onDrawerOpenChange,
+  onResults,
 }) => {
   const [searchParams, setSearchParams] = useState<FlightSearchParams>({
     tripType: "ROUND_TRIP",
@@ -634,7 +636,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   useEffect(() => {
     console.log("Flight offers changed:", flightOffers.length);
     console.log("First flight offer:", flightOffers[0]);
-  }, [flightOffers]);
+    if (onResults) {
+      onResults(flightOffers);
+    }
+  }, [flightOffers, onResults]);
 
   // Add state for sorting
   const [sortOption, setSortOption] = useState<"cheapest" | "fastest" | "best">(
@@ -1643,7 +1648,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
                 <div className="absolute left-0 right-0 z-50 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto mt-1">
                   {originLoading ? (
                     <div className="p-4 text-center text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
                       Searching...
                     </div>
                   ) : originError ? (
@@ -1725,7 +1729,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
                 <div className="absolute left-0 right-0 z-50 bg-white border rounded-lg shadow-lg max-h-60 overflow-auto mt-1">
                   {destLoading ? (
                     <div className="p-4 text-center text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
                       Searching...
                     </div>
                   ) : destError ? (
@@ -1806,10 +1809,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         disabled={isLoading}
       >
         {isLoading ? (
-          <>
-            <Search className="mr-2 h-4 w-4 animate-spin" />
-            Searching...
-          </>
+          "Searching..."
         ) : (
           <>
             <Search className="mr-2 h-4 w-4" />
@@ -1817,6 +1817,17 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
           </>
         )}
       </Button>
+
+      {/* Overlay loading GIF when isLoading */}
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <img
+            src="https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/mh_flight_loading_wuwevi.gif"
+            alt="Loading flights..."
+            className="w-32 h-32 md:w-48 md:h-48 object-contain"
+          />
+        </div>
+      )}
 
       {/* Test button for debugging */}
       <Button
@@ -1835,19 +1846,18 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         Test Search (BLR-JED)
       </Button>
 
-      {/* Debug info */}
-      <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-        <h3 className="font-semibold mb-2">Debug Info:</h3>
-        <p>Loading: {isLoading.toString()}</p>
-        <p>Origin: {searchParams.originLocationCode}</p>
-        <p>Destination: {searchParams.destinationLocationCode}</p>
-        <p>Flight Offers Count: {flightOffers.length}</p>
-        <p>Filtered Count: {filteredFlightOffers.length}</p>
-        <p>Paginated Count: {paginatedFlightOffers.length}</p>
-      </div>
-
-      {/* In the render, move filter and sort controls inside the results section and arrange them in a row */}
-      {!isLoading && (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
+          <img
+            src="https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/mh_flight_loading_wuwevi.gif"
+            alt="Loading flights..."
+            className="h-32 w-32 mb-4"
+          />
+          <div className="text-lg text-emerald-700 font-semibold">
+            Searching for flights...
+          </div>
+        </div>
+      ) : (
         <div className="mt-8">
           {/* Controls Row: Filter and Sort */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -2552,32 +2562,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         onClose={() => setDetailsModalOpen(false)}
         flight={selectedFlight}
       />
-      <style jsx global>{`
-        .custom-datepicker-popper {
-          z-index: 50 !important;
-          border-radius: 1rem !important;
-          box-shadow:
-            0 8px 32px rgba(16, 185, 129, 0.12),
-            0 1.5px 4px rgba(0, 0, 0, 0.04);
-          border: 1px solid #d1fae5;
-          background: #fff;
-          padding: 0.5rem;
-        }
-        .react-datepicker__day--selected,
-        .react-datepicker__day--keyboard-selected {
-          background: #10b981 !important;
-          color: #fff !important;
-          border-radius: 9999px !important;
-        }
-        .react-datepicker__day--today {
-          border: 2px solid #10b981 !important;
-          border-radius: 9999px !important;
-        }
-        .react-datepicker__month-dropdown-container,
-        .react-datepicker__year-dropdown-container {
-          color: #10b981 !important;
-        }
-      `}</style>
     </div>
   );
 };

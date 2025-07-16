@@ -286,7 +286,7 @@ const ZiarathActivityDetail = () => {
       <Header />
       <div className="max-w-5xl mx-auto py-8 px-4">
         {/* Hero Section with Gallery Carousel (first image only) */}
-        <div className="relative w-full h-[340px] md:h-[440px] flex items-end bg-emerald-900/80 overflow-hidden shadow-sm mb-0">
+        <div className="relative w-full h-[340px] md:h-[440px] flex items-end bg-emerald-900 overflow-hidden shadow-sm mb-0">
           <img
             src={galleryImages[0]}
             alt={activity.name}

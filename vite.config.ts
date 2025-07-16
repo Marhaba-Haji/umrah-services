@@ -9,6 +9,18 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     historyApiFallback: true,
+    proxy: {
+      "/api/airservice/rest/search": {
+        target: "https://www.stagingapi.bdsd.technology",
+        changeOrigin: true,
+        secure: false,
+        headers: {
+          Username: "TTS",
+          Password: "Tts@001",
+        },
+        // Do not rewrite the path; backend expects /api/airservice/rest/search
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(
     Boolean,
@@ -16,6 +28,31 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  build: {
+    chunkSizeWarningLimit: 1500, // Increase warning limit (default is 500)
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom")) {
+              return "react-vendor";
+            }
+            if (id.includes("react-router")) {
+              return "react-router";
+            }
+            if (id.includes("supabase")) {
+              return "supabase";
+            }
+            if (id.includes("lucide-react")) {
+              return "lucide";
+            }
+            // All other node_modules go into 'vendor'
+            return "vendor";
+          }
+        },
+      },
     },
   },
 }));

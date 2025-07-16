@@ -305,7 +305,7 @@ export function BookingModal({
             </div>
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
+              className="w-full bg-emerald-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
               disabled={isLoading}
             >
               {isLoading ? "Booking..." : "Confirm Booking"}
@@ -323,7 +323,7 @@ export function BookingModal({
               We will contact you soon with confirmation details.
             </div>
             <button
-              className="mt-4 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
+              className="mt-4 bg-emerald-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
               onClick={() => {
                 setBookingSuccess(false);
                 onOpenChange(false);
@@ -495,10 +495,10 @@ const ZiarathBooking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e6f4f1] via-white to-[#f6f8f7]">
+    <div className="min-h-screen bg-[#f6f8f7]">
       <Header />
       {/* Luxurious Hero Section */}
-      <div className="relative w-full bg-gradient-to-r from-[#059669] via-[#059669] to-[#178ca4] py-6 md:py-8">
+      <div className="relative w-full bg-emerald-900 py-6 md:py-8">
         <div className="max-w-2xl mx-auto text-center px-4">
           <div className="inline-block bg-white/20 text-white px-4 py-1 rounded-full font-semibold text-sm mb-2">
             ✨ Premium Ziarath Experience
@@ -516,38 +516,38 @@ const ZiarathBooking = () => {
       <div className="flex flex-wrap justify-center gap-4 py-6 bg-white/80 shadow-sm border-b border-emerald-100">
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
+          className="bg-emerald-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Licensed Guides
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-amber-100 to-emerald-200 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
+          className="bg-emerald-50 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Instant Booking
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
+          className="bg-emerald-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           Best Price Guarantee
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-amber-100 to-emerald-200 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
+          className="bg-emerald-50 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           5-Star Reviews
         </Badge>
         <Badge
           variant="outline"
-          className="bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
+          className="bg-emerald-100 text-emerald-900 px-4 py-2 text-base font-semibold shadow border-0"
         >
           24/7 Support
         </Badge>
       </div>
       {/* Floating Cart Button */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 rounded-full shadow-2xl flex items-center px-6 py-4 hover:scale-105 transition-transform border-4 border-white/80 hover:from-emerald-300 hover:to-amber-200"
+        className="fixed bottom-6 right-6 z-50 bg-emerald-100 text-emerald-900 rounded-full shadow-2xl flex items-center px-6 py-4 hover:scale-105 transition-transform border-4 border-white/80"
         onClick={() => setCartOpen(true)}
         style={{ boxShadow: "0 8px 32px 0 rgba(2, 63, 58, 0.25)" }}
       >
@@ -660,7 +660,7 @@ const ZiarathBooking = () => {
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     {activity.is_featured && (
-                      <Badge className="absolute top-4 left-4 bg-gradient-to-r from-amber-200 to-emerald-200 text-amber-800 px-3 py-1 text-xs font-bold shadow-lg">
+                      <Badge className="absolute top-4 left-4 bg-emerald-100 text-emerald-900 px-3 py-1 text-xs font-bold shadow-lg">
                         Featured
                       </Badge>
                     )}
@@ -698,7 +698,7 @@ const ZiarathBooking = () => {
                       </span>
                       <Button
                         size="lg"
-                        className="rounded-full px-6 py-2 text-lg font-bold shadow-lg bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 hover:scale-105 transition-transform border-0"
+                        className="rounded-full px-6 py-2 text-lg font-bold shadow-lg bg-emerald-100 text-emerald-900 hover:scale-105 transition-transform border-0"
                         onClick={() => {
                           setModalActivity(activity);
                           setBookingModalOpen(true);
@@ -752,7 +752,7 @@ const ZiarathBooking = () => {
                     <X className="w-6 h-6 text-[#023f3a]" />
                   </DrawerClose>
                   {drawerActivity.is_featured && (
-                    <Badge className="absolute top-4 left-4 bg-gradient-to-r from-[#fbbf24] to-[#059669] text-white px-3 py-1 text-xs font-bold shadow-lg">
+                    <Badge className="absolute top-4 left-4 bg-emerald-100 text-emerald-900 px-3 py-1 text-xs font-bold shadow-lg">
                       Featured
                     </Badge>
                   )}
@@ -883,7 +883,7 @@ const ZiarathBooking = () => {
                   <div className="flex flex-col md:flex-row md:gap-4 gap-2 mt-2">
                     <Button
                       size="lg"
-                      className="flex-1 rounded-full px-6 py-3 text-lg font-bold shadow-lg bg-gradient-to-r from-[#023f3a] to-[#fbbf24] text-white hover:scale-105 transition-transform"
+                      className="flex-1 rounded-full px-6 py-3 text-lg font-bold shadow-lg bg-emerald-100 text-emerald-900 hover:scale-105 transition-transform"
                       onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                         e.preventDefault();
                         setDrawerStep(2);
@@ -1071,7 +1071,7 @@ const ZiarathBooking = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
+                    className="w-full bg-emerald-100 text-emerald-900 text-lg py-3 rounded-full shadow-xl hover:scale-105 transition-transform hover:from-emerald-300 hover:to-amber-200"
                     disabled={isLoading}
                   >
                     {isLoading ? "Booking..." : "Confirm Booking"}
@@ -1091,7 +1091,7 @@ const ZiarathBooking = () => {
                   We will contact you soon with confirmation details.
                 </div>
                 <Button
-                  className="mt-4 bg-gradient-to-r from-emerald-200 to-amber-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
+                  className="mt-4 bg-emerald-100 text-emerald-900 px-8 py-3 rounded-full shadow-lg hover:from-emerald-300 hover:to-amber-200"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     e.preventDefault();
                     setDrawerOpen(false);
