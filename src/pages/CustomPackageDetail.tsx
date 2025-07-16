@@ -478,36 +478,23 @@ const PackageDetailDynamic = () => {
   useEffect(() => {
     if (!pkg) return;
     // If activities are already objects with name, skip fetch
-    if (typeof pkg.activities[0] === "object" && pkg.activities[0].name) {
-      setActivityDetails(
-        pkg.activities as Array<{
-          id: string;
-          name: string;
-          description?: string;
-          featured_image?: string;
-          city?: string;
-          duration?: string;
-        }>,
-      );
+    if (
+      Array.isArray(pkg.activities) &&
+      pkg.activities.length > 0 &&
+      typeof pkg.activities[0] === "object" &&
+      "name" in pkg.activities[0]
+    ) {
+      setActivityDetails(pkg.activities as Activity[]);
       return;
     }
     // Otherwise, fetch activity details by IDs
     const fetchActivities = async () => {
+      const ids = Array.isArray(pkg.activities) ? pkg.activities : [];
       const { data, error } = await supabase
         .from("activities")
         .select("id, name, description, featured_image")
-        .in("id", pkg.activities);
-      if (!error && data)
-        setActivityDetails(
-          data as Array<{
-            id: string;
-            name: string;
-            description?: string;
-            featured_image?: string;
-            city?: string;
-            duration?: string;
-          }>,
-        );
+        .in("id", ids);
+      if (!error && data) setActivityDetails(data as Activity[]);
     };
     fetchActivities();
   }, [pkg]);
@@ -889,14 +876,16 @@ const PackageDetailDynamic = () => {
       returnFlight,
     } = selectedFlight.details;
     const total =
-      adults * adultPrice + children * childPrice + infants * infantPrice;
+      Number(adults) * Number(adultPrice) +
+      Number(children) * Number(childPrice) +
+      Number(infants) * Number(infantPrice);
     return (
       <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
         {/* Onward Flight */}
         <div className="flex items-center gap-2 mb-2">
           <img
-            src={`https://content.airhex.com/content/logos/airlines_${flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
-            alt={airline}
+            src={`https://content.airhex.com/content/logos/airlines_${typeof flightNumber === "string" ? flightNumber.split(" ")[0].toLowerCase() : ""}_350_100_r.png?background=fff&pad=auto`}
+            alt={typeof airline === "string" ? airline : ""}
             className="w-10 h-7 object-contain rounded bg-white border"
             onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
           />
@@ -1343,11 +1332,17 @@ const PackageDetailDynamic = () => {
                               hotelDetails.makkah.images[0]) ||
                             "/placeholder.svg"
                           }
-                          alt={hotelDetails.makkah.name}
+                          alt={
+                            typeof hotelDetails.makkah?.name === "string"
+                              ? hotelDetails.makkah.name
+                              : ""
+                          }
                           className="w-full h-64 object-cover rounded-lg shadow-lg mb-4"
                         />
                         <div className="font-bold text-lg mb-2">
-                          {hotelDetails.makkah.name}
+                          {typeof hotelDetails.makkah?.name === "string"
+                            ? hotelDetails.makkah.name
+                            : ""}
                         </div>
                         <div className="flex items-center mt-2 mb-2">
                           {[...Array(hotelDetails.makkah.rating)].map(
@@ -1400,11 +1395,17 @@ const PackageDetailDynamic = () => {
                               hotelDetails.madinah.images[0]) ||
                             "/placeholder.svg"
                           }
-                          alt={hotelDetails.madinah.name}
+                          alt={
+                            typeof hotelDetails.madinah?.name === "string"
+                              ? hotelDetails.madinah.name
+                              : ""
+                          }
                           className="w-full h-64 object-cover rounded-lg shadow-lg mb-4"
                         />
                         <div className="font-bold text-lg mb-2">
-                          {hotelDetails.madinah.name}
+                          {typeof hotelDetails.madinah?.name === "string"
+                            ? hotelDetails.madinah.name
+                            : ""}
                         </div>
                         <div className="flex items-center mt-2 mb-2">
                           {[...Array(hotelDetails.madinah.rating)].map(
