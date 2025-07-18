@@ -785,6 +785,99 @@ export type Database = {
         }
         Relationships: []
       }
+      hajj_packages: {
+        Row: {
+          activities: Json | null
+          cancellation_policy: string | null
+          class: string | null
+          created_at: string | null
+          disclaimer: string | null
+          duration: string | null
+          duration_category: string | null
+          exclusions: string[] | null
+          featured_image: string | null
+          flight_type: string | null
+          id: string
+          inclusions: string[] | null
+          itinerary: Json | null
+          madinah_hotel_category: string | null
+          madinah_hotel_distance: number | null
+          madinah_hotel_name: string | null
+          makkah_hotel_category: string | null
+          makkah_hotel_distance: number | null
+          makkah_hotel_name: string | null
+          maktab_category: string | null
+          meal_plan: string | null
+          prices: Json | null
+          refund_policy: string | null
+          status: string | null
+          terms_and_conditions: string | null
+          traveler_responsibilities: string | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          activities?: Json | null
+          cancellation_policy?: string | null
+          class?: string | null
+          created_at?: string | null
+          disclaimer?: string | null
+          duration?: string | null
+          duration_category?: string | null
+          exclusions?: string[] | null
+          featured_image?: string | null
+          flight_type?: string | null
+          id?: string
+          inclusions?: string[] | null
+          itinerary?: Json | null
+          madinah_hotel_category?: string | null
+          madinah_hotel_distance?: number | null
+          madinah_hotel_name?: string | null
+          makkah_hotel_category?: string | null
+          makkah_hotel_distance?: number | null
+          makkah_hotel_name?: string | null
+          maktab_category?: string | null
+          meal_plan?: string | null
+          prices?: Json | null
+          refund_policy?: string | null
+          status?: string | null
+          terms_and_conditions?: string | null
+          traveler_responsibilities?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          activities?: Json | null
+          cancellation_policy?: string | null
+          class?: string | null
+          created_at?: string | null
+          disclaimer?: string | null
+          duration?: string | null
+          duration_category?: string | null
+          exclusions?: string[] | null
+          featured_image?: string | null
+          flight_type?: string | null
+          id?: string
+          inclusions?: string[] | null
+          itinerary?: Json | null
+          madinah_hotel_category?: string | null
+          madinah_hotel_distance?: number | null
+          madinah_hotel_name?: string | null
+          makkah_hotel_category?: string | null
+          makkah_hotel_distance?: number | null
+          makkah_hotel_name?: string | null
+          maktab_category?: string | null
+          meal_plan?: string | null
+          prices?: Json | null
+          refund_policy?: string | null
+          status?: string | null
+          terms_and_conditions?: string | null
+          traveler_responsibilities?: string | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       hotel_bookings: {
         Row: {
           booking_reference: string
