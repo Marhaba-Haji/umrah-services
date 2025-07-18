@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { Calendar } from "@/components/ui/calendar";
 import {
   CalendarIcon,
@@ -99,6 +105,10 @@ interface FlightSearchProps {
   ) => void;
   onDrawerOpenChange?: (open: boolean) => void;
   onResults?: (results: FlightOffer[]) => void;
+  initialSearchParams?: FlightSearchParams;
+  suppressLoadingOverlay?: boolean;
+  onSearchStart?: () => void;
+  onSearchEnd?: () => void;
 }
 
 function debounce<T extends (...args: unknown[]) => void>(
@@ -183,24 +193,48 @@ function FlightDetailsModal({
   open,
   onClose,
   flight,
+  searchParams,
+  onFlightSelect,
+  fareRule,
+  fareRuleLoading,
 }: {
   open: boolean;
   onClose: () => void;
   flight: FlightOffer | null;
+  searchParams: FlightSearchParams;
+  onFlightSelect?: (
+    flight: FlightOffer,
+    searchParams: FlightSearchParams,
+  ) => void;
+  fareRule?: unknown;
+  fareRuleLoading?: boolean;
 }) {
+  // All hooks at the top
   const [tab, setTab] = useState<
     "details" | "fare" | "cancellation" | "datechange"
   >("details");
-  if (!open || !flight) return null;
-  const flightOption = flight.rawOffer as {
+  const [selectedFareIndex, setSelectedFareIndex] = useState(0);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [summaryHeight, setSummaryHeight] = useState(0);
+  useLayoutEffect(() => {
+    if (summaryRef.current) {
+      setSummaryHeight(summaryRef.current.offsetHeight);
+    }
+  }, [open, flight]);
+  // Fare selection effect
+  const flightOption = flight?.rawOffer as {
     Segments: TTSFlightSegment[][];
     FareList: TTSFare[];
     [key: string]: unknown;
   };
-  // Strict API mode: require all data from API
+  const fareList = useMemo(() => flightOption?.FareList || [], [flightOption]);
   const segmentsGroups = flightOption?.Segments;
-  const fareList = flightOption?.FareList;
-  const selectedFare = fareList && fareList[0];
+  useEffect(() => {
+    if (selectedFareIndex >= fareList.length) setSelectedFareIndex(0);
+  }, [fareList, selectedFareIndex]);
+  // Only after all hooks and variable definitions, do conditional return
+  if (!open || !flight) return null;
+  const selectedFare = fareList[selectedFareIndex] || fareList[0];
   // If any required API data is missing, show loading/error
   if (!flightOption || !segmentsGroups || !fareList || !selectedFare) {
     return (
@@ -222,14 +256,27 @@ function FlightDetailsModal({
   const total = selectedFare.OfferedPrice || selectedFare.PublishedPrice || 0;
   const currency = selectedFare.Currency || "₹";
   // Passenger summary
-  const paxSummary = `${flightOption?.ADT || 1} Traveller${(flightOption?.ADT || 1) > 1 ? "s" : ""}`;
-  const tripType = flightOption?.TripType === "R" ? "Round Trip" : "One Way";
-  const travelClass = selectedFare.CabinClass || "Economy";
-  const depDate = segmentsGroups[0]?.[0]?.Origin?.DepartTime
-    ? new Date(segmentsGroups[0][0].Origin.DepartTime)
-    : null;
-  const depDateStr = depDate
-    ? depDate.toLocaleDateString(undefined, {
+  const paxSummary = () => {
+    const { adults, children, infants } = searchParams;
+    const parts = [];
+    if (adults) parts.push(`${adults} Adult${adults > 1 ? "s" : ""}`);
+    if (children) parts.push(`${children} Child${children > 1 ? "ren" : ""}`);
+    if (infants) parts.push(`${infants} Infant${infants > 1 ? "s" : ""}`);
+    return parts.length ? parts.join(", ") : "Select passengers";
+  };
+  const tripTypeLabel =
+    searchParams.tripType === "ROUND_TRIP"
+      ? "Round Trip"
+      : searchParams.tripType === "ONE_WAY"
+        ? "One Way"
+        : "Multi City";
+  const travelClassLabel = searchParams.travelClass
+    .replace("ECONOMY", "Economy")
+    .replace("PREMIUM_ECONOMY", "Premium Economy")
+    .replace("BUSINESS", "Business")
+    .replace("FIRST", "First");
+  const depDateStr = searchParams.departureDate
+    ? new Date(searchParams.departureDate).toLocaleDateString(undefined, {
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -246,49 +293,120 @@ function FlightDetailsModal({
       />
       {/* Drawer */}
       <div className="fixed right-0 top-0 h-full w-full max-w-full md:w-[700px] lg:w-[800px] bg-white shadow-2xl rounded-l-2xl flex flex-col animate-slide-in overflow-y-auto z-[12000]">
-        {/* Close button - top left */}
-        <div className="sticky top-0 z-20 bg-white flex flex-col md:flex-row md:items-center justify-between px-6 pt-8 pb-4 border-b border-gray-200 gap-4 relative">
-          <div className="sticky left-0 top-0 z-30 self-start">
-            <button
-              className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 hover:text-gray-800 transition-all duration-200 shadow-sm"
-              onClick={onClose}
-              aria-label="Close details drawer"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+        {/* Small close button, top left, absolute */}
+        <button
+          className="absolute left-2 top-2 w-7 h-7 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-gray-500 hover:text-gray-800 transition-all duration-200 shadow-sm z-30"
+          onClick={onClose}
+          aria-label="Close details drawer"
+          style={{ fontSize: "1rem", lineHeight: 1 }}
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        {/* Fare selection tabs */}
+        {fareList.length > 1 && (
+          <div className="flex gap-2 px-6 pt-4 pb-2 border-b border-gray-100 bg-white sticky top-0 z-30">
+            {fareList.map((fare, idx) => (
+              <button
+                key={fare.FareId || idx}
+                className={`px-4 py-2 rounded-t-lg font-medium text-sm border-b-2 transition-colors duration-150 focus:outline-none ${
+                  idx === selectedFareIndex
+                    ? "border-blue-600 text-blue-700 bg-blue-50"
+                    : "border-transparent text-gray-600 bg-white hover:bg-gray-50"
+                }`}
+                onClick={() => setSelectedFareIndex(idx)}
               >
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
+                {fare.CabinClass || "Fare"}
+                {fare.FareClass ? ` (${fare.FareClass})` : ""} - ₹
+                {(
+                  fare.OfferedPrice ??
+                  fare.PublishedPrice ??
+                  fare.Fare?.OfferedPrice ??
+                  fare.Fare?.PublishedPrice ??
+                  0
+                ).toLocaleString()}
+              </button>
+            ))}
           </div>
-          <div className="flex-1 flex flex-col justify-center pl-4 md:pl-12">
-            <div className="text-2xl font-bold text-gray-900 mb-1">
+        )}
+        {/* Summary section (compressed) */}
+        <div
+          ref={summaryRef}
+          className="sticky top-0 z-20 bg-white flex flex-col md:flex-row md:items-center justify-between px-6 pt-4 pb-2 border-b border-gray-200 gap-2 relative"
+        >
+          <div className="flex-1 flex flex-col justify-center pl-2 md:pl-6">
+            <div className="text-xl font-bold text-gray-900 mb-0.5">
               Flight Details
             </div>
-            <div className="text-gray-500 text-sm font-medium flex flex-wrap gap-2 items-center">
-              <span>{tripType}</span>
-              <span className="mx-1">·</span>
-              <span>{travelClass}</span>
-              <span className="mx-1">·</span>
-              <span>{paxSummary}</span>
-              {depDateStr && (
-                <>
-                  <span className="mx-1">·</span>
-                  <span>{depDateStr}</span>
-                </>
-              )}
+            <div className="font-medium text-gray-800 text-base flex flex-wrap items-center gap-2 mb-0.5">
+              {/* Route */}
+              {(() => {
+                // Onward
+                const onward = segmentsGroups?.[0] || [];
+                const onwardOrigin =
+                  onward[0]?.Origin?.CityName ||
+                  onward[0]?.Origin?.AirportCode ||
+                  "-";
+                const onwardDest =
+                  onward[onward.length - 1]?.Destination?.CityName ||
+                  onward[onward.length - 1]?.Destination?.AirportCode ||
+                  "-";
+                let route = `${onwardOrigin} → ${onwardDest}`;
+                // Return (if round trip)
+                if (
+                  searchParams.tripType === "ROUND_TRIP" &&
+                  segmentsGroups.length > 1
+                ) {
+                  const ret = segmentsGroups[1] || [];
+                  const retOrigin =
+                    ret[0]?.Origin?.CityName ||
+                    ret[0]?.Origin?.AirportCode ||
+                    "-";
+                  const retDest =
+                    ret[ret.length - 1]?.Destination?.CityName ||
+                    ret[ret.length - 1]?.Destination?.AirportCode ||
+                    "-";
+                  route += ` | ${retOrigin} → ${retDest}`;
+                }
+                return <span>{route}</span>;
+              })()}
+            </div>
+            <div className="text-gray-500 text-xs flex flex-wrap items-center gap-2 mb-0.5">
+              <span>{tripTypeLabel}</span>
+              <span>·</span>
+              <span>{travelClassLabel}</span>
+              <span>·</span>
+              <span>{paxSummary()}</span>
+            </div>
+            <div className="text-gray-500 text-xs flex items-center gap-2">
+              {depDateStr && <span>{depDateStr}</span>}
+              {searchParams.tripType === "ROUND_TRIP" &&
+                searchParams.returnDate && (
+                  <>
+                    <span>→</span>
+                    <span>
+                      {new Date(searchParams.returnDate).toLocaleDateString(
+                        undefined,
+                        { weekday: "short", day: "numeric", month: "short" },
+                      )}
+                    </span>
+                  </>
+                )}
             </div>
           </div>
           {/* Fare box */}
-          <div className="flex flex-col items-end bg-gray-50 rounded-xl px-6 py-3 min-w-[220px] shadow-sm">
+          <div className="flex flex-col items-end bg-gray-50 rounded-xl px-6 py-2 min-w-[180px] shadow-sm">
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-gray-900">
                 {currency} {total.toLocaleString()}
@@ -304,13 +422,26 @@ function FlightDetailsModal({
             </div>
           </div>
         </div>
-        {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-4 md:px-8 pt-4 sticky top-0 bg-white z-10">
+        {/* Tabs section, sticky just below summary */}
+        <div
+          className="flex border-b border-gray-200 px-4 md:px-8 pt-4 bg-white z-30"
+          style={{
+            position: "sticky",
+            top: summaryHeight,
+            background: "#fff",
+            zIndex: 30,
+            overflow: "visible",
+          }}
+        >
           {TABS.map((t) => (
             <button
               key={t.key}
               className={`px-6 py-2 font-semibold text-sm border-b-2 transition-colors duration-150 ${tab === t.key ? "border-blue-500 text-blue-700" : "border-transparent text-gray-500 hover:text-blue-700"}`}
-              onClick={() => setTab(t.key)}
+              onClick={() =>
+                setTab(
+                  t.key as "details" | "fare" | "cancellation" | "datechange",
+                )
+              }
             >
               {t.label}
             </button>
@@ -464,24 +595,15 @@ function FlightDetailsModal({
                           <span className="w-24">CHECK IN</span>
                           <span className="w-16">CABIN</span>
                         </div>
-                        {["ADULT", "CHILD", "INFANT"].map((type) => (
-                          <div
-                            key={type}
-                            className="flex gap-8 mb-1 text-sm items-center"
-                          >
-                            <span className="w-20 font-semibold text-gray-900">
-                              {type}
-                            </span>
-                            <span
-                              className={`w-24 ${getBaggage(type, "CheckIn") === "Cabin bag only" ? "text-red-600 font-semibold" : "text-gray-900"}`}
-                            >
-                              {getBaggage(type, "CheckIn")}
-                            </span>
-                            <span className="w-16 text-gray-900">
-                              {getBaggage(type, "Cabin")}
-                            </span>
-                          </div>
-                        ))}
+                        <div className="flex gap-8 mb-1 text-sm items-center">
+                          <span className="w-20"></span>
+                          <span className="w-24 text-gray-900">
+                            {baggageArr[0]?.CheckIn || "-"}
+                          </span>
+                          <span className="w-16 text-gray-900">
+                            {baggageArr[0]?.Cabin || "-"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -493,19 +615,44 @@ function FlightDetailsModal({
             <div className="max-w-lg mx-auto w-full">
               <div className="text-2xl font-bold mb-4">Fare Breakup</div>
               <hr className="mb-6" />
+              {/* Beautified cards for Adult, Child, Infant totals */}
+              {selectedFare.FareBreakdown && (
+                <div className="flex gap-4 mb-6">
+                  {["ADT", "CHD", "INF"].map((type) => {
+                    const info = selectedFare.FareBreakdown[type];
+                    if (!info) return null;
+                    const label =
+                      type === "ADT"
+                        ? "Adult"
+                        : type === "CHD"
+                          ? "Child"
+                          : "Infant";
+                    // Prefer OfferedPrice, then PublishedPrice, then fallback
+                    let total = info.OfferedPrice ?? info.PublishedPrice;
+                    if (total === undefined) {
+                      total = info.BaseFare + info.Tax + info.YQTax;
+                    }
+                    return (
+                      <div
+                        key={type}
+                        className="flex-1 bg-white rounded-xl shadow border border-gray-200 p-4 flex flex-col items-center justify-center min-w-[120px]"
+                      >
+                        <div className="text-lg font-semibold text-gray-800 mb-1">
+                          {label}
+                        </div>
+                        <div className="text-sm text-gray-500 mb-2">
+                          x {info.PassengerCount}
+                        </div>
+                        <div className="text-2xl font-bold text-blue-700">
+                          ₹{total.toLocaleString()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Remove the old table and details, keep only base fare/surcharges/total if needed */}
               <div className="flex flex-col gap-4 text-base">
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Base Fare</span>
-                  <span className="text-gray-900 font-medium">
-                    {currency} {baseFare.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-700">Surcharges</span>
-                  <span className="text-gray-900 font-medium">
-                    {currency} {surcharges.toLocaleString()}
-                  </span>
-                </div>
                 {discount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-700">
@@ -517,6 +664,7 @@ function FlightDetailsModal({
                   </div>
                 )}
                 <hr />
+                {/* Remove base fare and surcharges, keep only cards and total */}
                 <div className="flex justify-between items-center mt-2">
                   <span className="font-bold text-lg">TOTAL</span>
                   <span className="font-bold text-2xl text-black">
@@ -524,32 +672,30 @@ function FlightDetailsModal({
                   </span>
                 </div>
               </div>
-              {/* Show any extra fare details from API if available */}
-              {selectedFare.FareBreakdown &&
-                Array.isArray(selectedFare.FareBreakdown) && (
-                  <div className="mt-6">
-                    <div className="font-semibold text-gray-700 mb-2">
-                      Fare Details
-                    </div>
-                    <ul className="list-disc pl-6 text-gray-600 text-sm">
-                      {selectedFare.FareBreakdown.map(
-                        (item: string, idx: number) => (
-                          <li key={idx}>{item}</li>
-                        ),
-                      )}
-                    </ul>
-                  </div>
-                )}
             </div>
           )}
           {tab === "cancellation" && (
             <div className="max-w-lg mx-auto w-full">
               <div className="text-2xl font-bold mb-4">Cancellation Policy</div>
               <hr className="mb-6" />
-              {selectedFare.CancellationPolicy ? (
-                <div className="text-gray-700 whitespace-pre-line text-base">
-                  {selectedFare.CancellationPolicy}
+              {/* Debug log for fareRule */}
+              {console.log("fareRule:", fareRule)}
+              {fareRuleLoading ? (
+                <div className="text-gray-400 text-base">
+                  Loading fare rules...
                 </div>
+              ) : fareRule && fareRule.Result && fareRule.Result.length > 0 ? (
+                fareRule.Result.map((rule, idx) => (
+                  <div key={idx} className="mb-8">
+                    <div className="font-semibold mb-2 text-gray-800">
+                      {rule.Origin} → {rule.Destination}
+                    </div>
+                    <div
+                      className="prose max-w-full bg-gray-50 rounded-lg p-4 border border-gray-200"
+                      dangerouslySetInnerHTML={{ __html: rule.FareRuleDetail }}
+                    />
+                  </div>
+                ))
               ) : (
                 <div className="text-gray-400 text-base">Not available</div>
               )}
@@ -574,7 +720,15 @@ function FlightDetailsModal({
           <button className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-base shadow transition">
             BOOK NOW
           </button>
-          <button className="flex-1 py-3 border border-blue-600 text-blue-700 font-bold rounded-lg text-base bg-white hover:bg-blue-50 transition">
+          <button
+            className="flex-1 py-3 border border-blue-600 text-blue-700 font-bold rounded-lg text-base bg-white hover:bg-blue-50 transition"
+            onClick={() => {
+              if (typeof onFlightSelect === "function") {
+                onFlightSelect(flight, searchParams);
+              }
+              onClose();
+            }}
+          >
             ADD TO PACKAGE
           </button>
         </div>
@@ -587,19 +741,25 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   onFlightSelect,
   onDrawerOpenChange,
   onResults,
+  initialSearchParams,
+  suppressLoadingOverlay = false,
+  onSearchStart,
+  onSearchEnd,
 }) => {
-  const [searchParams, setSearchParams] = useState<FlightSearchParams>({
-    tripType: "ROUND_TRIP",
-    originLocationCode: "",
-    destinationLocationCode: "",
-    departureDate: new Date(),
-    returnDate: new Date(),
-    adults: 1,
-    children: 0,
-    infants: 0,
-    travelClass: "ECONOMY",
-    nonStop: false,
-  });
+  const [searchParams, setSearchParams] = useState<FlightSearchParams>(
+    initialSearchParams || {
+      tripType: "ROUND_TRIP",
+      originLocationCode: "",
+      destinationLocationCode: "",
+      departureDate: new Date(),
+      returnDate: new Date(),
+      adults: 1,
+      children: 0,
+      infants: 0,
+      travelClass: "ECONOMY",
+      nonStop: false,
+    },
+  );
 
   // Separate state for display values
   const [originDisplayValue, setOriginDisplayValue] = useState("");
@@ -631,6 +791,9 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
     null,
   );
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  // Fare rule state
+  const [fareRule, setFareRule] = useState(null);
+  const [fareRuleLoading, setFareRuleLoading] = useState(false);
 
   // Debug useEffect to monitor flight offers
   useEffect(() => {
@@ -654,7 +817,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
     if (flightOffers.length === 0) return [];
     // Calculate min/max for normalization
     const prices = flightOffers.map((o) => {
-      const flightOption = o.rawOffer;
+      const flightOption = o.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const fareList = flightOption?.FareList || [];
       const minFare =
         fareList.length > 0
@@ -667,31 +833,40 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
       return o.price.offered || o.price.published || minFare;
     });
     const durations = flightOffers.map((o) => {
-      const flightOption = o.rawOffer;
+      const flightOption = o.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const segments = flightOption?.Segments?.[0] || [];
       if (segments.length > 0) {
         const dep = new Date(segments[0].Origin.DepartTime);
         const arr = new Date(
           segments[segments.length - 1].Destination.ArrivalTime,
         );
-        return (arr - dep) / 60000;
+        return (arr.getTime() - dep.getTime()) / 60000;
       }
       return Infinity;
     });
     const stopsArr = flightOffers.map((o) => {
-      const flightOption = o.rawOffer;
+      const flightOption = o.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const segments = flightOption?.Segments?.[0] || [];
       return Math.max(0, segments.length - 1);
     });
     // Helper to sum layover durations in minutes
     const layoverArr = flightOffers.map((o) => {
-      const flightOption = o.rawOffer;
+      const flightOption = o.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const segments = flightOption?.Segments?.[0] || [];
       let totalLayover = 0;
       for (let i = 1; i < segments.length; i++) {
         const prevArr = new Date(segments[i - 1].Destination.ArrivalTime);
         const nextDep = new Date(segments[i].Origin.DepartTime);
-        totalLayover += (nextDep - prevArr) / 60000;
+        totalLayover += (nextDep.getTime() - prevArr.getTime()) / 60000;
       }
       return totalLayover;
     });
@@ -717,14 +892,17 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
       }
       if (sortOption === "fastest") {
         const getDuration = (offer: FlightOffer) => {
-          const flightOption = offer.rawOffer;
+          const flightOption = offer.rawOffer as {
+            Segments?: TTSFlightSegment[][];
+            FareList?: TTSFare[];
+          };
           const segments = flightOption?.Segments?.[0] || [];
           if (segments.length > 0) {
             const dep = new Date(segments[0].Origin.DepartTime);
             const arr = new Date(
               segments[segments.length - 1].Destination.ArrivalTime,
             );
-            return (arr - dep) / 60000;
+            return (arr.getTime() - dep.getTime()) / 60000;
           }
           return Infinity;
         };
@@ -732,30 +910,39 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
       }
       // 'Best': normalized weighted score (price 55%, duration 20%, stops 15%, layover 10%)
       const getDuration = (offer: FlightOffer) => {
-        const flightOption = offer.rawOffer;
+        const flightOption = offer.rawOffer as {
+          Segments?: TTSFlightSegment[][];
+          FareList?: TTSFare[];
+        };
         const segments = flightOption?.Segments?.[0] || [];
         if (segments.length > 0) {
           const dep = new Date(segments[0].Origin.DepartTime);
           const arr = new Date(
             segments[segments.length - 1].Destination.ArrivalTime,
           );
-          return (arr - dep) / 60000;
+          return (arr.getTime() - dep.getTime()) / 60000;
         }
         return Infinity;
       };
       const getStops = (offer: FlightOffer) => {
-        const flightOption = offer.rawOffer;
+        const flightOption = offer.rawOffer as {
+          Segments?: TTSFlightSegment[][];
+          FareList?: TTSFare[];
+        };
         const segments = flightOption?.Segments?.[0] || [];
         return Math.max(0, segments.length - 1);
       };
       const getLayover = (offer: FlightOffer) => {
-        const flightOption = offer.rawOffer;
+        const flightOption = offer.rawOffer as {
+          Segments?: TTSFlightSegment[][];
+          FareList?: TTSFare[];
+        };
         const segments = flightOption?.Segments?.[0] || [];
         let totalLayover = 0;
         for (let i = 1; i < segments.length; i++) {
           const prevArr = new Date(segments[i - 1].Destination.ArrivalTime);
           const nextDep = new Date(segments[i].Origin.DepartTime);
-          totalLayover += (nextDep - prevArr) / 60000;
+          totalLayover += (nextDep.getTime() - prevArr.getTime()) / 60000;
         }
         return totalLayover;
       };
@@ -794,7 +981,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   const availableAirlines = useMemo(() => {
     const codes = new Set<string>();
     sortedFlightOffers.forEach((offer) => {
-      const flightOption = offer.rawOffer;
+      const flightOption = offer.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const segmentsGroups = flightOption?.Segments || [];
       segmentsGroups.forEach((segments) => {
         segments.forEach((seg) => {
@@ -807,7 +997,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   const maxDuration = useMemo(() => {
     return Math.max(
       ...sortedFlightOffers.map((offer) => {
-        const flightOption = offer.rawOffer;
+        const flightOption = offer.rawOffer as {
+          Segments?: TTSFlightSegment[][];
+          FareList?: TTSFare[];
+        };
         const segmentsGroups = flightOption?.Segments || [];
         const onwardSegments = segmentsGroups[0] || [];
         if (onwardSegments.length > 0) {
@@ -815,7 +1008,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
           const arr = new Date(
             onwardSegments[onwardSegments.length - 1].Destination.ArrivalTime,
           );
-          return (arr - dep) / 60000;
+          return (arr.getTime() - dep.getTime()) / 60000;
         }
         return 0;
       }),
@@ -825,7 +1018,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   // Filter logic
   const filteredFlightOffers = useMemo(() => {
     return sortedFlightOffers.filter((offer) => {
-      const flightOption = offer.rawOffer;
+      const flightOption = offer.rawOffer as {
+        Segments?: TTSFlightSegment[][];
+        FareList?: TTSFare[];
+      };
       const segmentsGroups = flightOption?.Segments || [];
       const onwardSegments = segmentsGroups[0] || [];
 
@@ -873,7 +1069,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         const arr = new Date(
           onwardSegments[onwardSegments.length - 1]?.Destination?.ArrivalTime,
         );
-        const duration = (arr - dep) / 60000;
+        const duration = (arr.getTime() - dep.getTime()) / 60000;
         if (duration > filterMaxDuration) return false;
       }
 
@@ -904,15 +1100,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
 
   // Slice the filtered list for display
   const paginatedFlightOffers = filteredFlightOffers.slice(0, visibleCount);
-
-  const passengerSummary = () => {
-    const { adults, children, infants } = searchParams;
-    const parts = [];
-    if (adults) parts.push(`${adults} Adult${adults > 1 ? "s" : ""}`);
-    if (children) parts.push(`${children} Child${children > 1 ? "ren" : ""}`);
-    if (infants) parts.push(`${infants} Infant${infants > 1 ? "s" : ""}`);
-    return parts.length ? parts.join(", ") : "Select passengers";
-  };
 
   const fetchOriginSuggestions = debounce(async (val: string) => {
     if (!val || val.length < 2) {
@@ -1153,6 +1340,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
     }
 
     setIsLoading(true);
+    if (onSearchStart) onSearchStart();
     try {
       // Map UI fields to TTS API request
       const ttsParams: TTSFlightSearchParams = {
@@ -1270,7 +1458,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
               published: minFare,
               offered: minFare,
             },
-            rawOffer: flightOption,
+            rawOffer: {
+              ...flightOption,
+              SearchTokenId: ttsResults.SearchTokenId, // Ensure SearchTokenId is present
+            },
           };
         },
       );
@@ -1283,6 +1474,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
       setFlightOffers([]);
     } finally {
       setIsLoading(false);
+      if (onSearchEnd) onSearchEnd();
     }
   };
 
@@ -1315,6 +1507,77 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
   useEffect(() => {
     if (onDrawerOpenChange) onDrawerOpenChange(detailsModalOpen);
   }, [detailsModalOpen, onDrawerOpenChange]);
+
+  // paxSummary function for passenger button label
+  const paxSummary = () => {
+    const { adults, children, infants } = searchParams;
+    const parts = [];
+    if (adults) parts.push(`${adults} Adult${adults > 1 ? "s" : ""}`);
+    if (children) parts.push(`${children} Child${children > 1 ? "ren" : ""}`);
+    if (infants) parts.push(`${infants} Infant${infants > 1 ? "s" : ""}`);
+    return parts.length ? parts.join(", ") : "Select passengers";
+  };
+
+  // Fetch fare rule when modal opens and selectedFlight changes
+  useEffect(() => {
+    console.log("useEffect triggered:", { detailsModalOpen, selectedFlight });
+    const fetchFareRule = async () => {
+      if (!detailsModalOpen || !selectedFlight) return;
+      // Get FareId and SearchTokenId
+      const fareList = selectedFlight.rawOffer?.FareList || [];
+      const fareId = fareList[0]?.FareId;
+      const searchTokenId =
+        selectedFlight.rawOffer?.SearchTokenId || selectedFlight.SearchTokenId;
+      const userIp = "122.161.64.143"; // TODO: Replace with dynamic IP if available
+      if (!fareId || !searchTokenId) return;
+      // Log FareId and ResultIndex for debugging
+      console.log(
+        "FareRule fetch: FareId:",
+        fareId,
+        "ResultIndex:",
+        fareId,
+        "SearchTokenId:",
+        searchTokenId,
+      );
+      setFareRuleLoading(true);
+      try {
+        // Use proxy endpoint in development, real endpoint in production
+        const isLocal =
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1";
+        const fareRuleUrl = isLocal
+          ? "/api/farerule"
+          : "https://www.stagingapi.bdsd.technology/api/airservice/rest/farerule";
+        // Add Username and Password headers from Vite env variables
+        // Set VITE_API_USERNAME and VITE_API_PASSWORD in your .env file
+        const response = await fetch(fareRuleUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Username: import.meta.env.VITE_API_USERNAME,
+            Password: import.meta.env.VITE_API_PASSWORD,
+            "X-Debug-FareId": fareId,
+            "X-Debug-ResultIndex": fareId,
+            "X-Debug-SearchTokenId": searchTokenId,
+          },
+          body: JSON.stringify({
+            UserIp: userIp,
+            SearchTokenId: searchTokenId,
+            ResultIndex: fareId,
+          }),
+        });
+        const data = await response.json();
+        console.log("FareRule API response:", data);
+        setFareRule(data);
+      } catch (e) {
+        console.error("FareRule fetch error:", e);
+        setFareRule(null);
+      } finally {
+        setFareRuleLoading(false);
+      }
+    };
+    fetchFareRule();
+  }, [detailsModalOpen, selectedFlight]);
 
   return (
     <div className="container mx-auto p-4">
@@ -1428,7 +1691,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
             className="w-full text-left"
             onClick={() => setPassengerModalOpen(true)}
           >
-            {passengerSummary()}
+            {paxSummary()}
           </Button>
           <Dialog
             open={passengerModalOpen}
@@ -1819,7 +2082,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
       </Button>
 
       {/* Overlay loading GIF when isLoading */}
-      {isLoading && (
+      {!suppressLoadingOverlay && isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <img
             src="https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/mh_flight_loading_wuwevi.gif"
@@ -1846,7 +2109,7 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         Test Search (BLR-JED)
       </Button>
 
-      {isLoading ? (
+      {isLoading && !suppressLoadingOverlay ? (
         <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
           <img
             src="https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/mh_flight_loading_wuwevi.gif"
@@ -1963,7 +2226,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
                       {availableAirlines.map((code) => {
                         // Find airline name and price for this airline
                         const airlineInfo = sortedFlightOffers.find((offer) => {
-                          const flightOption = offer.rawOffer;
+                          const flightOption = offer.rawOffer as {
+                            Segments?: TTSFlightSegment[][];
+                            FareList?: TTSFare[];
+                          };
                           const segmentsGroups = flightOption?.Segments || [];
                           return segmentsGroups.some((segments) =>
                             segments.some(
@@ -2238,7 +2504,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
             <>
               {paginatedFlightOffers.map((offer) => {
                 // The rawOffer is already the flight option from TTS
-                const flightOption = offer.rawOffer;
+                const flightOption = offer.rawOffer as {
+                  Segments?: TTSFlightSegment[][];
+                  FareList?: TTSFare[];
+                };
                 console.log("Flight offer rawOffer:", flightOption);
                 if (!flightOption) return null;
 
@@ -2561,6 +2830,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
         open={detailsModalOpen}
         onClose={() => setDetailsModalOpen(false)}
         flight={selectedFlight}
+        searchParams={searchParams}
+        onFlightSelect={onFlightSelect}
+        fareRule={fareRule}
+        fareRuleLoading={fareRuleLoading}
       />
     </div>
   );

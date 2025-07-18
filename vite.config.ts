@@ -20,6 +20,12 @@ export default defineConfig(({ mode }) => ({
         },
         // Do not rewrite the path; backend expects /api/airservice/rest/search
       },
+      "/api/farerule": {
+        target: "https://www.stagingapi.bdsd.technology",
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(/^\/api\/farerule/, "/api/airservice/rest/farerule"),
+      },
     },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(

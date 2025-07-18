@@ -379,6 +379,9 @@ const PackageDetailDynamic = () => {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [flightSearchResults, setFlightSearchResults] =
     useState<FlightSearchResults | null>(null);
+  // 1. Add a state to store last used flight search params
+  const [lastFlightSearchParams, setLastFlightSearchParams] = useState(null);
+  const [flightSearchLoading, setFlightSearchLoading] = useState(false);
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -890,33 +893,34 @@ const PackageDetailDynamic = () => {
             onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
           />
           <div className="font-semibold text-base">
-            {airline}{" "}
-            <span className="text-xs text-gray-500">{flightNumber}</span>
+            {airline || "-"}{" "}
+            <span className="text-xs text-gray-500">{flightNumber || "-"}</span>
           </div>
         </div>
         <div className="text-xs text-emerald-700 font-semibold mb-1">
           Onward Journey
         </div>
         <div className="text-sm text-gray-700 mb-1">
-          {departure.iataCode} → {arrival.iataCode} | {cabin} | {duration}
+          {departure?.iataCode || "-"} → {arrival?.iataCode || "-"} |{" "}
+          {cabin || "-"} | {duration || "-"}
         </div>
         <div className="text-xs text-gray-500 mb-2">
-          {departure.at} → {arrival.at}
+          {departure?.at || "-"} → {arrival?.at || "-"}
         </div>
         {/* Return Flight (if present) */}
         {returnFlight && (
           <>
             <div className="mt-2 flex items-center gap-2 mb-2">
               <img
-                src={`https://content.airhex.com/content/logos/airlines_${returnFlight.flightNumber.split(" ")[0].toLowerCase()}_350_100_r.png?background=fff&pad=auto`}
-                alt={returnFlight.airline}
+                src={`https://content.airhex.com/content/logos/airlines_${returnFlight.flightNumber?.split(" ")[0]?.toLowerCase() || ""}_350_100_r.png?background=fff&pad=auto`}
+                alt={returnFlight.airline || ""}
                 className="w-10 h-7 object-contain rounded bg-white border"
                 onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
               />
               <div className="font-semibold text-base">
-                {returnFlight.airline}{" "}
+                {returnFlight.airline || "-"}{" "}
                 <span className="text-xs text-gray-500">
-                  {returnFlight.flightNumber}
+                  {returnFlight.flightNumber || "-"}
                 </span>
               </div>
             </div>
@@ -924,12 +928,13 @@ const PackageDetailDynamic = () => {
               Return Journey
             </div>
             <div className="text-sm text-gray-700 mb-1">
-              {returnFlight.departure.iataCode} →{" "}
-              {returnFlight.arrival.iataCode} | {returnFlight.cabin} |{" "}
-              {returnFlight.duration}
+              {returnFlight.departure?.iataCode || "-"} →{" "}
+              {returnFlight.arrival?.iataCode || "-"} |{" "}
+              {returnFlight.cabin || "-"} | {returnFlight.duration || "-"}
             </div>
             <div className="text-xs text-gray-500 mb-2">
-              {returnFlight.departure.at} → {returnFlight.arrival.at}
+              {returnFlight.departure?.at || "-"} →{" "}
+              {returnFlight.arrival?.at || "-"}
             </div>
           </>
         )}
@@ -1239,12 +1244,70 @@ const PackageDetailDynamic = () => {
                     ) : showFlightSearch ? (
                       <div className="w-full flex items-start gap-2 mt-2">
                         <div className="flex-1">
+                          {showFlightSearch && flightSearchLoading && (
+                            <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-40">
+                              <img
+                                src="https://res.cloudinary.com/doxoxzz02/image/upload/v1752633038/mh_flight_loading_wuwevi.gif"
+                                alt="Loading flights..."
+                                className="w-32 h-32 md:w-48 md:h-48 object-contain"
+                              />
+                            </div>
+                          )}
                           <FlightSearch
                             onFlightSelect={(flight, searchParams) => {
-                              setSelectedFlight({ flight, searchParams });
+                              // Extract per-traveler-type prices from rawOffer if available
+                              let adultPrice = 0,
+                                childPrice = 0,
+                                infantPrice = 0;
+                              if (
+                                flight.rawOffer &&
+                                typeof flight.rawOffer === "object" &&
+                                "FareList" in flight.rawOffer
+                              ) {
+                                const fareList = flight.rawOffer.FareList;
+                                if (
+                                  Array.isArray(fareList) &&
+                                  fareList.length > 0
+                                ) {
+                                  const fare = fareList[0];
+                                  adultPrice =
+                                    Number(fare.OfferedPrice) ||
+                                    Number(fare.PublishedPrice) ||
+                                    0;
+                                  childPrice =
+                                    Number(fare.OfferedPrice) ||
+                                    Number(fare.PublishedPrice) ||
+                                    0;
+                                  infantPrice =
+                                    Number(fare.OfferedPrice) ||
+                                    Number(fare.PublishedPrice) ||
+                                    0;
+                                }
+                              }
+                              setSelectedFlight({
+                                flight,
+                                searchParams,
+                                details: {
+                                  adults: Number(searchParams.adults),
+                                  adultPrice,
+                                  children: Number(searchParams.children) || 0,
+                                  childPrice,
+                                  infants: Number(searchParams.infants) || 0,
+                                  infantPrice,
+                                },
+                              });
+                              setLastFlightSearchParams(searchParams);
                               setShowFlightSearch(false);
                             }}
                             onResults={setFlightSearchResults}
+                            initialSearchParams={
+                              showFlightSearch && lastFlightSearchParams
+                                ? lastFlightSearchParams
+                                : undefined
+                            }
+                            suppressLoadingOverlay={true}
+                            onSearchStart={() => setFlightSearchLoading(true)}
+                            onSearchEnd={() => setFlightSearchLoading(false)}
                           />
                         </div>
                         <Button
