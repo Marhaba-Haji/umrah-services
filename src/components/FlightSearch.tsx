@@ -1431,8 +1431,26 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
             ),
           );
 
+          // Fix: id must be string
+          const id = flightOption.ResultIndex
+            ? String(flightOption.ResultIndex)
+            : `flight-${index}`;
+
+          // Fix: duration and aircraft from correct properties
+          const duration =
+            firstOnwardSeg && typeof firstOnwardSeg.TotalDuration === "number"
+              ? (() => {
+                  const hours = Math.floor(firstOnwardSeg.TotalDuration / 60);
+                  const mins = firstOnwardSeg.TotalDuration % 60;
+                  return `${hours}h ${mins}m`;
+                })()
+              : "Unknown";
+          const aircraft =
+            firstOnwardSeg?.Airline?.AircraftType ||
+            firstOnwardSeg?.Airline?.Craft;
+
           return {
-            id: flightOption.ResultIndex || `flight-${index}`,
+            id,
             airline: airlineNames[0] || "Unknown",
             flightNumber: firstOnwardSeg?.Airline?.FlightNumber || "Unknown",
             departure: {
@@ -1448,10 +1466,10 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
                 firstOnwardSeg?.Destination?.ArrivalTime ||
                 new Date().toISOString(),
             },
-            duration: firstOnwardSeg?.Duration || "Unknown",
+            duration,
             stops: Math.max(0, onwardSegments.length - 1),
             cabin: firstOnwardSeg?.CabinClass || "ECONOMY",
-            aircraft: firstOnwardSeg?.Craft,
+            aircraft,
             price: {
               total: minFare.toString(),
               currency: "INR",
@@ -2790,10 +2808,6 @@ const FlightSearch: React.FC<FlightSearchProps> = ({
                         </span>
                       )}
                       <div className="flex flex-col gap-2 w-full">
-                        <button className="w-full px-3 py-2 border border-emerald-600 text-emerald-700 font-medium rounded-md hover:bg-emerald-50 transition text-xs">
-                          View Prices{" "}
-                          <span className="ml-1 text-[10px]">▼</span>
-                        </button>
                         <a
                           href="#"
                           className="block text-blue-600 font-normal hover:underline text-center text-[11px]"

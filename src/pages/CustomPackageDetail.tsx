@@ -864,55 +864,89 @@ const PackageDetailDynamic = () => {
   const renderSelectedFlightSidebar = () => {
     if (!selectedFlight) return null;
     const {
-      airline,
-      flightNumber,
-      departure,
-      arrival,
-      duration,
-      cabin,
-      adultPrice,
-      childPrice,
-      infantPrice,
-      adults,
-      children,
-      infants,
-      returnFlight,
-    } = selectedFlight.details;
+      flight,
+      searchParams,
+      details: {
+        adults,
+        adultPrice,
+        children,
+        childPrice,
+        infants,
+        infantPrice,
+        returnFlight,
+      },
+    } = selectedFlight;
     const total =
       Number(adults) * Number(adultPrice) +
       Number(children) * Number(childPrice) +
       Number(infants) * Number(infantPrice);
+    const rawOffer = flight.rawOffer || flight.rawOffer;
+    let onward = null;
+    if (
+      rawOffer &&
+      typeof rawOffer === "object" &&
+      Array.isArray(rawOffer.Segments) &&
+      rawOffer.Segments.length > 0
+    ) {
+      onward = rawOffer.Segments[0];
+    }
+    let onwardAirline = flight.airline || "-";
+    let onwardFlightNumber = flight.flightNumber || "-";
+    let onwardDep = flight.departure || { iataCode: "-", at: "-" };
+    let onwardArr = flight.arrival || { iataCode: "-", at: "-" };
+    let onwardCabin = flight.cabin || "-";
+    let onwardDuration = flight.duration || "-";
+    if (onward && onward.length > 0) {
+      const first = onward[0];
+      const last = onward[onward.length - 1];
+      onwardAirline = first.Airline?.AirlineName || "-";
+      onwardFlightNumber = first.Airline?.FlightNumber || "-";
+      onwardDep = {
+        iataCode: first.Origin?.AirportCode || "-",
+        at: first.Origin?.DepartTime || "-",
+      };
+      onwardArr = {
+        iataCode: last.Destination?.AirportCode || "-",
+        at: last.Destination?.ArrivalTime || "-",
+      };
+      onwardCabin = first.CabinClass || "-";
+      onwardDuration = first.TotalDuration
+        ? `${Math.floor(first.TotalDuration / 60)}h ${first.TotalDuration % 60}m`
+        : "-";
+    }
     return (
       <div className="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200">
         {/* Onward Flight */}
         <div className="flex items-center gap-2 mb-2">
           <img
-            src={`https://content.airhex.com/content/logos/airlines_${typeof flightNumber === "string" ? flightNumber.split(" ")[0].toLowerCase() : ""}_350_100_r.png?background=fff&pad=auto`}
-            alt={typeof airline === "string" ? airline : ""}
+            src={`https://content.airhex.com/content/logos/airlines_${typeof onwardFlightNumber === "string" ? onwardFlightNumber.split(" ")[0].toLowerCase() : ""}_350_100_r.png?background=fff&pad=auto`}
+            alt={typeof onwardAirline === "string" ? onwardAirline : ""}
             className="w-10 h-7 object-contain rounded bg-white border"
             onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
           />
           <div className="font-semibold text-base">
-            {airline || "-"}{" "}
-            <span className="text-xs text-gray-500">{flightNumber || "-"}</span>
+            {onwardAirline || "-"}{" "}
+            <span className="text-xs text-gray-500">
+              {onwardFlightNumber || "-"}
+            </span>
           </div>
         </div>
         <div className="text-xs text-emerald-700 font-semibold mb-1">
           Onward Journey
         </div>
         <div className="text-sm text-gray-700 mb-1">
-          {departure?.iataCode || "-"} → {arrival?.iataCode || "-"} |{" "}
-          {cabin || "-"} | {duration || "-"}
+          {onwardDep?.iataCode || "-"} → {onwardArr?.iataCode || "-"} |{" "}
+          {onwardCabin || "-"} | {onwardDuration || "-"}
         </div>
         <div className="text-xs text-gray-500 mb-2">
-          {departure?.at || "-"} → {arrival?.at || "-"}
+          {onwardDep?.at || "-"} → {onwardArr?.at || "-"}
         </div>
         {/* Return Flight (if present) */}
         {returnFlight && (
           <>
             <div className="mt-2 flex items-center gap-2 mb-2">
               <img
-                src={`https://content.airhex.com/content/logos/airlines_${returnFlight.flightNumber?.split(" ")[0]?.toLowerCase() || ""}_350_100_r.png?background=fff&pad=auto`}
+                src={`https://content.airhex.com/content/logos/airlines_${typeof returnFlight.flightNumber === "string" ? returnFlight.flightNumber.split(" ")[0]?.toLowerCase() : ""}_350_100_r.png?background=fff&pad=auto`}
                 alt={returnFlight.airline || ""}
                 className="w-10 h-7 object-contain rounded bg-white border"
                 onError={(e) => (e.currentTarget.src = "/placeholder.svg")}
@@ -920,7 +954,9 @@ const PackageDetailDynamic = () => {
               <div className="font-semibold text-base">
                 {returnFlight.airline || "-"}{" "}
                 <span className="text-xs text-gray-500">
-                  {returnFlight.flightNumber || "-"}
+                  {typeof returnFlight.flightNumber === "string"
+                    ? returnFlight.flightNumber
+                    : "-"}
                 </span>
               </div>
             </div>
@@ -966,7 +1002,10 @@ const PackageDetailDynamic = () => {
           <button
             type="button"
             className="text-xs text-emerald-700 underline font-semibold"
-            onClick={() => setFlightModalOpen(true)}
+            onClick={() => {
+              setShowFlightSearch(true);
+              setSelectedFlight(null);
+            }}
           >
             Modify Flight
           </button>
@@ -1224,7 +1263,10 @@ const PackageDetailDynamic = () => {
                           <Button
                             size="sm"
                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            onClick={() => setShowFlightSearch(true)}
+                            onClick={() => {
+                              setShowFlightSearch(true);
+                              setSelectedFlight(null);
+                            }}
                           >
                             Edit Flight
                           </Button>
@@ -1254,11 +1296,16 @@ const PackageDetailDynamic = () => {
                             </div>
                           )}
                           <FlightSearch
-                            onFlightSelect={(flight, searchParams) => {
-                              // Extract per-traveler-type prices from rawOffer if available
+                            onFlightSelect={(
+                              flight,
+                              searchParams,
+                              selectedFareIndex = 0,
+                            ) => {
                               let adultPrice = 0,
                                 childPrice = 0,
                                 infantPrice = 0;
+                              let selectedFare = null;
+                              let fareBreakdown = null;
                               if (
                                 flight.rawOffer &&
                                 typeof flight.rawOffer === "object" &&
@@ -1269,19 +1316,73 @@ const PackageDetailDynamic = () => {
                                   Array.isArray(fareList) &&
                                   fareList.length > 0
                                 ) {
-                                  const fare = fareList[0];
-                                  adultPrice =
-                                    Number(fare.OfferedPrice) ||
-                                    Number(fare.PublishedPrice) ||
-                                    0;
-                                  childPrice =
-                                    Number(fare.OfferedPrice) ||
-                                    Number(fare.PublishedPrice) ||
-                                    0;
-                                  infantPrice =
-                                    Number(fare.OfferedPrice) ||
-                                    Number(fare.PublishedPrice) ||
-                                    0;
+                                  selectedFare =
+                                    fareList[selectedFareIndex] || fareList[0];
+                                  fareBreakdown =
+                                    selectedFare.FareBreakdown ||
+                                    selectedFare.Fare?.FareBreakdown;
+                                  if (fareBreakdown) {
+                                    // Amadeus/other APIs may use ADT, CHD, INF keys
+                                    if (fareBreakdown.ADT)
+                                      adultPrice = Number(
+                                        fareBreakdown.ADT.OfferedPrice ||
+                                          fareBreakdown.ADT.PublishedPrice ||
+                                          0,
+                                      );
+                                    if (fareBreakdown.CHD)
+                                      childPrice = Number(
+                                        fareBreakdown.CHD.OfferedPrice ||
+                                          fareBreakdown.CHD.PublishedPrice ||
+                                          0,
+                                      );
+                                    if (fareBreakdown.INF)
+                                      infantPrice = Number(
+                                        fareBreakdown.INF.OfferedPrice ||
+                                          fareBreakdown.INF.PublishedPrice ||
+                                          0,
+                                      );
+                                  } else {
+                                    adultPrice =
+                                      Number(selectedFare.OfferedPrice) ||
+                                      Number(selectedFare.PublishedPrice) ||
+                                      0;
+                                    childPrice = adultPrice;
+                                    infantPrice = adultPrice;
+                                  }
+                                }
+                              }
+                              // Extract return flight details if present
+                              let returnFlight = undefined;
+                              if (
+                                flight.rawOffer &&
+                                typeof flight.rawOffer === "object" &&
+                                Array.isArray(flight.rawOffer.Segments) &&
+                                flight.rawOffer.Segments.length > 1
+                              ) {
+                                const returnSegs = flight.rawOffer.Segments[1];
+                                if (returnSegs && returnSegs.length > 0) {
+                                  const first = returnSegs[0];
+                                  const last =
+                                    returnSegs[returnSegs.length - 1];
+                                  returnFlight = {
+                                    airline: first.Airline?.AirlineName || "-",
+                                    flightNumber:
+                                      first.Airline?.FlightNumber || "-",
+                                    departure: {
+                                      iataCode:
+                                        first.Origin?.AirportCode || "-",
+                                      at: first.Origin?.DepartTime || "-",
+                                    },
+                                    arrival: {
+                                      iataCode:
+                                        last.Destination?.AirportCode || "-",
+                                      at: last.Destination?.ArrivalTime || "-",
+                                    },
+                                    cabin: first.CabinClass || "-",
+                                    duration: first.TotalDuration
+                                      ? `${Math.floor(first.TotalDuration / 60)}h ${first.TotalDuration % 60}m`
+                                      : "-",
+                                  };
                                 }
                               }
                               setSelectedFlight({
@@ -1294,6 +1395,7 @@ const PackageDetailDynamic = () => {
                                   childPrice,
                                   infants: Number(searchParams.infants) || 0,
                                   infantPrice,
+                                  ...(returnFlight ? { returnFlight } : {}),
                                 },
                               });
                               setLastFlightSearchParams(searchParams);

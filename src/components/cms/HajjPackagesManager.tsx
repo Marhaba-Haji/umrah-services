@@ -85,7 +85,7 @@ interface HajjPackage {
   name: string;
   description?: string;
   duration?: string;
-  price?: number;
+  price: Pricing;
   status?: string;
   category?: string;
   inclusions?: string[];
@@ -235,7 +235,14 @@ const HajjPackagesManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const payload = { ...form, price: { ...form.price }, seo: { ...form.seo } };
+    const payload = {
+      ...form,
+      price: form.price || {
+        sharing: { adult: "", child: "", infant: "" },
+        private: { quad: "", triple: "", double: "" },
+      },
+      seo: { ...form.seo },
+    };
     if (editingId) {
       const { error } = await supabase
         .from("hajj_packages")
@@ -254,7 +261,13 @@ const HajjPackagesManager = () => {
   };
 
   const handleEdit = (pkg: HajjPackage) => {
-    setForm(pkg);
+    setForm({
+      ...pkg,
+      price: pkg.price || {
+        sharing: { adult: "", child: "", infant: "" },
+        private: { quad: "", triple: "", double: "" },
+      },
+    });
     setEditingId(pkg.id);
     setShowForm(true);
   };

@@ -284,7 +284,9 @@ const ActivityManager = () => {
         parsed = value ? (JSON.parse(value) as Faq[]) : [];
       else if (field === "vehicle_prices")
         parsed = value ? (JSON.parse(value) as Record<string, number>) : {};
-      else parsed = value ? (JSON.parse(value) as object) : {};
+      else if (field === "page_schema")
+        parsed = value ? (JSON.parse(value) as object) : {};
+      else parsed = value;
       setFormData((prev) => ({ ...prev, [field]: parsed }));
       setFormError(null);
     } catch (e) {

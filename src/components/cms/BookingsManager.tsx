@@ -27,8 +27,8 @@ interface Booking {
   total_amount: number;
   number_of_travelers: number;
   travel_date: string | null;
-  status: string;
-  payment_status: string | null;
+  status: "pending" | "confirmed" | "cancelled";
+  payment_status: "pending" | "completed" | null;
   created_at: string;
 }
 
@@ -41,8 +41,8 @@ interface VisaApplication {
   gender: string;
   phone: string;
   email: string;
-  payment_status: string | null;
-  status: string | null;
+  payment_status: "pending" | "completed" | null;
+  status: "pending" | "confirmed" | "cancelled" | "completed" | null;
   created_at: string;
 }
 
