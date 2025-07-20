@@ -2563,6 +2563,11 @@ const PackageDetailDynamic = () => {
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t text-lg">
                         <span className="font-semibold">Total Cost:</span>
+                        like a new HajjPackageDetail.tsx file scaffolded with
+                        this layout, ready for you to wire up with Hajj
+                        data?like a new HajjPackageDetail.tsx file scaffolded
+                        with this layout, ready for you to wire up with Hajj
+                        data?{" "}
                         <span className="text-2xl font-bold text-emerald-600">
                           {getCurrencySymbol(pkg.currency)}
                           {(

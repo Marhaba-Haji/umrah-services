@@ -89,6 +89,22 @@ const Footer = () => {
                   Careers
                 </a>
               </li>
+              <li>
+                <a
+                  href="/become-agent"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  Become an Agent
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/become-supplier"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  Become a Supplier
+                </a>
+              </li>
             </ul>
           </div>
 

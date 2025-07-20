@@ -24,28 +24,16 @@ const mealPlanOptions = [
   { value: "Full-board", label: "Full-board" },
 ];
 
-const defaultForm: HajjPackageForm = {
-  id: undefined,
+// 1. Update defaultForm to use safe defaults
+const defaultForm = {
   name: "",
+  featured_image: "",
   price: {
     sharing: { adult: "", child: "", infant: "" },
     private: { quad: "", triple: "", double: "" },
   },
-  duration: "",
-  duration_category: "",
-  departure_city: "",
-  departure_date: "",
-  season_category: "",
-  inclusions: [],
-  exclusions: [],
-  featured_image: "",
-  package_category: "",
   maktab: "",
-  type: "",
-  class: "",
-  max_capacity: 0,
-  available_spots: 0,
-  hotels: [],
+  flight_type: "",
   makkah_hotel_name: "",
   makkah_hotel_category: "",
   makkah_hotel_distance: "",
@@ -53,26 +41,34 @@ const defaultForm: HajjPackageForm = {
   madinah_hotel_category: "",
   madinah_hotel_distance: "",
   meal_plan: "",
-  itinerary: [], // now array of {title, description}
+  inclusions: "",
+  exclusions: "",
+  activities: [],
+  itinerary: [],
   terms_and_conditions: "",
   cancellation_policy: "",
   refund_policy: "",
   traveller_responsibilities: "",
   disclaimer: "",
+  class: "",
+  duration: "",
+  duration_category: "",
+  type: "",
   status: "active",
-  activities: [],
-  flight_type: "",
-  seo: {
-    slug: "",
-    meta_title: "",
-    meta_description: "",
-    target_keywords: "",
-    og_title: "",
-    og_description: "",
-    og_image: "",
-    canonical_url: "",
-    schema_markup: "",
-  },
+  slug: "",
+  meta_title: "",
+  meta_description: "",
+  target_keywords: "",
+  og_title: "",
+  og_description: "",
+  og_image: "",
+  canonical_url: "",
+  schema_markup: "",
+  package_category: "",
+  available_spots: "",
+  max_capacity: "",
+  departure_city: "",
+  departure_date: "",
 };
 
 interface Pricing {
@@ -111,6 +107,21 @@ interface HajjPackage {
   activities?: string[];
   cities_covered?: string[];
   flight_included?: boolean;
+  seo?: {
+    slug: string;
+    meta_title: string;
+    meta_description: string;
+    target_keywords: string;
+    og_title: string;
+    og_description: string;
+    og_image: string;
+    canonical_url: string;
+    schema_markup: string;
+  };
+  maktab_category?: string;
+  traveler_responsibilities?: string;
+  duration_category?: string;
+  prices?: Pricing;
 }
 
 interface HajjPackageForm extends HajjPackage {
@@ -127,6 +138,8 @@ const HajjPackagesManager = () => {
   const [activitiesList, setActivitiesList] = useState<
     { id: string; name: string }[]
   >([]);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPackages();
@@ -137,7 +150,9 @@ const HajjPackagesManager = () => {
     setIsLoading(true);
     const { data, error } = await supabase
       .from("hajj_packages")
-      .select("*")
+      .select(
+        "id,name,featured_image,prices,maktab_category,flight_type,makkah_hotel_name,makkah_hotel_category,makkah_hotel_distance,madinah_hotel_name,madinah_hotel_category,madinah_hotel_distance,meal_plan,inclusions,exclusions,activities,itinerary,terms_and_conditions,cancellation_policy,refund_policy,traveler_responsibilities,disclaimer,class,duration,duration_category,type,status,seo,package_category,available_spots,max_capacity,departure_city,departure_date",
+      )
       .order("created_at", { ascending: false });
     if (!error) setPackages(data || []);
     setIsLoading(false);
@@ -216,10 +231,7 @@ const HajjPackagesManager = () => {
   const handleSeoChange = (field: string, value: string) => {
     setForm((f: HajjPackageForm) => ({
       ...f,
-      seo: {
-        ...f.seo,
-        [field]: value,
-      },
+      [field]: value,
     }));
   };
 
@@ -235,38 +247,184 @@ const HajjPackagesManager = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const payload = {
-      ...form,
-      price: form.price || {
+
+    // Build inclusions/exclusions as arrays
+    const inclusions =
+      typeof form.inclusions === "string"
+        ? form.inclusions
+            .split(/,|\n/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : Array.isArray(form.inclusions)
+          ? form.inclusions
+          : [];
+    const exclusions =
+      typeof form.exclusions === "string"
+        ? form.exclusions
+            .split(/,|\n/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : Array.isArray(form.exclusions)
+          ? form.exclusions
+          : [];
+
+    // Build prices object
+    const prices = form.price ||
+      form.prices || {
         sharing: { adult: "", child: "", infant: "" },
         private: { quad: "", triple: "", double: "" },
-      },
-      seo: { ...form.seo },
+      };
+
+    // Map form duration_category to allowed DB value
+    const durationCategoryMap = {
+      short: "Short (10-20 days)",
+      medium: "Medium (20-30 days)",
+      long: "Long (30-45 days)",
     };
+
+    // Build SEO object
+    const seo = {
+      slug: form.slug || "",
+      meta_title: form.meta_title || "",
+      meta_description: form.meta_description || "",
+      target_keywords: form.target_keywords || "",
+      og_title: form.og_title || "",
+      og_description: form.og_description || "",
+      og_image: form.og_image || "",
+      canonical_url: form.canonical_url || "",
+      schema_markup: form.schema_markup || "",
+    };
+
+    // Build activities/itinerary as JSON
+    const activities = form.activities || [];
+    const itinerary = form.itinerary || [];
+
+    // Build payload with only DB fields
+    const payload = {
+      name: form.name,
+      featured_image: form.featured_image,
+      prices,
+      maktab_category: form.maktab,
+      flight_type: form.flight_type,
+      makkah_hotel_name: form.makkah_hotel_name,
+      makkah_hotel_category: form.makkah_hotel_category,
+      makkah_hotel_distance: form.makkah_hotel_distance
+        ? Number(form.makkah_hotel_distance)
+        : null,
+      madinah_hotel_name: form.madinah_hotel_name,
+      madinah_hotel_category: form.madinah_hotel_category,
+      madinah_hotel_distance: form.madinah_hotel_distance
+        ? Number(form.madinah_hotel_distance)
+        : null,
+      meal_plan: form.meal_plan,
+      inclusions,
+      exclusions,
+      activities,
+      itinerary,
+      terms_and_conditions: form.terms_and_conditions,
+      cancellation_policy: form.cancellation_policy,
+      refund_policy: form.refund_policy,
+      traveler_responsibilities: form.traveller_responsibilities,
+      disclaimer: form.disclaimer,
+      class: form.class,
+      duration: form.duration,
+      duration_category:
+        durationCategoryMap[form.duration_category] || form.duration_category,
+      type: form.type,
+      status: form.status,
+      seo,
+      package_category: form.package_category,
+      available_spots: form.available_spots
+        ? Number(form.available_spots)
+        : null,
+      max_capacity: form.max_capacity ? Number(form.max_capacity) : null,
+      departure_city: form.departure_city,
+      departure_date: form.departure_date,
+    };
+
+    // Convert all undefined values to null
+    Object.keys(payload).forEach((key) => {
+      if (payload[key] === undefined) {
+        payload[key] = null;
+      }
+    });
+
+    let result;
     if (editingId) {
-      const { error } = await supabase
+      result = await supabase
         .from("hajj_packages")
         .update(payload)
         .eq("id", editingId);
-      if (!error) toast({ title: "Updated", description: "Package updated." });
     } else {
-      const { error } = await supabase.from("hajj_packages").insert([payload]);
-      if (!error) toast({ title: "Created", description: "Package created." });
+      result = await supabase.from("hajj_packages").insert([payload]);
+    }
+
+    // 3. Add error logging for Supabase requests in handleSubmit
+    if (result.error) {
+      console.error("Supabase error:", result.error, "Payload:", payload);
+      alert("Supabase error:\n" + JSON.stringify(result.error, null, 2));
+      toast({
+        title: "Error",
+        description:
+          result.error.message +
+          (result.error.details ? "\n" + result.error.details : ""),
+      });
+    } else {
+      setShowForm(false);
+      fetchPackages();
+      toast({
+        title: "Success",
+        description: editingId ? "Package updated." : "Package created.",
+      });
     }
     setForm(defaultForm);
     setEditingId(undefined);
-    setShowForm(false);
-    fetchPackages();
     setIsLoading(false);
   };
 
   const handleEdit = (pkg: HajjPackage) => {
+    // Ensure seo is always present and has all required fields
+    const defaultSeo = {
+      slug: "",
+      meta_title: "",
+      meta_description: "",
+      target_keywords: "",
+      og_title: "",
+      og_description: "",
+      og_image: "",
+      canonical_url: "",
+      schema_markup: "",
+    };
+    // Reverse mapping for duration_category
+    const reverseDurationCategoryMap = {
+      "Short (10-20 days)": "short",
+      "Medium (20-30 days)": "medium",
+      "Long (30-45 days)": "long",
+    };
+    const seo = { ...defaultSeo, ...(pkg.seo || {}) };
     setForm({
       ...pkg,
-      price: pkg.price || {
-        sharing: { adult: "", child: "", infant: "" },
-        private: { quad: "", triple: "", double: "" },
-      },
+      price: pkg.prices ||
+        pkg.price || {
+          sharing: { adult: "", child: "", infant: "" },
+          private: { quad: "", triple: "", double: "" },
+        },
+      maktab: pkg.maktab_category || "",
+      traveller_responsibilities: pkg.traveler_responsibilities || "",
+      duration_category:
+        reverseDurationCategoryMap[pkg.duration_category] ||
+        pkg.duration_category ||
+        "",
+      // Flatten SEO fields to top-level
+      slug: seo.slug,
+      meta_title: seo.meta_title,
+      meta_description: seo.meta_description,
+      target_keywords: seo.target_keywords,
+      og_title: seo.og_title,
+      og_description: seo.og_description,
+      og_image: seo.og_image,
+      canonical_url: seo.canonical_url,
+      schema_markup: seo.schema_markup,
     });
     setEditingId(pkg.id);
     setShowForm(true);
@@ -319,7 +477,22 @@ const HajjPackagesManager = () => {
         <Card>
           <CardHeader>
             <CardTitle>
-              {editingId ? "Edit Hajj Package" : "Create New Hajj Package"}
+              {editingId ? (
+                <>
+                  Edit Hajj Package{" "}
+                  <span
+                    style={{
+                      fontWeight: "normal",
+                      fontSize: "0.9em",
+                      color: "#888",
+                    }}
+                  >
+                    (ID: {editingId})
+                  </span>
+                </>
+              ) : (
+                "Create New Hajj Package"
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -337,7 +510,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="name">Name</Label>
                     <Input
                       name="name"
-                      value={form.name}
+                      value={form.name || ""}
                       onChange={handleInputChange}
                       required
                       className="mt-1"
@@ -346,12 +519,44 @@ const HajjPackagesManager = () => {
                   <div>
                     <Label>Featured Image</Label>
                     <Input
-                      name="featured_image"
-                      value={form.featured_image}
-                      onChange={handleInputChange}
+                      type="file"
+                      accept="image/*"
                       className="mt-1"
-                      placeholder="Paste image URL here"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploading(true);
+                        setUploadError(null);
+                        const fileExt = file.name.split(".").pop();
+                        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+                        const { error } = await supabase.storage
+                          .from("hajj-packages")
+                          .upload(fileName, file, { upsert: true });
+                        if (error) {
+                          setUploadError(error.message);
+                          setUploading(false);
+                          return;
+                        }
+                        const { data } = supabase.storage
+                          .from("hajj-packages")
+                          .getPublicUrl(fileName);
+                        setForm((f: HajjPackageForm) => ({
+                          ...f,
+                          featured_image: data.publicUrl,
+                        }));
+                        setUploading(false);
+                      }}
                     />
+                    {uploading && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Uploading...
+                      </div>
+                    )}
+                    {uploadError && (
+                      <div className="text-xs text-red-500 mt-1">
+                        {uploadError}
+                      </div>
+                    )}
                     {form.featured_image && (
                       <img
                         src={form.featured_image}
@@ -364,7 +569,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="duration">Duration</Label>
                     <Input
                       name="duration"
-                      value={form.duration}
+                      value={form.duration || ""}
                       onChange={handleInputChange}
                       required
                       className="mt-1"
@@ -374,7 +579,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="duration_category">Duration Category</Label>
                     <select
                       name="duration_category"
-                      value={form.duration_category}
+                      value={form.duration_category || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -390,7 +595,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="meal_plan">Meal Plan</Label>
                     <select
                       name="meal_plan"
-                      value={form.meal_plan}
+                      value={form.meal_plan || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -406,7 +611,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="flight_type">Flight Type</Label>
                     <select
                       name="flight_type"
-                      value={form.flight_type}
+                      value={form.flight_type || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -434,7 +639,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.sharing.adult}
+                          value={form.price.sharing.adult || ""}
                           onChange={(e) =>
                             handlePriceChange(
                               "sharing",
@@ -451,7 +656,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.sharing.child}
+                          value={form.price.sharing.child || ""}
                           onChange={(e) =>
                             handlePriceChange(
                               "sharing",
@@ -468,7 +673,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.sharing.infant}
+                          value={form.price.sharing.infant || ""}
                           onChange={(e) =>
                             handlePriceChange(
                               "sharing",
@@ -490,7 +695,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.private.quad}
+                          value={form.price.private.quad || ""}
                           onChange={(e) =>
                             handlePriceChange("private", "quad", e.target.value)
                           }
@@ -503,7 +708,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.private.triple}
+                          value={form.price.private.triple || ""}
                           onChange={(e) =>
                             handlePriceChange(
                               "private",
@@ -520,7 +725,7 @@ const HajjPackagesManager = () => {
                         <Input
                           type="number"
                           min="0"
-                          value={form.price.private.double}
+                          value={form.price.private.double || ""}
                           onChange={(e) =>
                             handlePriceChange(
                               "private",
@@ -546,7 +751,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="makkah_hotel_name">Makkah Hotel Name</Label>
                     <Input
                       name="makkah_hotel_name"
-                      value={form.makkah_hotel_name}
+                      value={form.makkah_hotel_name || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -557,7 +762,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <select
                       name="makkah_hotel_category"
-                      value={form.makkah_hotel_category}
+                      value={form.makkah_hotel_category || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -575,7 +780,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Input
                       name="makkah_hotel_distance"
-                      value={form.makkah_hotel_distance}
+                      value={form.makkah_hotel_distance || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -586,7 +791,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Input
                       name="madinah_hotel_name"
-                      value={form.madinah_hotel_name}
+                      value={form.madinah_hotel_name || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -597,7 +802,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <select
                       name="madinah_hotel_category"
-                      value={form.madinah_hotel_category}
+                      value={form.madinah_hotel_category || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -615,7 +820,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Input
                       name="madinah_hotel_distance"
-                      value={form.madinah_hotel_distance}
+                      value={form.madinah_hotel_distance || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -632,7 +837,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="departure_city">Departure City</Label>
                     <Input
                       name="departure_city"
-                      value={form.departure_city}
+                      value={form.departure_city || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -642,7 +847,7 @@ const HajjPackagesManager = () => {
                     <Input
                       name="departure_date"
                       type="date"
-                      value={form.departure_date}
+                      value={form.departure_date || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -651,7 +856,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="package_category">Package Category</Label>
                     <Input
                       name="package_category"
-                      value={form.package_category}
+                      value={form.package_category || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -668,7 +873,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="maktab">Maktab</Label>
                     <select
                       name="maktab"
-                      value={form.maktab}
+                      value={form.maktab || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -684,7 +889,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="type">Type</Label>
                     <select
                       name="type"
-                      value={form.type}
+                      value={form.type || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -700,7 +905,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="class">Class</Label>
                     <select
                       name="class"
-                      value={form.class}
+                      value={form.class || ""}
                       onChange={handleInputChange}
                       className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
@@ -725,7 +930,7 @@ const HajjPackagesManager = () => {
                     <Input
                       name="max_capacity"
                       type="number"
-                      value={form.max_capacity}
+                      value={form.max_capacity ?? ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -735,7 +940,7 @@ const HajjPackagesManager = () => {
                     <Input
                       name="available_spots"
                       type="number"
-                      value={form.available_spots}
+                      value={form.available_spots ?? ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />
@@ -749,7 +954,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="inclusions"
-                      value={form.inclusions.join(", ")}
+                      value={form.inclusions || ""}
                       onChange={(e) =>
                         handleArrayChange("inclusions", e.target.value)
                       }
@@ -765,7 +970,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="exclusions"
-                      value={form.exclusions.join(", ")}
+                      value={form.exclusions || ""}
                       onChange={(e) =>
                         handleArrayChange("exclusions", e.target.value)
                       }
@@ -782,13 +987,13 @@ const HajjPackagesManager = () => {
                             idx: number,
                           ) => (
                             <div
-                              key={idx}
+                              key={item.title || idx}
                               className="flex flex-col md:flex-row gap-2 items-end border p-3 rounded-md bg-white/80"
                             >
                               <div className="flex-1">
                                 <Label className="text-xs">Title</Label>
                                 <Input
-                                  value={item.title}
+                                  value={item.title || ""}
                                   onChange={(e) =>
                                     handleItineraryChange(
                                       idx,
@@ -803,7 +1008,7 @@ const HajjPackagesManager = () => {
                               <div className="flex-1">
                                 <Label className="text-xs">Description</Label>
                                 <Input
-                                  value={item.description}
+                                  value={item.description || ""}
                                   onChange={(e) =>
                                     handleItineraryChange(
                                       idx,
@@ -876,7 +1081,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="terms_and_conditions"
-                      value={form.terms_and_conditions}
+                      value={form.terms_and_conditions || ""}
                       onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
@@ -887,7 +1092,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="cancellation_policy"
-                      value={form.cancellation_policy}
+                      value={form.cancellation_policy || ""}
                       onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
@@ -896,7 +1101,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="refund_policy">Refund Policy</Label>
                     <Textarea
                       name="refund_policy"
-                      value={form.refund_policy}
+                      value={form.refund_policy || ""}
                       onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
@@ -907,7 +1112,7 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="traveller_responsibilities"
-                      value={form.traveller_responsibilities}
+                      value={form.traveller_responsibilities || ""}
                       onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
@@ -916,7 +1121,7 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="disclaimer">Disclaimer</Label>
                     <Textarea
                       name="disclaimer"
-                      value={form.disclaimer}
+                      value={form.disclaimer || ""}
                       onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
@@ -933,8 +1138,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="slug">Slug</Label>
                     <Input
                       name="slug"
-                      value={form.seo.slug}
-                      onChange={(e) => handleSeoChange("slug", e.target.value)}
+                      value={form.slug || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -942,10 +1147,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="meta_title">Meta Title</Label>
                     <Input
                       name="meta_title"
-                      value={form.seo.meta_title}
-                      onChange={(e) =>
-                        handleSeoChange("meta_title", e.target.value)
-                      }
+                      value={form.meta_title || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -953,10 +1156,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="meta_description">Meta Description</Label>
                     <Textarea
                       name="meta_description"
-                      value={form.seo.meta_description}
-                      onChange={(e) =>
-                        handleSeoChange("meta_description", e.target.value)
-                      }
+                      value={form.meta_description || ""}
+                      onChange={handleInputChange}
                       className="mt-1 min-h-[60px]"
                     />
                   </div>
@@ -969,10 +1170,8 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Input
                       name="target_keywords"
-                      value={form.seo.target_keywords}
-                      onChange={(e) =>
-                        handleSeoChange("target_keywords", e.target.value)
-                      }
+                      value={form.target_keywords || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -980,10 +1179,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="og_title">OG Title</Label>
                     <Input
                       name="og_title"
-                      value={form.seo.og_title}
-                      onChange={(e) =>
-                        handleSeoChange("og_title", e.target.value)
-                      }
+                      value={form.og_title || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -991,10 +1188,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="og_description">OG Description</Label>
                     <Input
                       name="og_description"
-                      value={form.seo.og_description}
-                      onChange={(e) =>
-                        handleSeoChange("og_description", e.target.value)
-                      }
+                      value={form.og_description || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -1002,10 +1197,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="og_image">OG Image URL</Label>
                     <Input
                       name="og_image"
-                      value={form.seo.og_image}
-                      onChange={(e) =>
-                        handleSeoChange("og_image", e.target.value)
-                      }
+                      value={form.og_image || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -1013,10 +1206,8 @@ const HajjPackagesManager = () => {
                     <Label htmlFor="canonical_url">Canonical URL</Label>
                     <Input
                       name="canonical_url"
-                      value={form.seo.canonical_url}
-                      onChange={(e) =>
-                        handleSeoChange("canonical_url", e.target.value)
-                      }
+                      value={form.canonical_url || ""}
+                      onChange={handleInputChange}
                       className="mt-1"
                     />
                   </div>
@@ -1026,10 +1217,8 @@ const HajjPackagesManager = () => {
                     </Label>
                     <Textarea
                       name="schema_markup"
-                      value={form.seo.schema_markup}
-                      onChange={(e) =>
-                        handleSeoChange("schema_markup", e.target.value)
-                      }
+                      value={form.schema_markup || ""}
+                      onChange={handleInputChange}
                       className="mt-1 min-h-[60px] font-mono"
                     />
                   </div>
@@ -1062,93 +1251,85 @@ const HajjPackagesManager = () => {
             <div>No packages found.</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
+              <table className="min-w-full text-sm border-separate border-spacing-0 rounded-xl overflow-hidden shadow-md bg-white">
+                <thead className="bg-emerald-50 sticky top-0 z-10">
                   <tr>
-                    <th>Name</th>
-                    <th>Featured Image</th>
-                    <th>
+                    <th className="px-4 py-3 text-left font-semibold">Name</th>
+                    <th className="px-4 py-3 text-left font-semibold">
                       Sharing Price
                       <br />
                       <span className="font-normal text-xs">
                         Adult/Child/Infant
                       </span>
                     </th>
-                    <th>
-                      Private Price
-                      <br />
-                      <span className="font-normal text-xs">
-                        Quad/Triple/Double
-                      </span>
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Duration
                     </th>
-                    <th>Duration</th>
-                    <th>Departure City</th>
-                    <th>Departure Date</th>
-                    <th>Category</th>
-                    <th>Maktab</th>
-                    <th>Type</th>
-                    <th>Class</th>
-                    <th>Actions</th>
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Departure City
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Category
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Maktab
+                    </th>
+                    <th className="px-4 py-3 text-left font-semibold">Type</th>
+                    <th className="px-4 py-3 text-left font-semibold">Class</th>
+                    <th className="px-4 py-3 text-left font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {packages.map((pkg) => (
-                    <tr key={pkg.id}>
-                      <td>{pkg.name}</td>
-                      <td>
-                        {pkg.featured_image && (
-                          <img
-                            src={pkg.featured_image}
-                            alt="Featured"
-                            className="h-10 w-16 object-cover rounded"
-                          />
-                        )}
-                      </td>
-                      <td>
+                  {packages.map((pkg, idx) => (
+                    <tr
+                      key={pkg.id || idx}
+                      className={
+                        idx % 2 === 0
+                          ? "bg-white hover:bg-emerald-50 transition-colors"
+                          : "bg-gray-50 hover:bg-emerald-50 transition-colors"
+                      }
+                    >
+                      <td className="px-4 py-3 align-middle">{pkg.name}</td>
+                      <td className="px-4 py-3 align-middle">
                         {pkg.price?.sharing
                           ? [
                               pkg.price.sharing.adult,
                               pkg.price.sharing.child,
                               pkg.price.sharing.infant,
                             ]
-                              .map((v, i) => v || "-")
+                              .map((v) => v || "-")
                               .join(" / ")
                           : "-"}
                       </td>
-                      <td>
-                        {pkg.price?.private
-                          ? [
-                              pkg.price.private.quad,
-                              pkg.price.private.triple,
-                              pkg.price.private.double,
-                            ]
-                              .map((v, i) => v || "-")
-                              .join(" / ")
-                          : "-"}
+                      <td className="px-4 py-3 align-middle">{pkg.duration}</td>
+                      <td className="px-4 py-3 align-middle">
+                        {pkg.departure_city}
                       </td>
-                      <td>{pkg.duration}</td>
-                      <td>{pkg.departure_city}</td>
-                      <td>{pkg.departure_date}</td>
-                      <td>{pkg.package_category}</td>
-                      <td>{pkg.maktab}</td>
-                      <td>{pkg.type}</td>
-                      <td>{pkg.class}</td>
-                      <td>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(pkg)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(pkg.id)}
-                          className="ml-2"
-                        >
-                          Delete
-                        </Button>
+                      <td className="px-4 py-3 align-middle">
+                        {pkg.package_category}
+                      </td>
+                      <td className="px-4 py-3 align-middle">{pkg.maktab}</td>
+                      <td className="px-4 py-3 align-middle">{pkg.type}</td>
+                      <td className="px-4 py-3 align-middle">{pkg.class}</td>
+                      <td className="px-4 py-3 align-middle whitespace-nowrap">
+                        <div className="flex gap-2 items-center">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(pkg)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(pkg.id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
