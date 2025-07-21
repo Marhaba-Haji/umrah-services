@@ -29,9 +29,9 @@ import { convertFromINR } from "@/lib/utils";
 
 const maktabCategories = ["A", "B", "C", "D"];
 const durations = [
-  { value: "short", label: "Short (<18 days)" },
-  { value: "medium", label: "Medium (18-25 days)" },
-  { value: "long", label: "Long (>25 days)" },
+  { value: "short", label: "Short (<20 days)" },
+  { value: "medium", label: "Medium (20-30 days)" },
+  { value: "long", label: "Long (>30 days)" },
 ];
 const types = ["Shifting", "Non-Shifting"];
 const classes = ["Budget", "Deluxe", "Premium", "Luxury"];
@@ -84,6 +84,7 @@ interface HajjPackage {
   maktab_category?: string;
   type?: string;
   class?: string;
+  terms_and_conditions?: string;
 }
 
 const HajjPackages = () => {
@@ -133,9 +134,9 @@ const HajjPackages = () => {
         const days = getDays(pkg.duration);
         console.log("Duration filter:", pkg.name, pkg.duration, days);
         return (
-          (filters.duration.includes("short") && days < 18) ||
-          (filters.duration.includes("medium") && days >= 18 && days <= 25) ||
-          (filters.duration.includes("long") && days > 25)
+          (filters.duration.includes("short") && days < 20) ||
+          (filters.duration.includes("medium") && days >= 20 && days <= 30) ||
+          (filters.duration.includes("long") && days > 30)
         );
       });
     }

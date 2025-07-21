@@ -148,7 +148,7 @@ const App = () => {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/hajj-packages" element={<HajjPackages />} />
                     <Route
-                      path="/hajj-packages/:id"
+                      path="/hajj-packages/:slug"
                       element={<HajjPackageDetail />}
                     />
                     <Route path="*" element={<NotFound />} />

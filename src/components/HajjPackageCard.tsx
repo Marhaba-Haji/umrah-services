@@ -58,6 +58,11 @@ const HajjPackageCard = ({ pkg }: HajjPackageCardProps) => {
     }
   };
 
+  const getSlug = () => {
+    // Prefer top-level slug, then seo.slug, fallback to id
+    return pkg.slug || (pkg.seo && pkg.seo.slug) || pkg.id;
+  };
+
   return (
     <Card className="group relative min-h-[250px] md:min-h-[250px] flex flex-col overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 bg-white rounded-2xl scale-100 hover:scale-[1.025]">
       {/* Image Section */}
@@ -128,6 +133,15 @@ const HajjPackageCard = ({ pkg }: HajjPackageCardProps) => {
                 className="border-blue-200 text-blue-700 bg-blue-50 text-xs rounded-full"
               >
                 {pkg.duration_category}
+              </Badge>
+            )}
+            {/* Maktab Category */}
+            {pkg.maktab_category && (
+              <Badge
+                variant="outline"
+                className="border-yellow-200 text-yellow-700 bg-yellow-50 text-xs rounded-full"
+              >
+                Maktab {pkg.maktab_category}
               </Badge>
             )}
             {/* Class */}
@@ -201,7 +215,7 @@ const HajjPackageCard = ({ pkg }: HajjPackageCardProps) => {
             )}
           </div>
 
-          <Link to={`/hajj-packages/${pkg.id}`} className="mt-3">
+          <Link to={`/hajj-packages/${getSlug()}`} className="mt-3">
             <Button
               className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg font-semibold text-base py-2"
               size="sm"

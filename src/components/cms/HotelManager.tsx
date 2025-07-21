@@ -317,6 +317,8 @@ const HotelManager = ({ session }) => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="1">Budget</SelectItem>
+                            <SelectItem value="2">2 Star</SelectItem>
                             <SelectItem value="3">3 Stars</SelectItem>
                             <SelectItem value="4">4 Stars</SelectItem>
                             <SelectItem value="5">5 Stars</SelectItem>

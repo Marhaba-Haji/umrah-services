@@ -128,6 +128,15 @@ interface HajjPackageForm extends HajjPackage {
   [key: string]: unknown;
 }
 
+// Add a slugify helper
+function slugify(str: string) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/--+/g, "-");
+}
+
 const HajjPackagesManager = () => {
   const [packages, setPackages] = useState<HajjPackage[]>([]);
   const [form, setForm] = useState<HajjPackageForm>(defaultForm);
@@ -140,6 +149,7 @@ const HajjPackagesManager = () => {
   >([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   useEffect(() => {
     fetchPackages();
@@ -170,7 +180,17 @@ const HajjPackagesManager = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
-    setForm((f: HajjPackageForm) => ({ ...f, [name]: value }));
+    setForm((f: HajjPackageForm) => {
+      // If the name changes and slug hasn't been manually edited, update slug
+      if (name === "name" && !slugManuallyEdited) {
+        return { ...f, [name]: value, slug: slugify(value) };
+      }
+      // If the slug is being changed, set the manual flag
+      if (name === "slug") {
+        setSlugManuallyEdited(true);
+      }
+      return { ...f, [name]: value };
+    });
   };
 
   const handleArrayChange = (name: string, value: string) => {
@@ -383,6 +403,7 @@ const HajjPackagesManager = () => {
   };
 
   const handleEdit = (pkg: HajjPackage) => {
+    setSlugManuallyEdited(false);
     // Ensure seo is always present and has all required fields
     const defaultSeo = {
       slug: "",
@@ -848,15 +869,6 @@ const HajjPackagesManager = () => {
                       name="departure_date"
                       type="date"
                       value={form.departure_date || ""}
-                      onChange={handleInputChange}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="package_category">Package Category</Label>
-                    <Input
-                      name="package_category"
-                      value={form.package_category || ""}
                       onChange={handleInputChange}
                       className="mt-1"
                     />

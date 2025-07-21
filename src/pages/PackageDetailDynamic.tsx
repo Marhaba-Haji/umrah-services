@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "../components/Header";
@@ -49,6 +49,7 @@ import {
 } from "../components/ui/drawer";
 import FlightSearch from "../components/FlightSearch";
 import type { FlightOffer } from "../components/FlightSearch";
+import { format } from "date-fns";
 
 type AirportSuggestion = {
   code: string;
@@ -387,6 +388,11 @@ const PackageDetailDynamic = () => {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [flightSearchResults, setFlightSearchResults] =
     useState<FlightSearchResults | null>(null);
+  const [expandedActivities, setExpandedActivities] = useState<
+    Record<string, boolean>
+  >({});
+  const descRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [overflowing, setOverflowing] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -477,6 +483,25 @@ const PackageDetailDynamic = () => {
       setGuestCount({ sharing: 1, childWithoutBed: 0, infants: 0 });
     }
   }, [selectedRoomType]);
+
+  useEffect(() => {
+    // Use setTimeout to ensure DOM is painted before checking overflow
+    const timeout = setTimeout(() => {
+      const newOverflowing: Record<string, boolean> = {};
+      if (activityDetails && activityDetails.length > 0) {
+        activityDetails.forEach((activity) => {
+          const ref = descRefs.current[activity.id];
+          if (ref && ref.scrollHeight > ref.clientHeight) {
+            newOverflowing[activity.id] = true;
+          } else {
+            newOverflowing[activity.id] = false;
+          }
+        });
+        setOverflowing(newOverflowing);
+      }
+    }, 0);
+    return () => clearTimeout(timeout);
+  }, [activityDetails, expandedActivities]);
 
   // Helper to fetch airport suggestions
   const fetchAirportSuggestions = async (
@@ -983,6 +1008,11 @@ const PackageDetailDynamic = () => {
               {pkg.package_category}
             </Badge>
           )}
+          {pkg.season_category && (
+            <Badge className="bg-yellow-700 text-white shadow font-bold px-3 py-1 text-base rounded-full">
+              {pkg.season_category}
+            </Badge>
+          )}
         </div>
         <ResponsiveBanner alt={pkg.title} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -997,13 +1027,6 @@ const PackageDetailDynamic = () => {
                 {pkg.duration || "Duration not specified"}
               </div>
               <div className="flex items-center">
-                <Star className="w-5 h-5 mr-2 fill-current text-yellow-400" />
-                {pkg.rating
-                  ? `${pkg.rating} (${pkg.reviews} reviews)`
-                  : "(No reviews)"}
-              </div>
-              <div className="flex items-center">
-                <Plane className="w-5 h-5 mr-2" />
                 {pkg.flight_included === false ? (
                   <span className="text-red-500 font-semibold mr-3">
                     Flight not included
@@ -1091,6 +1114,11 @@ const PackageDetailDynamic = () => {
                         {pkg.package_category}
                       </span>
                     )}
+                    {pkg.season_category && (
+                      <span className="inline-flex items-center bg-yellow-100 text-yellow-800 font-bold px-3 py-1 rounded-full text-sm shadow border border-yellow-200">
+                        {pkg.season_category}
+                      </span>
+                    )}
                   </div>
                   <h1 className="text-4xl md:text-5xl font-extrabold text-emerald-900 leading-tight drop-shadow mb-2">
                     {pkg.name}
@@ -1109,7 +1137,7 @@ const PackageDetailDynamic = () => {
                     {pkg.departure_date && (
                       <span className="inline-flex items-center bg-blue-50 text-blue-800 px-3 py-1 rounded-full text-sm font-medium gap-1">
                         <Plane className="w-4 h-4" />
-                        {new Date(pkg.departure_date).toLocaleDateString()}
+                        {format(new Date(pkg.departure_date), "dd-MMM-yyyy")}
                       </span>
                     )}
                     {pkg.cities_covered && pkg.cities_covered.length > 0 && (
@@ -1149,11 +1177,22 @@ const PackageDetailDynamic = () => {
                           {pkg.flight_details?.airline_name ||
                             "Pre-determined group flight"}{" "}
                           <br />
+                          {/* Show departure and return airport IATA codes from DB fields */}
                           {pkg.flight_details?.departure_from_airport &&
-                            pkg.flight_details?.arrival_at_airport && (
+                            pkg.flight_details?.return_from_airport && (
                               <>
-                                {pkg.flight_details.departure_from_airport} →{" "}
-                                {pkg.flight_details.arrival_at_airport} <br />
+                                Departure:{" "}
+                                {pkg.flight_details.departure_from_airport}
+                                {" | "}
+                                Return: {pkg.flight_details.return_from_airport}
+                                <br />
+                                {pkg.flight_details.flight_type && (
+                                  <>
+                                    Flight Type:{" "}
+                                    {pkg.flight_details.flight_type}
+                                    <br />
+                                  </>
+                                )}
                               </>
                             )}
                           {pkg.flight_details?.departure_date &&
@@ -1551,19 +1590,25 @@ const PackageDetailDynamic = () => {
                             },
                             idx: number,
                           ) => {
+                            const isExpanded =
+                              expandedActivities[activity.id] || false;
+                            const toggleExpand = () =>
+                              setExpandedActivities((prev) => ({
+                                ...prev,
+                                [activity.id]: !isExpanded,
+                              }));
                             return (
                               <div
                                 key={activity.id || idx}
                                 className="bg-white rounded-xl shadow-md border border-emerald-100 overflow-hidden hover:shadow-lg transition-shadow duration-200 p-6"
                               >
-                                <div className="clearfix">
+                                <div className="clearfix flex gap-4">
                                   <img
                                     src={
                                       activity.featured_image ||
                                       "/placeholder.svg"
                                     }
                                     alt={activity.name}
-                                    className="float-left w-32 h-32 object-cover rounded-lg mr-6 mb-2 border border-emerald-100 shadow"
                                     style={{
                                       maxWidth: "8rem",
                                       maxHeight: "8rem",
@@ -1573,7 +1618,7 @@ const PackageDetailDynamic = () => {
                                       e.currentTarget.src = "/placeholder.svg";
                                     }}
                                   />
-                                  <div className="flex flex-col gap-1">
+                                  <div className="flex flex-col gap-1 flex-1">
                                     <span className="text-xl font-bold text-emerald-900">
                                       {activity.name}
                                     </span>
@@ -1589,15 +1634,39 @@ const PackageDetailDynamic = () => {
                                         </span>
                                       )}
                                     </div>
+                                    {activity.description && (
+                                      <div
+                                        ref={(el) => {
+                                          descRefs.current[activity.id] = el;
+                                        }}
+                                        className={`text-gray-700 text-base leading-relaxed mt-2 relative transition-all duration-300 ${
+                                          isExpanded
+                                            ? "max-h-none"
+                                            : "line-clamp-5"
+                                        }`}
+                                        style={{}}
+                                        dangerouslySetInnerHTML={{
+                                          __html: activity.description,
+                                        }}
+                                      />
+                                    )}
+                                    {/* Read more/less button if content overflows */}
+                                    {activity.description &&
+                                      (isExpanded ||
+                                        (!isExpanded &&
+                                          overflowing[activity.id])) && (
+                                        <button
+                                          className="mt-2 text-emerald-700 font-semibold text-sm underline focus:outline-none"
+                                          style={{ pointerEvents: "auto" }}
+                                          onClick={toggleExpand}
+                                          type="button"
+                                        >
+                                          {isExpanded
+                                            ? "Show less"
+                                            : "Read more"}
+                                        </button>
+                                      )}
                                   </div>
-                                  {activity.description && (
-                                    <div
-                                      className="text-gray-700 text-base leading-relaxed mt-2"
-                                      dangerouslySetInnerHTML={{
-                                        __html: activity.description,
-                                      }}
-                                    />
-                                  )}
                                 </div>
                               </div>
                             );

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import UmrahPackageFilters from "../components/UmrahPackageFilters";
+import CustomPackageFilters from "../components/CustomPackageFilters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,7 +89,7 @@ const CustomPackages = () => {
           <div className="flex gap-8 max-w-7xl mx-auto items-start">
             {/* Left Panel - Filters */}
             <div className="w-80 flex-shrink-0 self-start">
-              <UmrahPackageFilters
+              <CustomPackageFilters
                 onFiltersChange={handleFiltersChange}
                 currency={currency}
               />

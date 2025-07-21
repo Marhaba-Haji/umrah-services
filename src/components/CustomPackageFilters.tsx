@@ -9,42 +9,33 @@ import { Star, Filter } from "lucide-react";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { convertFromINR } from "@/lib/utils";
 
-interface UmrahPackageFiltersProps {
+interface CustomPackageFiltersProps {
   onFiltersChange: (filters: unknown) => void;
   currency: string;
 }
 
-const UmrahPackageFilters = ({
+const CustomPackageFilters = ({
   onFiltersChange,
   currency,
-}: UmrahPackageFiltersProps) => {
+}: CustomPackageFiltersProps) => {
   const [priceRange, setPriceRange] = useState([0, 500000]);
-  const [flightType, setFlightType] = useState("");
+  const [duration, setDuration] = useState("");
   const [makkahDistance, setMakkahDistance] = useState([0, 2000]);
   const [madinahDistance, setMadinahDistance] = useState([0, 2000]);
   const [makkahStars, setMakkahStars] = useState<number[]>([]);
   const [madinahStars, setMadinahStars] = useState<number[]>([]);
 
-  // Call onFiltersChange immediately on any filter change
-  React.useEffect(() => {
+  const handleFiltersChange = () => {
     const filters = {
       priceRange,
-      flightType,
+      duration,
       makkahDistance,
       madinahDistance,
       makkahStars,
       madinahStars,
     };
     onFiltersChange(filters);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    priceRange,
-    flightType,
-    makkahDistance,
-    madinahDistance,
-    makkahStars,
-    madinahStars,
-  ]);
+  };
 
   const handleStarRatingChange = (
     stars: number,
@@ -112,23 +103,23 @@ const UmrahPackageFilters = ({
           </div>
         </div>
 
-        {/* Flight Type */}
+        {/* Duration */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            ✈️ Flight Type
+            ⏱️ Duration
           </label>
-          <RadioGroup value={flightType} onValueChange={setFlightType}>
+          <RadioGroup value={duration} onValueChange={setDuration}>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="direct" id="direct" />
-              <Label htmlFor="direct">Direct</Label>
+              <RadioGroupItem value="short" id="short" />
+              <Label htmlFor="short">Short (5-7 days)</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="connecting" id="connecting" />
-              <Label htmlFor="connecting">Connecting</Label>
+              <RadioGroupItem value="standard" id="standard" />
+              <Label htmlFor="standard">Standard (8-12 days)</Label>
             </div>
             <div className="flex items-center space-x-2">
-              <RadioGroupItem value="any" id="any" />
-              <Label htmlFor="any">Any</Label>
+              <RadioGroupItem value="long" id="long" />
+              <Label htmlFor="long">Long (13+ days)</Label>
             </div>
           </RadioGroup>
         </div>
@@ -253,12 +244,20 @@ const UmrahPackageFilters = ({
           </div>
         </div>
 
+        {/* Apply Filters Button */}
+        <Button
+          onClick={handleFiltersChange}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          Apply Filters
+        </Button>
+
         {/* Clear Filters */}
         <Button
           variant="outline"
           onClick={() => {
-            setPriceRange([0, 500000]);
-            setFlightType("");
+            setPriceRange([1000, 5000]);
+            setDuration("");
             setMakkahDistance([0, 2000]);
             setMadinahDistance([0, 2000]);
             setMakkahStars([]);
@@ -273,4 +272,4 @@ const UmrahPackageFilters = ({
   );
 };
 
-export default UmrahPackageFilters;
+export default CustomPackageFilters;

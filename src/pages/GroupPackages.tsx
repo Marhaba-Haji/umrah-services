@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -15,6 +15,8 @@ import {
   Clock,
   Plane,
   Landmark,
+  Filter as FilterIcon,
+  X as CloseIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -26,6 +28,165 @@ const GroupPackages = () => {
   const [groupPackages, setGroupPackages] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { currency } = useCurrency();
+  const [isMobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [showFabTooltip, setShowFabTooltip] = useState(true);
+  const fabRef = useRef(null);
+  const drawerRef = useRef(null);
+
+  // Helper: returns true if any filters are active
+  function hasActiveFilters(filters) {
+    if (!filters) return false;
+    return Object.values(filters).some((v) =>
+      Array.isArray(v)
+        ? v.length > 0 && !(v.length === 2 && v[0] === 0 && v[1] === 0)
+        : v && v !== "",
+    );
+  }
+
+  // Tooltip auto-hide after 2.5s or on tap
+  useEffect(() => {
+    if (!showFabTooltip) return;
+    const t = setTimeout(() => setShowFabTooltip(false), 2500);
+    return () => clearTimeout(t);
+  }, [showFabTooltip]);
+
+  // Scroll lock when drawer is open
+  useEffect(() => {
+    if (isMobileFilterOpen) {
+      document.body.classList.add("overflow-hidden");
+      // Focus trap: focus first focusable in drawer
+      setTimeout(() => {
+        if (drawerRef.current) {
+          const el = drawerRef.current.querySelector(
+            'button, [tabindex]:not([tabindex="-1"])',
+          );
+          if (el) el.focus();
+        }
+      }, 100);
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [isMobileFilterOpen]);
+
+  // Filtering logic
+  const filteredPackages = React.useMemo(() => {
+    if (
+      !Array.isArray(groupPackages) ||
+      !filters ||
+      Object.keys(filters).length === 0
+    ) {
+      return groupPackages.map((pkg) => ({
+        ...pkg,
+        _parsedMakkahHotel: null,
+        _parsedMadinahHotel: null,
+      }));
+    }
+    // Helper to map filter values to rating numbers
+    const mapCategoryToRating = (cat) => {
+      if (cat === "Budget") return 1;
+      if (cat === "2 Star") return 2;
+      if (typeof cat === "number") return cat;
+      const n = Number(cat);
+      return isNaN(n) ? null : n;
+    };
+    const mappedMakkahStars = (filters.makkahStars || [])
+      .map(mapCategoryToRating)
+      .filter(Boolean);
+    const mappedMadinahStars = (filters.madinahStars || [])
+      .map(mapCategoryToRating)
+      .filter(Boolean);
+    return groupPackages
+      .map((pkg) => {
+        // Parse hotel fields if needed
+        const getHotelObj = (hotel) => {
+          if (!hotel) return null;
+          if (typeof hotel === "string") {
+            try {
+              const parsed = JSON.parse(hotel);
+              if (parsed && typeof parsed === "object") return parsed;
+              return null;
+            } catch {
+              return null;
+            }
+          }
+          if (typeof hotel === "object") return hotel;
+          return null;
+        };
+        const makkahHotel = getHotelObj(pkg.makkah_hotel);
+        const madinahHotel = getHotelObj(pkg.madinah_hotel);
+        return {
+          ...pkg,
+          _parsedMakkahHotel: makkahHotel,
+          _parsedMadinahHotel: madinahHotel,
+        };
+      })
+      .filter((pkg) => {
+        const makkahHotel = pkg._parsedMakkahHotel;
+        const madinahHotel = pkg._parsedMadinahHotel;
+        // Price Range
+        if (filters.priceRange && Array.isArray(filters.priceRange)) {
+          const price =
+            typeof pkg.price === "number"
+              ? pkg.price
+              : parseInt(pkg.price || "0");
+          if (price < filters.priceRange[0] || price > filters.priceRange[1])
+            return false;
+        }
+        // Flight Type
+        if (filters.flightType && filters.flightType !== "any") {
+          const pkgFlightType = pkg.flight_details?.flight_type?.toLowerCase();
+          if (
+            !pkgFlightType ||
+            pkgFlightType !== filters.flightType.toLowerCase()
+          )
+            return false;
+        }
+        // Makkah Hotel Distance
+        if (filters.makkahDistance && Array.isArray(filters.makkahDistance)) {
+          if (makkahHotel && makkahHotel.distance_from_haram != null) {
+            const dist = Number(makkahHotel.distance_from_haram);
+            if (
+              isNaN(dist) ||
+              dist < filters.makkahDistance[0] ||
+              dist > filters.makkahDistance[1]
+            )
+              return false;
+          }
+          // If no valid hotel object or distance, skip this filter (do not exclude)
+        }
+        // Madinah Hotel Distance
+        if (filters.madinahDistance && Array.isArray(filters.madinahDistance)) {
+          if (
+            madinahHotel &&
+            madinahHotel.distance_from_masjid_e_nabawi != null
+          ) {
+            const dist = Number(madinahHotel.distance_from_masjid_e_nabawi);
+            if (
+              isNaN(dist) ||
+              dist < filters.madinahDistance[0] ||
+              dist > filters.madinahDistance[1]
+            )
+              return false;
+          }
+          // If no valid hotel object or distance, skip this filter (do not exclude)
+        }
+        // Makkah Hotel Stars
+        if (mappedMakkahStars.length > 0) {
+          if (!makkahHotel || !mappedMakkahStars.includes(makkahHotel.rating))
+            return false;
+        }
+        // Madinah Hotel Stars
+        if (mappedMadinahStars.length > 0) {
+          if (
+            !madinahHotel ||
+            !mappedMadinahStars.includes(madinahHotel.rating)
+          )
+            return false;
+        }
+        return true;
+      });
+  }, [groupPackages, filters]);
 
   useEffect(() => {
     const fetchGroupPackages = async () => {
@@ -85,12 +246,75 @@ const GroupPackages = () => {
         </div>
       </section>
 
+      {/* Mobile Filter Floating Action Button (FAB) */}
+      <div className="md:hidden">
+        <button
+          ref={fabRef}
+          className="fixed bottom-6 right-6 z-40 bg-emerald-600 shadow-xl rounded-full p-4 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all hover:bg-emerald-700 active:scale-95"
+          aria-label="Open filters"
+          aria-expanded={isMobileFilterOpen}
+          onClick={() => {
+            setMobileFilterOpen(true);
+            setShowFabTooltip(false);
+          }}
+          style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.18)" }}
+        >
+          <FilterIcon className="w-7 h-7 text-white" />
+          {/* Dot badge if filters active */}
+          {hasActiveFilters(filters) && (
+            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full shadow border-2 border-white" />
+          )}
+        </button>
+        {/* Tooltip on first load */}
+        {showFabTooltip && (
+          <div className="fixed bottom-20 right-8 bg-gray-900 text-white text-xs rounded px-2 py-1 shadow animate-fade-in z-50 pointer-events-none select-none">
+            Filters
+          </div>
+        )}
+      </div>
+
+      {/* Mobile Filter Drawer/Modal */}
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-fade-in"
+            onClick={() => setMobileFilterOpen(false)}
+            aria-label="Close filters"
+            tabIndex={-1}
+          />
+          {/* Drawer */}
+          <aside
+            ref={drawerRef}
+            className="relative ml-auto w-full max-w-sm h-full bg-white shadow-2xl rounded-l-3xl flex flex-col animate-slide-in-right focus:outline-none"
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Filter packages"
+          >
+            <button
+              className="absolute top-4 right-4 z-10 bg-gray-100 rounded-full p-2 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              onClick={() => setMobileFilterOpen(false)}
+              aria-label="Close filters"
+            >
+              <CloseIcon className="w-6 h-6 text-gray-700" />
+            </button>
+            <div className="p-6 overflow-y-auto flex-1">
+              <UmrahPackageFilters
+                onFiltersChange={handleFiltersChange}
+                currency={currency}
+              />
+            </div>
+          </aside>
+        </div>
+      )}
+
       {/* Main Content with Filters */}
       <section className="py-8">
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-2 sm:px-4">
           <div className="flex gap-8 max-w-7xl mx-auto items-start">
-            {/* Left Panel - Filters */}
-            <div className="w-80 flex-shrink-0 self-start">
+            {/* Left Panel - Filters (desktop only) */}
+            <div className="w-80 flex-shrink-0 self-start hidden md:block">
               <UmrahPackageFilters
                 onFiltersChange={handleFiltersChange}
                 currency={currency}
@@ -98,18 +322,18 @@ const GroupPackages = () => {
             </div>
 
             {/* Right Panel - Packages */}
-            <div className="flex-1">
+            <div className="flex-1 w-full">
               {/* Info note about currency */}
               <div className="mb-4 text-sm text-gray-500 italic">
                 All prices are in INR (₹) unless otherwise specified.
               </div>
               {isLoading ? (
                 <div>Loading packages...</div>
-              ) : groupPackages.length === 0 ? (
+              ) : filteredPackages.length === 0 ? (
                 <div>No group packages found</div>
               ) : (
-                <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-                  {groupPackages.map((pkg) => {
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8">
+                  {filteredPackages.map((pkg) => {
                     const maxCap = pkg.max_capacity || 0;
                     const availableSpots = Math.min(
                       pkg.available_spots ?? 0,
@@ -122,175 +346,143 @@ const GroupPackages = () => {
                     const isSoldOut = availableSpots === 0;
                     const spotsUrgency =
                       availableSpots > 0 && availableSpots <= 5;
-                    const inclusionsToShow = (pkg.inclusions || []).slice(0, 4);
-                    const moreInclusions =
-                      (pkg.inclusions || []).length - inclusionsToShow.length;
                     const { value, symbol } = convertFromINR(
                       pkg.price,
                       currency,
                     );
+                    const makkahHotel = pkg._parsedMakkahHotel;
+                    const madinahHotel = pkg._parsedMadinahHotel;
                     return (
                       <div
                         key={pkg.id}
-                        className="relative group rounded-3xl overflow-hidden shadow-2xl bg-white/90 border border-emerald-100 hover:shadow-emerald-200 transition-all duration-300 flex flex-col min-h-[540px]"
+                        className="relative group rounded-2xl overflow-hidden shadow-xl bg-white/90 border border-emerald-100 hover:shadow-emerald-200 transition-all duration-300 flex flex-col min-h-[340px]"
                         tabIndex={0}
                         aria-label={`View details for ${pkg.name}`}
                       >
-                        {/* Image with overlays */}
-                        <div className="relative h-56 md:h-64 w-full overflow-hidden aspect-[16/9] rounded-3xl">
+                        {/* Compact Image */}
+                        <div className="relative h-28 md:h-32 w-full overflow-hidden aspect-[4/3] rounded-t-2xl">
                           <img
                             src={
                               pkg.featured_image || "/public/placeholder.svg"
                             }
                             alt={pkg.name}
-                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 rounded-3xl"
+                            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
                             loading="lazy"
                             decoding="async"
                           />
-                          {/* Departure city badge on image, bottom right */}
-                          {pkg.flight_details?.departure_from_airport && (
-                            <div className="absolute bottom-4 right-4 z-20">
-                              <Badge className="bg-blue-600/90 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide backdrop-blur border border-white/20 flex items-center">
-                                <Plane className="w-4 h-4 mr-1 text-white inline-block" />
-                                {pkg.flight_details.departure_from_airport}
+                          {/* Overlay: Package Category (top left) */}
+                          {pkg.package_category && (
+                            <div className="absolute top-2 left-2 z-10">
+                              <Badge className="bg-amber-100/90 text-amber-800 border-amber-200 px-2 py-0.5 text-xs font-bold shadow">
+                                {pkg.package_category}
                               </Badge>
                             </div>
                           )}
-                          {/* Glassy overlay for badges */}
-                          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                            <div className="flex justify-between p-4">
-                              <div className="flex flex-col gap-2">
-                                {pkg.is_group_package && (
-                                  <Badge className="backdrop-blur bg-emerald-600/80 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide">
-                                    Group
-                                  </Badge>
-                                )}
-                                {isSoldOut && (
-                                  <Badge className="backdrop-blur bg-red-600/90 text-white shadow-lg px-3 py-1 text-xs font-bold tracking-wide animate-pulse">
-                                    Sold Out
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex flex-col gap-2 items-end">
-                                {pkg.package_category && (
-                                  <Badge className="backdrop-blur bg-amber-100/80 text-amber-800 border-amber-200 shadow px-3 py-1 text-xs font-bold tracking-wide">
-                                    {pkg.package_category}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex justify-between items-end p-4">
-                              <Badge className="backdrop-blur bg-white/80 text-emerald-700 border-emerald-200 flex items-center gap-1 shadow px-3 py-1 text-xs font-semibold">
-                                <Clock className="w-4 h-4 text-emerald-500" />
+                          {/* Overlay: Duration (top right) */}
+                          {pkg.duration && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <Badge className="bg-white/90 text-emerald-700 border-emerald-200 flex items-center gap-1 px-2 py-0.5 text-xs font-semibold shadow">
+                                <Clock className="w-3 h-3 text-emerald-500" />
                                 {pkg.duration}
                               </Badge>
-                              {spotsUrgency && !isSoldOut && (
-                                <Badge className="backdrop-blur bg-gradient-to-r from-orange-400/80 to-red-400/80 text-white shadow px-3 py-1 text-xs font-bold animate-pulse">
-                                  Only {availableSpots} left!
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        {/* Card Content */}
-                        <div className="flex flex-col flex-1 p-6 pb-4">
-                          {/* Departure date and season category badges below image, above title */}
-                          {(pkg.departure_date || pkg.season_category) && (
-                            <div className="mb-2 flex flex-wrap gap-2 items-center">
-                              {pkg.departure_date && (
-                                <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold px-3 py-1 rounded-full text-xs shadow">
-                                  <Calendar className="w-4 h-4 mr-1 inline-block" />
-                                  {format(
-                                    new Date(pkg.departure_date),
-                                    "dd-MMM-yyyy",
-                                  )}
-                                </Badge>
-                              )}
-                              {pkg.season_category && (
-                                <Badge className="bg-gradient-to-r from-emerald-200 to-teal-100 text-emerald-800 border-emerald-200 font-semibold px-3 py-1 rounded-full text-xs shadow">
-                                  {pkg.season_category}
-                                </Badge>
-                              )}
                             </div>
                           )}
-                          <div className="flex items-center gap-2 mb-2">
-                            <Users
-                              className="w-5 h-5 text-emerald-500"
-                              aria-hidden="true"
-                            />
+                        </div>
+                        {/* Badges Row */}
+                        <div className="flex flex-wrap gap-2 items-center justify-between px-4 pt-2 pb-1">
+                          {isSoldOut && (
+                            <Badge className="bg-red-600/90 text-white px-2 py-0.5 text-xs font-bold animate-pulse">
+                              Sold Out
+                            </Badge>
+                          )}
+                        </div>
+                        {/* Main Content */}
+                        <div className="flex flex-col flex-1 px-4 pb-3 pt-1 gap-2">
+                          {/* Package Name */}
+                          <div className="mb-1">
                             <h2
-                              className="text-2xl font-extrabold text-gray-900 truncate flex-1"
+                              className="text-lg font-bold text-gray-900 truncate flex-1"
                               title={pkg.name}
                             >
                               {pkg.name}
                             </h2>
                           </div>
-                          {/* Hotels in a single row, truncate if too long */}
-                          {(pkg.makkah_hotel?.name ||
-                            pkg.madinah_hotel?.name) && (
-                            <div className="flex gap-2 items-center mb-3 text-sm text-gray-700 w-full overflow-hidden">
-                              {pkg.makkah_hotel?.name && (
-                                <span
-                                  className="flex items-center bg-emerald-50 px-2 py-1 rounded-lg max-w-[48%] truncate"
-                                  title={`Makkah Hotel: ${pkg.makkah_hotel.name}`}
-                                >
-                                  <Landmark className="w-4 h-4 mr-1 text-emerald-500 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {pkg.makkah_hotel.name}
-                                  </span>
+                          {/* Details Grid */}
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-gray-700 mb-1">
+                            {pkg.departure_date && (
+                              <div className="flex items-center gap-1 truncate">
+                                <Calendar className="w-3 h-3 text-emerald-500" />
+                                {format(
+                                  new Date(pkg.departure_date),
+                                  "dd-MMM-yyyy",
+                                )}
+                              </div>
+                            )}
+                            {pkg.flight_details?.departure_from_airport && (
+                              <div className="flex items-center gap-1 truncate">
+                                <Plane className="w-3 h-3 text-blue-500" />
+                                {pkg.flight_details.departure_from_airport}
+                              </div>
+                            )}
+                          </div>
+                          {/* Hotels and Flights Row */}
+                          <div className="flex flex-wrap gap-2 items-center text-xs text-gray-600 mb-1">
+                            {makkahHotel?.name && (
+                              <span
+                                className="flex items-center bg-emerald-50 px-1.5 py-0.5 rounded max-w-[48%] truncate"
+                                title={`Makkah Hotel: ${makkahHotel.name}`}
+                              >
+                                <Landmark className="w-3 h-3 mr-1 text-emerald-500" />
+                                <span className="truncate">
+                                  {makkahHotel.name}
                                 </span>
-                              )}
-                              {pkg.madinah_hotel?.name && (
-                                <span
-                                  className="flex items-center bg-emerald-50 px-2 py-1 rounded-lg max-w-[48%] truncate"
-                                  title={`Madinah Hotel: ${pkg.madinah_hotel.name}`}
-                                >
-                                  <Landmark className="w-4 h-4 mr-1 text-emerald-500 flex-shrink-0" />
-                                  <span className="truncate">
-                                    {pkg.madinah_hotel.name}
-                                  </span>
+                              </span>
+                            )}
+                            {madinahHotel?.name && (
+                              <span
+                                className="flex items-center bg-emerald-50 px-1.5 py-0.5 rounded max-w-[48%] truncate"
+                                title={`Madinah Hotel: ${madinahHotel.name}`}
+                              >
+                                <Landmark className="w-3 h-3 mr-1 text-emerald-500" />
+                                <span className="truncate">
+                                  {madinahHotel.name}
                                 </span>
-                              )}
-                            </div>
-                          )}
-                          {/* Flights (except departure city) */}
-                          <div className="flex flex-wrap gap-2 mb-3 text-sm text-gray-700">
+                              </span>
+                            )}
                             {pkg.flight_details?.airline_name && (
                               <span
-                                className="flex items-center bg-blue-50 px-2 py-1 rounded-lg"
+                                className="flex items-center bg-blue-50 px-1.5 py-0.5 rounded truncate"
                                 title="Airline"
                               >
-                                <Plane className="w-4 h-4 mr-1 text-blue-500" />
+                                <Plane className="w-3 h-3 mr-1 text-blue-500" />
                                 {pkg.flight_details.airline_name}
                               </span>
                             )}
                             {pkg.flight_details?.flight_type && (
                               <span
-                                className="flex items-center bg-blue-50 px-2 py-1 rounded-lg"
+                                className="flex items-center bg-blue-50 px-1.5 py-0.5 rounded truncate"
                                 title="Flight Type"
                               >
-                                <Plane className="w-4 h-4 mr-1 text-blue-500" />
+                                <Plane className="w-3 h-3 mr-1 text-blue-500" />
                                 {pkg.flight_details.flight_type}
                               </span>
                             )}
                           </div>
                           {/* Price & CTA */}
-                          <div className="mt-auto flex flex-col gap-2">
-                            <div className="flex items-end justify-between">
-                              <div>
-                                <span className="text-3xl font-extrabold text-emerald-600">
-                                  {symbol}
-                                  {value.toLocaleString()}
-                                </span>
-                                <span className="text-xs text-gray-500 ml-1">
-                                  per person
-                                </span>
-                              </div>
+                          <div className="flex items-end justify-between mt-2">
+                            <div>
+                              <span className="text-xl font-extrabold text-emerald-600">
+                                {symbol}
+                                {value.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-gray-500 ml-1">
+                                per person
+                              </span>
                             </div>
                             <Button
                               asChild
-                              size="lg"
-                              className="w-full mt-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 rounded-2xl shadow-lg text-base tracking-wide transition-all duration-300 hover:scale-105 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                              size="sm"
+                              className="ml-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold px-4 py-2 rounded-xl shadow text-xs tracking-wide transition-all duration-300 hover:scale-105 focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                               aria-label={`View details for ${pkg.name}`}
                               tabIndex={0}
                               disabled={isSoldOut}
@@ -302,48 +494,7 @@ const GroupPackages = () => {
                               </Link>
                             </Button>
                           </div>
-                          {/* Inclusions Section */}
-                          {inclusionsToShow.length > 0 && (
-                            <div className="mt-5 -mx-6 px-6 py-4 rounded-2xl bg-gradient-to-br from-emerald-100/80 via-white/80 to-teal-100/80 border-t border-emerald-200 shadow-lg shadow-emerald-100/40 relative overflow-hidden">
-                              {/* Optional: subtle pattern or overlay */}
-                              <div
-                                className="absolute inset-0 pointer-events-none opacity-10"
-                                style={{
-                                  background:
-                                    "radial-gradient(circle at 80% 20%, #34d399 0%, transparent 70%)",
-                                }}
-                              />
-                              <div className="relative z-10">
-                                <div className="font-bold text-emerald-900 mb-3 text-base tracking-wide drop-shadow-sm">
-                                  Inclusions
-                                </div>
-                                <div className="flex flex-wrap gap-2">
-                                  {inclusionsToShow.map((inc, idx) => (
-                                    <Badge
-                                      key={idx}
-                                      className="bg-emerald-50 text-emerald-700 border-emerald-200 px-3 py-1 text-sm font-medium rounded-full shadow-sm"
-                                    >
-                                      {inc}
-                                    </Badge>
-                                  ))}
-                                  {moreInclusions > 0 && (
-                                    <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 px-3 py-1 text-sm font-medium rounded-full shadow-sm">
-                                      +{moreInclusions} more
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
                         </div>
-                        {/* Package category badge on image, top right */}
-                        {pkg.package_category && (
-                          <div className="absolute top-4 right-4 z-20">
-                            <Badge className="backdrop-blur bg-amber-100/80 text-amber-800 border-amber-200 shadow px-3 py-1 text-xs font-bold tracking-wide">
-                              {pkg.package_category}
-                            </Badge>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
@@ -355,6 +506,26 @@ const GroupPackages = () => {
       </section>
 
       <Footer />
+
+      {/* Animations for drawer */}
+      <style>{`
+        @keyframes slide-in-right {
+          0% { transform: translateX(100%) scale(0.98); opacity: 0.7; }
+          60% { transform: translateX(-8px) scale(1.02); opacity: 1; }
+          80% { transform: translateX(2px) scale(0.99); }
+          100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        .animate-slide-in-right {
+          animation: slide-in-right 0.38s cubic-bezier(.4,0,.2,1) both;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.2s ease both;
+        }
+      `}</style>
     </div>
   );
 };

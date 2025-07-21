@@ -13,7 +13,7 @@ import { Star, MapPin, Users, Wifi, Car, Coffee } from "lucide-react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import HotelFilters from "../components/HotelFilters";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogTrigger,
@@ -36,11 +36,6 @@ import {
 import { toast } from "react-hot-toast";
 import { useCurrency } from "../contexts/CurrencyContext";
 import { convertFromINR } from "@/lib/utils";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL!,
-  import.meta.env.VITE_SUPABASE_ANON_KEY!,
-);
 
 type Hotel = {
   id: number;
@@ -160,87 +155,86 @@ const HotelBooking = () => {
   const totalChildren = roomData.reduce((sum, r) => sum + r.children, 0);
   const summary = `${totalAdults} adult${totalAdults > 1 ? "s" : ""}${totalChildren ? ", " + totalChildren + " child" + (totalChildren > 1 ? "ren" : "") : ""}, ${roomData.length} room${roomData.length > 1 ? "s" : ""}`;
 
-  const fetchAndFilterHotels = async () => {
-    setLoading(true);
-    let query = supabase.from("hotels").select("*");
+  useEffect(() => {
+    const fetchAndFilterHotels = async () => {
+      setLoading(true);
+      let query = supabase.from("hotels").select("*");
 
-    // Filter by city from sidebar
-    if (activeFilters.city && activeFilters.city !== "all") {
-      query = query.eq("city", activeFilters.city);
-    }
+      // Filter by city from sidebar
+      if (activeFilters.city && activeFilters.city !== "all") {
+        query = query.eq("city", activeFilters.city);
+      }
 
-    // Apply price filter only if changed from default
-    if (
-      activeFilters.priceRange &&
-      (activeFilters.priceRange[0] > defaultPriceRange[0] ||
-        activeFilters.priceRange[1] < defaultPriceRange[1])
-    ) {
-      query = query.gte("price_per_night", activeFilters.priceRange[0]);
-      query = query.lte("price_per_night", activeFilters.priceRange[1]);
-    }
+      // Apply price filter only if changed from default
+      if (
+        activeFilters.priceRange &&
+        (activeFilters.priceRange[0] > defaultPriceRange[0] ||
+          activeFilters.priceRange[1] < defaultPriceRange[1])
+      ) {
+        query = query.gte("price_per_night", activeFilters.priceRange[0]);
+        query = query.lte("price_per_night", activeFilters.priceRange[1]);
+      }
 
-    // Apply star rating filter only if at least one is selected
-    if (activeFilters.starRating && activeFilters.starRating.length > 0) {
-      query = query.in("rating", activeFilters.starRating);
-    }
+      // Apply star rating filter only if at least one is selected
+      if (activeFilters.starRating && activeFilters.starRating.length > 0) {
+        query = query.in("rating", activeFilters.starRating);
+      }
 
-    // Apply distance filter only if changed from default
-    if (
-      activeFilters.distanceRange &&
-      activeFilters.city &&
-      activeFilters.city !== "all" &&
-      (activeFilters.distanceRange[0] > defaultDistanceRange[0] ||
-        activeFilters.distanceRange[1] < defaultDistanceRange[1])
-    ) {
-      const distanceColumn =
-        activeFilters.city === "makkah"
-          ? "distance_from_haram"
-          : "distance_from_masjid_e_nabawi";
-      query = query.gte(distanceColumn, activeFilters.distanceRange[0]);
-      query = query.lte(distanceColumn, activeFilters.distanceRange[1]);
-    }
-
-    // Apply amenities filter only if at least one is selected
-    if (activeFilters.amenities && activeFilters.amenities.length > 0) {
-      query = query.contains("amenities", activeFilters.amenities);
-    }
-
-    // Sorting
-    const sortOptions = {
-      "price-asc": { column: "price_per_night", ascending: true },
-      "price-desc": { column: "price_per_night", ascending: false },
-      "distance-asc": {
-        column:
+      // Apply distance filter only if changed from default
+      if (
+        activeFilters.distanceRange &&
+        activeFilters.city &&
+        activeFilters.city !== "all" &&
+        (activeFilters.distanceRange[0] > defaultDistanceRange[0] ||
+          activeFilters.distanceRange[1] < defaultDistanceRange[1])
+      ) {
+        const distanceColumn =
           activeFilters.city === "makkah"
             ? "distance_from_haram"
-            : "distance_from_masjid_e_nabawi",
-        ascending: true,
-      },
+            : "distance_from_masjid_e_nabawi";
+        query = query.gte(distanceColumn, activeFilters.distanceRange[0]);
+        query = query.lte(distanceColumn, activeFilters.distanceRange[1]);
+      }
+
+      // Apply amenities filter only if at least one is selected
+      if (activeFilters.amenities && activeFilters.amenities.length > 0) {
+        query = query.contains("amenities", activeFilters.amenities);
+      }
+
+      // Sorting
+      const sortOptions = {
+        "price-asc": { column: "price_per_night", ascending: true },
+        "price-desc": { column: "price_per_night", ascending: false },
+        "distance-asc": {
+          column:
+            activeFilters.city === "makkah"
+              ? "distance_from_haram"
+              : "distance_from_masjid_e_nabawi",
+          ascending: true,
+        },
+      };
+
+      if (sortBy === "distance-asc" && activeFilters.city === "all") {
+        // Cannot sort by distance if no city is selected, so default to price
+        query = query.order("price_per_night", { ascending: true });
+      } else {
+        query = query.order(sortOptions[sortBy].column, {
+          ascending: sortOptions[sortBy].ascending,
+        });
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching hotels:", error);
+        setHotels([]);
+      } else {
+        setHotels(data || []);
+      }
+      setLoading(false);
     };
-
-    if (sortBy === "distance-asc" && activeFilters.city === "all") {
-      // Cannot sort by distance if no city is selected, so default to price
-      query = query.order("price_per_night", { ascending: true });
-    } else {
-      query = query.order(sortOptions[sortBy].column, {
-        ascending: sortOptions[sortBy].ascending,
-      });
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching hotels:", error);
-      setHotels([]);
-    } else {
-      setHotels(data || []);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
     fetchAndFilterHotels();
-  }, [activeFilters, sortBy, fetchAndFilterHotels]);
+  }, [activeFilters, sortBy]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
