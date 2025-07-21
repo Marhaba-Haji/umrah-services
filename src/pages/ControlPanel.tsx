@@ -18,6 +18,7 @@ import SaudiVisasManager from "@/components/cms/SaudiVisasManager";
 import HajjPackagesManager from "@/components/cms/HajjPackagesManager";
 import MarkupManagement from "@/components/cms/MarkupManagement";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import FaqsManager from "@/components/cms/FaqsManager";
 
 const APP_NAME = "Marhaba Admin";
 
@@ -49,6 +50,7 @@ const ControlPanel = () => {
         { id: "ziarath-manager", label: "Ziarath Manager", icon: "🕌" },
         { id: "blog-manager", label: "Blog Manager", icon: "📝" },
         { id: "lead-manager", label: "Leads Manager", icon: "📋" },
+        { id: "faqs-manager", label: "FAQs", icon: "❓" },
       ],
     },
     {
@@ -137,6 +139,8 @@ const ControlPanel = () => {
         return <MarkupManagement />;
       case "lead-manager":
         return <LeadManager />;
+      case "faqs-manager":
+        return <FaqsManager />;
       case "logout":
         handleLogout();
         return null;
