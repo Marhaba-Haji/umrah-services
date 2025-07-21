@@ -1283,7 +1283,7 @@ const UmrahApplication = () => {
         </div>
       </div>
 
-      <FAQSection />
+      <FAQSection page="visa" />
       <Footer />
     </div>
   );

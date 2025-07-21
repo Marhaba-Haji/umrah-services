@@ -102,7 +102,7 @@ const FAQ = () => {
         </section>
 
         {/* FAQ Content */}
-        <FAQSection />
+        <FAQSection page="faqs" />
 
         {/* Additional Help Categories */}
         <section className="py-16 bg-gray-50">

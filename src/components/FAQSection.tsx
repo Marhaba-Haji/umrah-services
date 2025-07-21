@@ -6,6 +6,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import { Button } from "@/components/ui/button";
 
 interface Faq {
   id: number;
@@ -14,6 +16,8 @@ interface Faq {
   seo_title?: string | null;
   seo_description?: string | null;
   keywords?: string[] | null;
+  updated_at?: string | null;
+  helpful_count?: number;
 }
 
 function injectFAQJsonLD(faqs: Faq[]) {
@@ -27,6 +31,7 @@ function injectFAQJsonLD(faqs: Faq[]) {
       acceptedAnswer: {
         "@type": "Answer",
         text: faq.seo_description || faq.answer,
+        ...(faq.updated_at ? { dateModified: faq.updated_at } : {}),
       },
     })),
   };
@@ -40,28 +45,75 @@ function injectFAQJsonLD(faqs: Faq[]) {
   document.head.appendChild(script);
 }
 
-const FAQSection = () => {
+interface FAQSectionProps {
+  page?: string;
+}
+
+const FAQSection: React.FC<FAQSectionProps> = ({ page = "faqs" }) => {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(true);
+  const [voted, setVoted] = useState<{ [faqId: number]: boolean }>({});
+
+  useEffect(() => {
+    const votedMap: { [faqId: number]: boolean } = {};
+    try {
+      const stored = localStorage.getItem("faq_helpful_voted");
+      if (stored) Object.assign(votedMap, JSON.parse(stored));
+    } catch (e) {
+      /* ignore */
+    }
+    setVoted(votedMap);
+  }, []);
 
   useEffect(() => {
     const fetchFaqs = async () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("faqs")
-        .select("id, question, answer, seo_title, seo_description, keywords")
-        .eq("page", "faqs");
+        .select(
+          "id, question, answer, seo_title, seo_description, keywords, updated_at, helpful_count",
+        )
+        .eq("page", page);
       if (!error && data) setFaqs(data);
       setLoading(false);
     };
     fetchFaqs();
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (!loading && faqs.length > 0) {
       injectFAQJsonLD(faqs);
     }
   }, [loading, faqs]);
+
+  function formatDate(dateStr?: string | null) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }
+
+  async function handleHelpful(faqId: number) {
+    if (voted[faqId]) return;
+    // Optimistically update UI
+    setFaqs((faqs) =>
+      faqs.map((f) =>
+        f.id === faqId
+          ? { ...f, helpful_count: (f.helpful_count || 0) + 1 }
+          : f,
+      ),
+    );
+    setVoted((v) => {
+      const updated = { ...v, [faqId]: true };
+      localStorage.setItem("faq_helpful_voted", JSON.stringify(updated));
+      return updated;
+    });
+    // Update in Supabase
+    await supabase.rpc("increment_faq_helpful", { faq_id: faqId });
+  }
 
   return (
     <section id="faq" className="py-20 bg-white">
@@ -93,11 +145,61 @@ const FAQSection = () => {
                   value={`item-${faq.id}`}
                   className="border border-gray-200 rounded-lg px-6 py-2 bg-white shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <AccordionTrigger className="text-left font-semibold text-gray-900 hover:text-emerald-600">
-                    {faq.seo_title || faq.question}
+                  <AccordionTrigger
+                    className="text-left font-semibold text-gray-900 hover:text-emerald-600"
+                    id={`faq-question-${faq.id}`}
+                    aria-controls={`faq-answer-${faq.id}`}
+                  >
+                    <h3 className="text-lg font-semibold m-0">
+                      {faq.seo_title || faq.question}
+                    </h3>
                   </AccordionTrigger>
-                  <AccordionContent className="text-gray-700 leading-relaxed pt-2">
-                    {faq.seo_description || faq.answer}
+                  <AccordionContent
+                    className="text-gray-700 leading-relaxed pt-2"
+                    id={`faq-answer-${faq.id}`}
+                    role="region"
+                    aria-labelledby={`faq-question-${faq.id}`}
+                  >
+                    <ReactMarkdown
+                      components={{
+                        a: ({ node, ...props }) => (
+                          <a
+                            {...props}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {props.children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {faq.seo_description || faq.answer}
+                    </ReactMarkdown>
+                    {faq.updated_at && (
+                      <div className="text-xs text-gray-400 mt-2">
+                        Last updated: {formatDate(faq.updated_at)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button
+                        size="sm"
+                        variant={voted[faq.id] ? "secondary" : "outline"}
+                        disabled={voted[faq.id]}
+                        onClick={() => handleHelpful(faq.id)}
+                        aria-label={
+                          voted[faq.id]
+                            ? "You have already marked this FAQ as helpful"
+                            : "Mark this FAQ as helpful"
+                        }
+                      >
+                        <span aria-hidden="true">👍</span>
+                        <span className="sr-only">Mark as helpful</span>
+                        Was this helpful?
+                      </Button>
+                      <span className="text-xs text-gray-500">
+                        {faq.helpful_count || 0} found this helpful
+                      </span>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               ))

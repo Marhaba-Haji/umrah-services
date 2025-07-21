@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import ReactMarkdown from "react-markdown";
 
 interface Faq {
   id: number;
@@ -372,12 +373,20 @@ const FaqsManager: React.FC = () => {
                 }
               />
               <Textarea
-                placeholder="Answer"
+                placeholder="Answer (supports markdown, e.g. [Umrah Packages](/umrah-packages))"
                 value={form.answer}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, answer: e.target.value }))
                 }
               />
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Preview:
+                </label>
+                <div className="prose prose-sm max-w-none border rounded p-2 bg-gray-50">
+                  <ReactMarkdown>{form.answer}</ReactMarkdown>
+                </div>
+              </div>
               <Input
                 placeholder="SEO Title (optional)"
                 value={form.seo_title}

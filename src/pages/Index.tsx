@@ -40,7 +40,7 @@ const Index = () => {
           <OtherSaudiServices />
           <AdditionalServices />
           <TestimonialsSection />
-          <FAQSection />
+          <FAQSection page="home" />
         </main>
         <Footer />
 
