@@ -38,27 +38,6 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 1500, // Increase warning limit (default is 500)
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom")) {
-              return "react-vendor";
-            }
-            if (id.includes("react-router")) {
-              return "react-router";
-            }
-            if (id.includes("supabase")) {
-              return "supabase";
-            }
-            if (id.includes("lucide-react")) {
-              return "lucide";
-            }
-            // All other node_modules go into 'vendor'
-            return "vendor";
-          }
-        },
-      },
-    },
+    // Removed manualChunks to let Vite handle chunking automatically
   },
 }));
