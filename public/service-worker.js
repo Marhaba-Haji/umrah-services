@@ -29,26 +29,31 @@ self.addEventListener("install", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Optionally cache new requests
+    (async () => {
+      try {
+        // Try network first
+        const response = await fetch(event.request);
         return response;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((response) => {
-          if (response) return response;
-          // Fallback to offline page for navigation requests
+      } catch (networkError) {
+        console.warn("Network request failed:", networkError);
+        try {
+          const cacheResponse = await caches.match(event.request);
+          if (cacheResponse) return cacheResponse;
           if (event.request.mode === "navigate") {
-            return caches.match("/offline.html");
+            const offlinePage = await caches.match("/offline.html");
+            if (offlinePage) return offlinePage;
           }
-          // Always return a valid Response
-          return new Response("Service unavailable", {
-            status: 503,
-            statusText: "Service Unavailable",
-            headers: { "Content-Type": "text/plain" },
-          });
+        } catch (cacheError) {
+          console.error("Cache lookup failed:", cacheError);
+        }
+        // Always return a valid Response
+        return new Response("Service unavailable", {
+          status: 503,
+          statusText: "Service Unavailable",
+          headers: { "Content-Type": "text/plain" },
         });
-      }),
+      }
+    })(),
   );
 });
 
