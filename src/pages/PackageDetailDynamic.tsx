@@ -273,24 +273,52 @@ interface Activity {
 interface HotelDetails {
   makkah?: {
     id?: string;
-    name?: string;
-    featured_image?: string;
-    images?: string[];
-    rating?: number;
-    distance_from_haram?: number;
-    distance?: number;
-    amenities?: string[];
+    name: string;
+    city: string;
+    location: string;
+    rating: number;
+    distance_from_haram: string | null;
+    price_per_night: number;
+    description: string | null;
+    amenities: string[] | null;
+    images: string[] | null;
+    contact_phone: string | null;
+    contact_email: string | null;
+    address: string | null;
+    google_maps_url: string | null;
+    is_active: boolean | null;
+    featured: boolean | null;
+    distance_from_masjid_e_nabawi: number | null;
+    is_shuttle: boolean | null;
+    is_walkable: boolean | null;
+    latitude: string | null;
+    longitude: string | null;
+    status: string | null;
     [key: string]: unknown;
   };
   madinah?: {
     id?: string;
-    name?: string;
-    featured_image?: string;
-    images?: string[];
-    rating?: number;
-    distance_from_masjid_e_nabawi?: number;
-    distance?: number;
-    amenities?: string[];
+    name: string;
+    city: string;
+    location: string;
+    rating: number;
+    distance_from_haram: string | null;
+    distance_from_masjid_e_nabawi: number | null;
+    price_per_night: number;
+    description: string | null;
+    amenities: string[] | null;
+    images: string[] | null;
+    contact_phone: string | null;
+    contact_email: string | null;
+    address: string | null;
+    google_maps_url: string | null;
+    is_active: boolean | null;
+    featured: boolean | null;
+    is_shuttle: boolean | null;
+    is_walkable: boolean | null;
+    latitude: string | null;
+    longitude: string | null;
+    status: string | null;
     [key: string]: unknown;
   };
 }
@@ -577,19 +605,38 @@ const PackageDetailDynamic = () => {
 
   useEffect(() => {
     if (!pkg) return;
-    const newHotelDetails: HotelDetails = {};
-    // Parse hotels if stringified
-    const makkahHotel = parseJsonField<HotelDetails["makkah"]>(
-      pkg.makkah_hotel,
-      undefined,
-    );
-    const madinahHotel = parseJsonField<HotelDetails["madinah"]>(
-      pkg.madinah_hotel,
-      undefined,
-    );
-    if (makkahHotel) newHotelDetails.makkah = makkahHotel;
-    if (madinahHotel) newHotelDetails.madinah = madinahHotel;
-    setHotelDetails(newHotelDetails);
+
+    async function fetchHotelDetails(hotelId) {
+      const { data, error } = await supabase
+        .from("hotels")
+        .select("*")
+        .eq("id", hotelId)
+        .single();
+      return error ? null : data;
+    }
+
+    async function loadHotels() {
+      let newHotelDetails = {};
+      // Makkah
+      if (pkg.makkah_hotel) {
+        if (typeof pkg.makkah_hotel === "string") {
+          newHotelDetails.makkah = await fetchHotelDetails(pkg.makkah_hotel);
+        } else if (typeof pkg.makkah_hotel === "object") {
+          newHotelDetails.makkah = pkg.makkah_hotel;
+        }
+      }
+      // Madinah
+      if (pkg.madinah_hotel) {
+        if (typeof pkg.madinah_hotel === "string") {
+          newHotelDetails.madinah = await fetchHotelDetails(pkg.madinah_hotel);
+        } else if (typeof pkg.madinah_hotel === "object") {
+          newHotelDetails.madinah = pkg.madinah_hotel;
+        }
+      }
+      setHotelDetails(newHotelDetails);
+    }
+
+    loadHotels();
   }, [pkg]);
 
   useEffect(() => {
@@ -1518,118 +1565,211 @@ const PackageDetailDynamic = () => {
               </TabsContent>
               {/* Hotels Tab */}
               <TabsContent value="hotels">
+                {/* Add this before rendering hotel cards (inside the Hotels tab): */}
+                {console.log('Hotel Details:', hotelDetails)}
                 <div className="grid md:grid-cols-2 gap-8">
                   {hotelDetails.makkah && (
-                    <Card className="overflow-hidden">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <MapPin className="w-6 h-6 mr-2 text-emerald-600" />
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 border-emerald-100">
+                      <CardHeader className="bg-gradient-to-r from-emerald-50 to-white pb-3">
+                        <CardTitle className="flex items-center text-emerald-800">
+                          <MapPin className="w-5 h-5 mr-2" />
                           Makkah Accommodation
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <img
-                          src={
-                            hotelDetails.makkah.featured_image ||
-                            (hotelDetails.makkah.images &&
-                              hotelDetails.makkah.images[0]) ||
-                            "/placeholder.svg"
-                          }
-                          alt={hotelDetails.makkah.name}
-                          className="w-full h-64 object-cover rounded-lg shadow-lg mb-4"
-                        />
-                        <div className="font-bold text-lg mb-2">
-                          {hotelDetails.makkah.name}
+                      <CardContent className="pt-2">
+                        <div className="relative rounded-lg overflow-hidden mb-4 h-48 bg-gray-100">
+                          <img
+                            src={
+                              hotelDetails.makkah.images?.[0] ||
+                              "/placeholder-hotel.jpg"
+                            }
+                            alt={hotelDetails.makkah.name || "Makkah hotel"}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/placeholder-hotel.jpg";
+                            }}
+                          />
+                          <div className="absolute top-2 right-2 bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                            Makkah
+                          </div>
                         </div>
-                        <div className="flex items-center mt-2 mb-2">
-                          {[...Array(hotelDetails.makkah.rating)].map(
-                            (_, i) => (
-                              <Star
-                                key={i}
-                                className="w-5 h-5 text-yellow-400 fill-current"
+                        
+                        <h3 className="font-bold text-xl mb-1 line-clamp-1">
+                          {hotelDetails.makkah.name || "Unnamed Hotel"}
+                        </h3>
+                        
+                        <div className="flex items-center mb-2">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star 
+                                key={star} 
+                                className={`w-4 h-4 ${star <= Math.floor(hotelDetails.makkah?.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                               />
-                            ),
-                          )}
+                            ))}
+                          </div>
+                          <span className="ml-1 text-sm text-gray-600">
+                            {hotelDetails.makkah.rating?.toFixed(1) || 'N/A'}
+                          </span>
                         </div>
-                        {(hotelDetails.makkah.distance_from_haram ||
-                          hotelDetails.makkah.distance) && (
-                          <div className="mb-2 text-gray-700 font-medium">
-                            Distance:{" "}
-                            {hotelDetails.makkah.distance_from_haram ||
-                              hotelDetails.makkah.distance}{" "}
-                            metres
+                        
+                        <div className="flex items-center text-sm text-gray-600 mb-3">
+                          <MapPin className="w-4 h-4 mr-1 text-gray-400" />
+                          <span className="truncate">
+                            {hotelDetails.makkah.location || 'Location not specified'}
+                          </span>
+                        </div>
+                        
+                        {hotelDetails.makkah.distance_from_haram && (
+                          <div className="flex items-center text-sm text-gray-700 mb-3">
+                            <span className="font-medium">Distance from Haram:</span>
+                            <span className="ml-1">{hotelDetails.makkah.distance_from_haram} m</span>
+                            {hotelDetails.makkah.is_walkable && (
+                              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                                Walkable
+                              </span>
+                            )}
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2">
-                          {hotelDetails.makkah.amenities?.map(
-                            (amenity: string, i: number) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="text-xs justify-start"
-                              >
-                                {amenity}
-                              </Badge>
-                            ),
-                          )}
+                        
+                        {hotelDetails.makkah.amenities && hotelDetails.makkah.amenities.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Amenities:</h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {hotelDetails.makkah.amenities.slice(0, 6).map((amenity, i) => (
+                                <Badge 
+                                  key={i} 
+                                  variant="outline" 
+                                  className="text-xs px-2 py-1 bg-gray-50 hover:bg-gray-100 transition-colors"
+                                >
+                                  {amenity}
+                                </Badge>
+                              ))}
+                              {hotelDetails.makkah.amenities.length > 6 && (
+                                <span className="text-xs text-gray-500 self-center ml-1">
+                                  +{hotelDetails.makkah.amenities.length - 6} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="pt-3 mt-3 border-t border-gray-100">
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <span className="text-xs text-gray-500">From</span>
+                              <div className="text-xl font-bold text-emerald-600">
+                                {pkg.currency || 'SAR'} {hotelDetails.makkah.price_per_night?.toLocaleString() || '0'}
+                              </div>
+                              <span className="text-xs text-gray-500">per night</span>
+                            </div>
+                            <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700">
+                              View Details
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   )}
                   {hotelDetails.madinah && (
-                    <Card className="overflow-hidden">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <MapPin className="w-6 h-6 mr-2 text-blue-600" />
+                    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300 border-2 border-blue-100">
+                      <CardHeader className="bg-gradient-to-r from-blue-50 to-white pb-3">
+                        <CardTitle className="flex items-center text-blue-800">
+                          <MapPin className="w-5 h-5 mr-2" />
                           Madinah Accommodation
                         </CardTitle>
                       </CardHeader>
-                      <CardContent>
-                        <img
-                          src={
-                            hotelDetails.madinah.featured_image ||
-                            (hotelDetails.madinah.images &&
-                              hotelDetails.madinah.images[0]) ||
-                            "/placeholder.svg"
-                          }
-                          alt={hotelDetails.madinah.name}
-                          className="w-full h-64 object-cover rounded-lg shadow-lg mb-4"
-                        />
-                        <div className="font-bold text-lg mb-2">
-                          {hotelDetails.madinah.name}
+                      <CardContent className="pt-2">
+                        <div className="relative rounded-lg overflow-hidden mb-4 h-48 bg-gray-100">
+                          <img
+                            src={
+                              hotelDetails.madinah.images?.[0] ||
+                              "/placeholder-hotel.jpg"
+                            }
+                            alt={hotelDetails.madinah.name || "Madinah hotel"}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/placeholder-hotel.jpg";
+                            }}
+                          />
+                          <div className="absolute top-2 right-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                            Madinah
+                          </div>
                         </div>
-                        <div className="flex items-center mt-2 mb-2">
-                          {[...Array(hotelDetails.madinah.rating)].map(
-                            (_, i) => (
-                              <Star
-                                key={i}
-                                className="w-5 h-5 text-yellow-400 fill-current"
+                        
+                        <h3 className="font-bold text-xl mb-1 line-clamp-1">
+                          {hotelDetails.madinah.name || "Unnamed Hotel"}
+                        </h3>
+                        
+                        <div className="flex items-center mb-2">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star 
+                                key={star} 
+                                className={`w-4 h-4 ${star <= Math.floor(hotelDetails.madinah?.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                               />
-                            ),
-                          )}
+                            ))}
+                          </div>
+                          <span className="ml-1 text-sm text-gray-600">
+                            {hotelDetails.madinah.rating?.toFixed(1) || 'N/A'}
+                          </span>
                         </div>
-                        {(hotelDetails.madinah.distance_from_masjid_e_nabawi ||
-                          hotelDetails.madinah.distance) && (
-                          <div className="mb-2 text-gray-700 font-medium">
-                            Distance:{" "}
-                            {hotelDetails.madinah
-                              .distance_from_masjid_e_nabawi ||
-                              hotelDetails.madinah.distance}{" "}
-                            metres
+                        
+                        <div className="flex items-center text-sm text-gray-600 mb-3">
+                          <MapPin className="w-4 h-4 mr-1 text-gray-400" />
+                          <span className="truncate">
+                            {hotelDetails.madinah.location || 'Location not specified'}
+                          </span>
+                        </div>
+                        
+                        {hotelDetails.madinah.distance_from_masjid_e_nabawi && (
+                          <div className="flex items-center text-sm text-gray-700 mb-3">
+                            <span className="font-medium">Distance from Masjid an-Nabawi:</span>
+                            <span className="ml-1">{hotelDetails.madinah.distance_from_masjid_e_nabawi} m</span>
+                            {hotelDetails.madinah.is_walkable && (
+                              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                                Walkable
+                              </span>
+                            )}
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2">
-                          {hotelDetails.madinah.amenities?.map(
-                            (amenity: string, i: number) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="text-xs justify-start"
-                              >
-                                {amenity}
-                              </Badge>
-                            ),
-                          )}
+                        
+                        {hotelDetails.madinah.amenities && hotelDetails.madinah.amenities.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Amenities:</h4>
+                            <div className="flex flex-wrap gap-1.5">
+                              {hotelDetails.madinah.amenities.slice(0, 6).map((amenity, i) => (
+                                <Badge 
+                                  key={i} 
+                                  variant="outline" 
+                                  className="text-xs px-2 py-1 bg-gray-50 hover:bg-gray-100 transition-colors"
+                                >
+                                  {amenity}
+                                </Badge>
+                              ))}
+                              {hotelDetails.madinah.amenities.length > 6 && (
+                                <span className="text-xs text-gray-500 self-center ml-1">
+                                  +{hotelDetails.madinah.amenities.length - 6} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="pt-3 mt-3 border-t border-gray-100">
+                          <div className="flex items-end justify-between">
+                            <div>
+                              <span className="text-xs text-gray-500">From</span>
+                              <div className="text-xl font-bold text-blue-600">
+                                {pkg.currency || 'SAR'} {hotelDetails.madinah.price_per_night?.toLocaleString() || '0'}
+                              </div>
+                              <span className="text-xs text-gray-500">per night</span>
+                            </div>
+                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                              View Details
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -1662,6 +1802,31 @@ const PackageDetailDynamic = () => {
                             },
                             idx: number,
                           ) => {
+                            // Transform the hotel data to match our expected format
+                            const transformedHotel = {
+                              id: item.id,
+                              name: item.name || 'Unnamed Hotel',
+                              city: item.city || '',
+                              location: item.location || '',
+                              rating: item.rating || 0,
+                              distance_from_haram: item.distance_from_haram || null,
+                              distance_from_masjid_e_nabawi: item.distance_from_masjid_e_nabawi || null,
+                              price_per_night: item.price_per_night || 0,
+                              description: item.description || null,
+                              amenities: item.amenities || [],
+                              images: item.images || [],
+                              contact_phone: item.contact_phone || null,
+                              contact_email: item.contact_email || null,
+                              address: item.address || null,
+                              google_maps_url: item.google_maps_url || null,
+                              is_active: item.is_active ?? true,
+                              featured: item.featured ?? false,
+                              is_shuttle: item.is_shuttle ?? null,
+                              is_walkable: item.is_walkable ?? null,
+                              latitude: item.latitude || null,
+                              longitude: item.longitude || null,
+                              status: item.status || null
+                            };
                             // Determine day type and icon
                             const dayTitle = (
                               item.location ||
