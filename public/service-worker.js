@@ -53,7 +53,15 @@ self.addEventListener("fetch", (event) => {
           headers: { "Content-Type": "text/plain" },
         });
       }
-    })(),
+    })().catch((err) => {
+      // Catch any unhandled errors and return a valid Response
+      console.error("Unexpected error in fetch handler:", err);
+      return new Response("Unexpected error", {
+        status: 500,
+        statusText: "Unexpected Error",
+        headers: { "Content-Type": "text/plain" },
+      });
+    }),
   );
 });
 
