@@ -50,6 +50,13 @@ import {
 import FlightSearch from "../components/FlightSearch";
 import type { FlightOffer } from "../components/FlightSearch";
 import { format } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type AirportSuggestion = {
   code: string;
@@ -352,6 +359,114 @@ function parseJsonField<T>(field: unknown, fallback: T): T {
   return fallback;
 }
 
+// Add countryCodes array and dropdown state at the top of the component
+const countryCodes = [
+  { code: "+1", country: "United States", flag: "🇺🇸" },
+  { code: "+91", country: "India", flag: "🇮🇳" },
+  { code: "+966", country: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+971", country: "UAE", flag: "🇦🇪" },
+  { code: "+44", country: "United Kingdom", flag: "🇬🇧" },
+  { code: "+61", country: "Australia", flag: "🇦🇺" },
+  { code: "+1", country: "Canada", flag: "🇨🇦" },
+  { code: "+92", country: "Pakistan", flag: "🇵🇰" },
+  { code: "+880", country: "Bangladesh", flag: "🇧🇩" },
+  { code: "+60", country: "Malaysia", flag: "🇲🇾" },
+  { code: "+62", country: "Indonesia", flag: "🇮🇩" },
+  { code: "+90", country: "Turkey", flag: "🇹🇷" },
+  { code: "+49", country: "Germany", flag: "🇩🇪" },
+  { code: "+33", country: "France", flag: "🇫🇷" },
+  { code: "+39", country: "Italy", flag: "🇮🇹" },
+  { code: "+34", country: "Spain", flag: "🇪🇸" },
+  { code: "+31", country: "Netherlands", flag: "🇳🇱" },
+  { code: "+46", country: "Sweden", flag: "🇸🇪" },
+  { code: "+47", country: "Norway", flag: "🇳🇴" },
+  { code: "+45", country: "Denmark", flag: "🇩🇰" },
+  // Middle East countries
+  { code: "+973", country: "Bahrain", flag: "🇧🇭" },
+  { code: "+20", country: "Egypt", flag: "🇪🇬" },
+  { code: "+964", country: "Iraq", flag: "🇮🇶" },
+  { code: "+962", country: "Jordan", flag: "🇯🇴" },
+  { code: "+965", country: "Kuwait", flag: "🇰🇼" },
+  { code: "+961", country: "Lebanon", flag: "🇱🇧" },
+  { code: "+218", country: "Libya", flag: "🇱🇾" },
+  { code: "+212", country: "Morocco", flag: "🇲🇦" },
+  { code: "+968", country: "Oman", flag: "🇴🇲" },
+  { code: "+970", country: "Palestine", flag: "🇵🇸" },
+  { code: "+974", country: "Qatar", flag: "🇶🇦" },
+  { code: "+963", country: "Syria", flag: "🇸🇾" },
+  { code: "+216", country: "Tunisia", flag: "🇹🇳" },
+  { code: "+971", country: "United Arab Emirates", flag: "🇦🇪" },
+  { code: "+967", country: "Yemen", flag: "🇾🇪" },
+  { code: "+972", country: "Israel", flag: "🇮🇱" },
+  { code: "+249", country: "Sudan", flag: "🇸🇩" },
+  { code: "+213", country: "Algeria", flag: "🇩🇿" },
+  // European countries
+  { code: "+355", country: "Albania", flag: "🇦🇱" },
+  { code: "+376", country: "Andorra", flag: "🇦🇩" },
+  { code: "+374", country: "Armenia", flag: "🇦🇲" },
+  { code: "+43", country: "Austria", flag: "🇦🇹" },
+  { code: "+994", country: "Azerbaijan", flag: "🇦🇿" },
+  { code: "+375", country: "Belarus", flag: "🇧🇾" },
+  { code: "+32", country: "Belgium", flag: "🇧🇪" },
+  { code: "+387", country: "Bosnia and Herzegovina", flag: "🇧🇦" },
+  { code: "+359", country: "Bulgaria", flag: "🇧🇬" },
+  { code: "+385", country: "Croatia", flag: "🇭🇷" },
+  { code: "+357", country: "Cyprus", flag: "🇨🇾" },
+  { code: "+420", country: "Czech Republic", flag: "🇨🇿" },
+  { code: "+45", country: "Denmark", flag: "🇩🇰" },
+  { code: "+372", country: "Estonia", flag: "🇪🇪" },
+  { code: "+358", country: "Finland", flag: "🇫🇮" },
+  { code: "+33", country: "France", flag: "🇫🇷" },
+  { code: "+995", country: "Georgia", flag: "🇬🇪" },
+  { code: "+49", country: "Germany", flag: "🇩🇪" },
+  { code: "+30", country: "Greece", flag: "🇬🇷" },
+  { code: "+36", country: "Hungary", flag: "🇭🇺" },
+  { code: "+354", country: "Iceland", flag: "🇮🇸" },
+  { code: "+353", country: "Ireland", flag: "🇮🇪" },
+  { code: "+39", country: "Italy", flag: "🇮🇹" },
+  { code: "+7", country: "Kazakhstan", flag: "🇰🇿" },
+  { code: "+383", country: "Kosovo", flag: "🇽🇰" },
+  { code: "+371", country: "Latvia", flag: "🇱🇻" },
+  { code: "+423", country: "Liechtenstein", flag: "🇱🇮" },
+  { code: "+370", country: "Lithuania", flag: "🇱🇹" },
+  { code: "+352", country: "Luxembourg", flag: "🇱🇺" },
+  { code: "+356", country: "Malta", flag: "🇲🇹" },
+  { code: "+373", country: "Moldova", flag: "🇲🇩" },
+  { code: "+377", country: "Monaco", flag: "🇲🇨" },
+  { code: "+382", country: "Montenegro", flag: "🇲🇪" },
+  { code: "+31", country: "Netherlands", flag: "🇳🇱" },
+  { code: "+389", country: "North Macedonia", flag: "🇲🇰" },
+  { code: "+47", country: "Norway", flag: "🇳🇴" },
+  { code: "+48", country: "Poland", flag: "🇵🇱" },
+  { code: "+351", country: "Portugal", flag: "🇵🇹" },
+  { code: "+40", country: "Romania", flag: "🇷🇴" },
+  { code: "+7", country: "Russia", flag: "🇷🇺" },
+  { code: "+378", country: "San Marino", flag: "🇸🇲" },
+  { code: "+381", country: "Serbia", flag: "🇷🇸" },
+  { code: "+421", country: "Slovakia", flag: "🇸🇰" },
+  { code: "+386", country: "Slovenia", flag: "🇸🇮" },
+  { code: "+34", country: "Spain", flag: "🇪🇸" },
+  { code: "+46", country: "Sweden", flag: "🇸🇪" },
+  { code: "+41", country: "Switzerland", flag: "🇨🇭" },
+  { code: "+380", country: "Ukraine", flag: "🇺🇦" },
+  { code: "+44", country: "United Kingdom", flag: "🇬🇧" },
+  { code: "+39", country: "Vatican City", flag: "🇻🇦" },
+  // South American countries
+  { code: "+54", country: "Argentina", flag: "🇦🇷" },
+  { code: "+591", country: "Bolivia", flag: "🇧🇴" },
+  { code: "+55", country: "Brazil", flag: "🇧🇷" },
+  { code: "+56", country: "Chile", flag: "🇨🇱" },
+  { code: "+57", country: "Colombia", flag: "🇨🇴" },
+  { code: "+593", country: "Ecuador", flag: "🇪🇨" },
+  { code: "+592", country: "Guyana", flag: "🇬🇾" },
+  { code: "+595", country: "Paraguay", flag: "🇵🇾" },
+  { code: "+51", country: "Peru", flag: "🇵🇪" },
+  { code: "+597", country: "Suriname", flag: "🇸🇷" },
+  { code: "+598", country: "Uruguay", flag: "🇺🇾" },
+  { code: "+58", country: "Venezuela", flag: "🇻🇪" },
+  // ... existing or additional countries ...
+];
+
 const PackageDetailDynamic = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
@@ -393,6 +508,28 @@ const PackageDetailDynamic = () => {
   >({});
   const descRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [overflowing, setOverflowing] = useState<Record<string, boolean>>({});
+  const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [quoteForm, setQuoteForm] = useState({
+    fullName: "",
+    countryCode: "+91", // Default to India
+    mobile: "",
+    departureCity: "",
+    duration: "",
+    adults: 1,
+    children: 0,
+    infants: 0,
+    departureDate: "",
+    packageType: "group",
+    budget: "",
+  });
+  // Move these inside the PackageDetailDynamic function, after other hooks:
+  const [countrySearch, setCountrySearch] = useState("");
+  const filteredCountries = countryCodes.filter(
+    (country) =>
+      country.country.toLowerCase().includes(countrySearch.toLowerCase()) ||
+      country.code.includes(countrySearch),
+  );
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchPackage = async () => {
@@ -985,6 +1122,60 @@ const PackageDetailDynamic = () => {
         </div>
       </div>
     );
+  };
+
+  const handleQuoteChange = (e) => {
+    const { name, value } = e.target;
+    setQuoteForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleQuoteSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const {
+        fullName,
+        countryCode,
+        mobile,
+        departureCity,
+        duration,
+        adults,
+        children,
+        infants,
+        departureDate,
+        packageType,
+        budget,
+      } = quoteForm;
+      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
+      const lastName = lastNameParts.join(" ");
+      const travelDates = { departure: departureDate };
+      const { error } = await supabase.from("leads").insert([
+        {
+          first_name: firstName,
+          last_name: lastName,
+          country_code: countryCode,
+          phone: mobile,
+          city: departureCity,
+          duration_category: duration,
+          adult_count: adults,
+          child_count: children,
+          infant_count: infants,
+          travel_dates: travelDates,
+          service_interest:
+            packageType === "group" ? "Group Package" : "Independent Package",
+          budget_range: budget,
+          lead_source: "custom_quote",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      if (error) {
+        alert("Failed to submit your request. Please try again.");
+        return;
+      }
+      alert("Your request has been submitted successfully!");
+      setQuoteModalOpen(false);
+    } catch (err) {
+      alert("An unexpected error occurred. Please try again.");
+    }
   };
 
   // Responsive layout, sticky sidebar, modern cards, tabs, etc.
@@ -2726,6 +2917,7 @@ const PackageDetailDynamic = () => {
                   <Button
                     variant="outline"
                     className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50"
+                    onClick={() => setQuoteModalOpen(true)}
                   >
                     Request Custom Quote
                   </Button>
@@ -2783,6 +2975,200 @@ const PackageDetailDynamic = () => {
         </div>
       </div>
       <Footer />
+      <Dialog open={isQuoteModalOpen} onOpenChange={setQuoteModalOpen}>
+        <DialogContent className="max-w-lg w-full">
+          <DialogHeader>
+            <DialogTitle>Request Custom Quote</DialogTitle>
+          </DialogHeader>
+          <form
+            className="space-y-4 max-h-[80vh] overflow-y-auto"
+            onSubmit={handleQuoteSubmit}
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Full Name</Label>
+                <Input
+                  name="fullName"
+                  value={quoteForm.fullName}
+                  onChange={handleQuoteChange}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Country Code</Label>
+                <Select
+                  value={quoteForm.countryCode}
+                  onValueChange={(value) =>
+                    setQuoteForm((prev) => ({ ...prev, countryCode: value }))
+                  }
+                >
+                  <SelectTrigger className="box-border">
+                    <SelectValue>
+                      {(() => {
+                        const selected = countryCodes.find(
+                          (c) => c.code === quoteForm.countryCode,
+                        );
+                        return selected
+                          ? `${selected.flag} ${selected.code} ${selected.country}`
+                          : quoteForm.countryCode;
+                      })()}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-48">
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search country..."
+                        value={countrySearch}
+                        onChange={(e) => setCountrySearch(e.target.value)}
+                        className="mb-2"
+                      />
+                    </div>
+                    {filteredCountries.map((country, index) => (
+                      <SelectItem
+                        key={`${country.code}-${country.country}-${index}`}
+                        value={country.code}
+                      >
+                        {country.flag} {country.code} {country.country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Mobile Number</Label>
+                <Input
+                  name="mobile"
+                  type="tel"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  value={quoteForm.mobile}
+                  onChange={(e) => {
+                    // Only allow digits
+                    const value = e.target.value.replace(/\D/g, "");
+                    setQuoteForm((prev) => ({ ...prev, mobile: value }));
+                  }}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Departure City</Label>
+                <Input
+                  name="departureCity"
+                  value={quoteForm.departureCity}
+                  onChange={handleQuoteChange}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Duration (days)</Label>
+                <Input
+                  type="number"
+                  name="duration"
+                  value={quoteForm.duration}
+                  onChange={handleQuoteChange}
+                  min={1}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Departure Date</Label>
+                <Input
+                  type="date"
+                  name="departureDate"
+                  value={quoteForm.departureDate}
+                  onChange={handleQuoteChange}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Adults</Label>
+                <Input
+                  type="number"
+                  name="adults"
+                  value={quoteForm.adults}
+                  onChange={handleQuoteChange}
+                  min={1}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Children</Label>
+                <Input
+                  type="number"
+                  name="children"
+                  value={quoteForm.children}
+                  onChange={handleQuoteChange}
+                  min={0}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Infants</Label>
+                <Input
+                  type="number"
+                  name="infants"
+                  value={quoteForm.infants}
+                  onChange={handleQuoteChange}
+                  min={0}
+                  required
+                  className="mt-1 box-border"
+                />
+              </div>
+              <div>
+                <Label>Package Type</Label>
+                <select
+                  name="packageType"
+                  value={quoteForm.packageType}
+                  onChange={handleQuoteChange}
+                  className="w-full border rounded p-2 mt-1 box-border"
+                >
+                  <option value="group">Group Package</option>
+                  <option value="independent">Independent Package</option>
+                </select>
+              </div>
+              <div className="col-span-1 sm:col-span-2">
+                <Label>Budget Per Person (Optional)</Label>
+                <select
+                  name="budget"
+                  value={quoteForm.budget}
+                  onChange={handleQuoteChange}
+                  className="w-full border rounded p-2 mt-1 box-border"
+                >
+                  <option value="">Select Budget Range</option>
+                  <option value="70,000 to 80,000">70,000 to 80,000</option>
+                  <option value="80,000 to 90,000">80,000 to 90,000</option>
+                  <option value="90,000 to 1,00,000">90,000 to 1,00,000</option>
+                  <option value="1,00,000 to 1,25,000">
+                    1,00,000 to 1,25,000
+                  </option>
+                  <option value="1,25,000 to 1,50,000">
+                    1,25,000 to 1,50,000
+                  </option>
+                  <option value="1,50,000 to 1,75,000">
+                    1,50,000 to 1,75,000
+                  </option>
+                  <option value="1,75,000 to 2,00,000">
+                    1,75,000 to 2,00,000
+                  </option>
+                </select>
+              </div>
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-emerald-600 text-white mt-2"
+            >
+              Submit
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
