@@ -52,6 +52,7 @@ interface Lead {
   notes: string;
   date: string;
   followUpDate?: string;
+  raw?: any; // Add raw property
 }
 
 type ContactInquiry = Record<string, unknown>;
@@ -138,6 +139,7 @@ const LeadManager = () => {
             followUpDate: lead.follow_up_date
               ? lead.follow_up_date.split("T")[0]
               : undefined,
+            raw: lead, // store the full object
           })),
         );
       }
@@ -742,37 +744,22 @@ const LeadManager = () => {
           <DialogHeader>
             <DialogTitle>Lead Details</DialogTitle>
           </DialogHeader>
-          {viewLead && (
-            <div className="space-y-2">
-              <div>
-                <b>Name:</b> {viewLead.name}
+          {viewLead && viewLead.raw && (
+            <div className="grid grid-cols-1 gap-2 max-h-[70vh] overflow-y-auto bg-gray-50 rounded-lg p-4 shadow-inner">
+              {Object.entries(viewLead.raw).map(([key, value]) => (
+                <div key={key} className="flex gap-2 border-b pb-1 last:border-b-0 last:pb-0">
+                  <span className="font-semibold capitalize min-w-[140px] text-gray-700">{key.replace(/_/g, ' ')}:</span>
+                  <span className="break-all text-gray-900">
+                    {typeof value === "object" && value !== null
+                      ? <pre className="whitespace-pre-wrap text-xs text-gray-600">{JSON.stringify(value, null, 2)}</pre>
+                      : value === null || value === ""
+                        ? <span className="text-gray-400">—</span>
+                        : (typeof value === "string" && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/))
+                          ? new Date(value).toLocaleString()
+                          : value}
+                  </span>
               </div>
-              <div>
-                <b>Email:</b> {viewLead.email}
-              </div>
-              <div>
-                <b>Phone:</b> {viewLead.phone}
-              </div>
-              <div>
-                <b>Service:</b> {viewLead.service}
-              </div>
-              <div>
-                <b>Status:</b> {viewLead.status}
-              </div>
-              <div>
-                <b>Source:</b> {viewLead.source}
-              </div>
-              <div>
-                <b>Date:</b> {viewLead.date}
-              </div>
-              {viewLead.followUpDate && (
-                <div>
-                  <b>Follow Up:</b> {viewLead.followUpDate}
-                </div>
-              )}
-              <div>
-                <b>Notes:</b> {viewLead.notes}
-              </div>
+              ))}
             </div>
           )}
         </DialogContent>

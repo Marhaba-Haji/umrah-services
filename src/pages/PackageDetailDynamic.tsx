@@ -511,7 +511,7 @@ const PackageDetailDynamic = () => {
   const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteForm, setQuoteForm] = useState({
     fullName: "",
-    countryCode: "+91", // Default to India
+    countryCode: "+91",
     mobile: "",
     departureCity: "",
     duration: "",
@@ -527,7 +527,7 @@ const PackageDetailDynamic = () => {
   const filteredCountries = countryCodes.filter(
     (country) =>
       country.country.toLowerCase().includes(countrySearch.toLowerCase()) ||
-      country.code.includes(countrySearch),
+      country.code.includes(countrySearch)
   );
   const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
 
@@ -1129,53 +1129,10 @@ const PackageDetailDynamic = () => {
     setQuoteForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleQuoteSubmit = async (e) => {
+  const handleQuoteSubmit = (e) => {
     e.preventDefault();
-    try {
-      const {
-        fullName,
-        countryCode,
-        mobile,
-        departureCity,
-        duration,
-        adults,
-        children,
-        infants,
-        departureDate,
-        packageType,
-        budget,
-      } = quoteForm;
-      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
-      const lastName = lastNameParts.join(" ");
-      const travelDates = { departure: departureDate };
-      const { error } = await supabase.from("leads").insert([
-        {
-          first_name: firstName,
-          last_name: lastName,
-          country_code: countryCode,
-          phone: mobile,
-          city: departureCity,
-          duration_category: duration,
-          adult_count: adults,
-          child_count: children,
-          infant_count: infants,
-          travel_dates: travelDates,
-          service_interest:
-            packageType === "group" ? "Group Package" : "Independent Package",
-          budget_range: budget,
-          lead_source: "custom_quote",
-          created_at: new Date().toISOString(),
-        },
-      ]);
-      if (error) {
-        alert("Failed to submit your request. Please try again.");
-        return;
-      }
-      alert("Your request has been submitted successfully!");
-      setQuoteModalOpen(false);
-    } catch (err) {
-      alert("An unexpected error occurred. Please try again.");
-    }
+    // TODO: handle form submission (API, toast, etc.)
+    setQuoteModalOpen(false);
   };
 
   // Responsive layout, sticky sidebar, modern cards, tabs, etc.
@@ -2980,38 +2937,23 @@ const PackageDetailDynamic = () => {
           <DialogHeader>
             <DialogTitle>Request Custom Quote</DialogTitle>
           </DialogHeader>
-          <form
-            className="space-y-4 max-h-[80vh] overflow-y-auto"
-            onSubmit={handleQuoteSubmit}
-          >
+          <form className="space-y-4 max-h-[80vh] overflow-y-auto" onSubmit={handleQuoteSubmit}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-1 sm:col-span-2">
                 <Label>Full Name</Label>
-                <Input
-                  name="fullName"
-                  value={quoteForm.fullName}
-                  onChange={handleQuoteChange}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input name="fullName" value={quoteForm.fullName} onChange={handleQuoteChange} required className="mt-1" />
               </div>
               <div>
                 <Label>Country Code</Label>
                 <Select
                   value={quoteForm.countryCode}
-                  onValueChange={(value) =>
-                    setQuoteForm((prev) => ({ ...prev, countryCode: value }))
-                  }
+                  onValueChange={(value) => setQuoteForm((prev) => ({ ...prev, countryCode: value }))}
                 >
-                  <SelectTrigger className="box-border">
+                  <SelectTrigger>
                     <SelectValue>
                       {(() => {
-                        const selected = countryCodes.find(
-                          (c) => c.code === quoteForm.countryCode,
-                        );
-                        return selected
-                          ? `${selected.flag} ${selected.code} ${selected.country}`
-                          : quoteForm.countryCode;
+                        const selected = countryCodes.find(c => c.code === quoteForm.countryCode);
+                        return selected ? `${selected.flag} ${selected.code} ${selected.country}` : quoteForm.countryCode;
                       })()}
                     </SelectValue>
                   </SelectTrigger>
@@ -3020,7 +2962,7 @@ const PackageDetailDynamic = () => {
                       <Input
                         placeholder="Search country..."
                         value={countrySearch}
-                        onChange={(e) => setCountrySearch(e.target.value)}
+                        onChange={e => setCountrySearch(e.target.value)}
                         className="mb-2"
                       />
                     </div>
@@ -3037,135 +2979,54 @@ const PackageDetailDynamic = () => {
               </div>
               <div>
                 <Label>Mobile Number</Label>
-                <Input
-                  name="mobile"
-                  type="tel"
-                  pattern="[0-9]*"
-                  inputMode="numeric"
-                  value={quoteForm.mobile}
-                  onChange={(e) => {
-                    // Only allow digits
-                    const value = e.target.value.replace(/\D/g, "");
-                    setQuoteForm((prev) => ({ ...prev, mobile: value }));
-                  }}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input name="mobile" value={quoteForm.mobile} onChange={handleQuoteChange} required className="mt-1" />
               </div>
               <div className="col-span-1 sm:col-span-2">
                 <Label>Departure City</Label>
-                <Input
-                  name="departureCity"
-                  value={quoteForm.departureCity}
-                  onChange={handleQuoteChange}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input name="departureCity" value={quoteForm.departureCity} onChange={handleQuoteChange} required className="mt-1" />
               </div>
               <div>
                 <Label>Duration (days)</Label>
-                <Input
-                  type="number"
-                  name="duration"
-                  value={quoteForm.duration}
-                  onChange={handleQuoteChange}
-                  min={1}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input type="number" name="duration" value={quoteForm.duration} onChange={handleQuoteChange} min={1} required className="mt-1" />
               </div>
               <div>
                 <Label>Departure Date</Label>
-                <Input
-                  type="date"
-                  name="departureDate"
-                  value={quoteForm.departureDate}
-                  onChange={handleQuoteChange}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input type="date" name="departureDate" value={quoteForm.departureDate} onChange={handleQuoteChange} required className="mt-1" />
               </div>
               <div>
                 <Label>Adults</Label>
-                <Input
-                  type="number"
-                  name="adults"
-                  value={quoteForm.adults}
-                  onChange={handleQuoteChange}
-                  min={1}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input type="number" name="adults" value={quoteForm.adults} onChange={handleQuoteChange} min={1} required className="mt-1" />
               </div>
               <div>
                 <Label>Children</Label>
-                <Input
-                  type="number"
-                  name="children"
-                  value={quoteForm.children}
-                  onChange={handleQuoteChange}
-                  min={0}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input type="number" name="children" value={quoteForm.children} onChange={handleQuoteChange} min={0} required className="mt-1" />
               </div>
               <div>
                 <Label>Infants</Label>
-                <Input
-                  type="number"
-                  name="infants"
-                  value={quoteForm.infants}
-                  onChange={handleQuoteChange}
-                  min={0}
-                  required
-                  className="mt-1 box-border"
-                />
+                <Input type="number" name="infants" value={quoteForm.infants} onChange={handleQuoteChange} min={0} required className="mt-1" />
               </div>
               <div>
                 <Label>Package Type</Label>
-                <select
-                  name="packageType"
-                  value={quoteForm.packageType}
-                  onChange={handleQuoteChange}
-                  className="w-full border rounded p-2 mt-1 box-border"
-                >
+                <select name="packageType" value={quoteForm.packageType} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1">
                   <option value="group">Group Package</option>
                   <option value="independent">Independent Package</option>
                 </select>
               </div>
               <div className="col-span-1 sm:col-span-2">
                 <Label>Budget Per Person (Optional)</Label>
-                <select
-                  name="budget"
-                  value={quoteForm.budget}
-                  onChange={handleQuoteChange}
-                  className="w-full border rounded p-2 mt-1 box-border"
-                >
+                <select name="budget" value={quoteForm.budget} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1">
                   <option value="">Select Budget Range</option>
                   <option value="70,000 to 80,000">70,000 to 80,000</option>
                   <option value="80,000 to 90,000">80,000 to 90,000</option>
                   <option value="90,000 to 1,00,000">90,000 to 1,00,000</option>
-                  <option value="1,00,000 to 1,25,000">
-                    1,00,000 to 1,25,000
-                  </option>
-                  <option value="1,25,000 to 1,50,000">
-                    1,25,000 to 1,50,000
-                  </option>
-                  <option value="1,50,000 to 1,75,000">
-                    1,50,000 to 1,75,000
-                  </option>
-                  <option value="1,75,000 to 2,00,000">
-                    1,75,000 to 2,00,000
-                  </option>
+                  <option value="1,00,000 to 1,25,000">1,00,000 to 1,25,000</option>
+                  <option value="1,25,000 to 1,50,000">1,25,000 to 1,50,000</option>
+                  <option value="1,50,000 to 1,75,000">1,50,000 to 1,75,000</option>
+                  <option value="1,75,000 to 2,00,000">1,75,000 to 2,00,000</option>
                 </select>
               </div>
             </div>
-            <Button
-              type="submit"
-              className="w-full bg-emerald-600 text-white mt-2"
-            >
-              Submit
-            </Button>
+            <Button type="submit" className="w-full bg-emerald-600 text-white mt-2">Submit</Button>
           </form>
         </DialogContent>
       </Dialog>
