@@ -758,7 +758,7 @@ const LeadManager = () => {
                           ? new Date(value).toLocaleString()
                           : value}
                   </span>
-              </div>
+                </div>
               ))}
             </div>
           )}

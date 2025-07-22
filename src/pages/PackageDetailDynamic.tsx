@@ -511,7 +511,7 @@ const PackageDetailDynamic = () => {
   const [isQuoteModalOpen, setQuoteModalOpen] = useState(false);
   const [quoteForm, setQuoteForm] = useState({
     fullName: "",
-    countryCode: "+91",
+    countryCode: "+91", // Default to India
     mobile: "",
     departureCity: "",
     duration: "",
@@ -1129,10 +1129,40 @@ const PackageDetailDynamic = () => {
     setQuoteForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleQuoteSubmit = (e) => {
+  const handleQuoteSubmit = async (e) => {
     e.preventDefault();
-    // TODO: handle form submission (API, toast, etc.)
-    setQuoteModalOpen(false);
+    try {
+      const { fullName, countryCode, mobile, departureCity, duration, adults, children, infants, departureDate, packageType, budget } = quoteForm;
+      const [firstName, ...lastNameParts] = fullName.trim().split(" ");
+      const lastName = lastNameParts.join(" ");
+      const travelDates = { departure: departureDate };
+      const { error } = await supabase.from("leads").insert([
+        {
+          first_name: firstName,
+          last_name: lastName,
+          country_code: countryCode,
+          phone: mobile,
+          city: departureCity,
+          duration_category: duration,
+          adult_count: adults,
+          child_count: children,
+          infant_count: infants,
+          travel_dates: travelDates,
+          service_interest: packageType === "group" ? "Group Package" : "Independent Package",
+          budget_range: budget,
+          lead_source: "custom_quote",
+          created_at: new Date().toISOString(),
+        },
+      ]);
+      if (error) {
+        alert("Failed to submit your request. Please try again.");
+        return;
+      }
+      alert("Your request has been submitted successfully!");
+      setQuoteModalOpen(false);
+    } catch (err) {
+      alert("An unexpected error occurred. Please try again.");
+    }
   };
 
   // Responsive layout, sticky sidebar, modern cards, tabs, etc.
@@ -2780,18 +2810,11 @@ const PackageDetailDynamic = () => {
                       </div>
                       <div className="flex justify-between items-center pt-2 border-t text-lg">
                         <span className="font-semibold">Total Cost:</span>
-                        like a new HajjPackageDetail.tsx file scaffolded with
-                        this layout, ready for you to wire up with Hajj
-                        data?like a new HajjPackageDetail.tsx file scaffolded
-                        with this layout, ready for you to wire up with Hajj
-                        data?{" "}
                         <span className="text-2xl font-bold text-emerald-600">
                           {getCurrencySymbol(pkg.currency)}
                           {(
-                            guestCount.sharing *
-                              pkg.pricing?.sharing?.pricePerTraveler +
-                            guestCount.childWithoutBed *
-                              pkg.pricing?.childWithoutBed +
+                            guestCount.sharing * pkg.pricing?.sharing?.pricePerTraveler +
+                            guestCount.childWithoutBed * pkg.pricing?.childWithoutBed +
                             guestCount.infants * pkg.pricing?.infant
                           ).toLocaleString()}
                         </span>
@@ -2799,74 +2822,6 @@ const PackageDetailDynamic = () => {
                     </div>
                   )}
                 {renderSelectedFlightSidebar()}
-                {(() => {
-                  // Calculate room/booking cost
-                  let roomCost = 0;
-                  if (selectedRoomType === "private") {
-                    const capacities = {
-                      quint: 5,
-                      quad: 4,
-                      triple: 3,
-                      double: 2,
-                      single: 1,
-                    };
-                    const roomTypes = [
-                      "quint",
-                      "quad",
-                      "triple",
-                      "double",
-                      "single",
-                    ];
-                    let roomsCost = 0;
-                    roomTypes.forEach((type) => {
-                      const count = guestCount[type] || 0;
-                      const price = pkg.pricing?.private?.[type] || 0;
-                      if (count > 0) {
-                        roomsCost += count * price;
-                      }
-                    });
-                    const childWithoutBedCost =
-                      (pkg.pricing?.childWithoutBed || 0) *
-                      (guestCount.childWithoutBed || 0);
-                    const infantsCost =
-                      (pkg.pricing?.infant || 0) * (guestCount.infants || 0);
-                    roomCost = roomsCost + childWithoutBedCost + infantsCost;
-                  } else if (
-                    selectedRoomType === "sharing" &&
-                    pkg.is_group_package !== false
-                  ) {
-                    roomCost =
-                      (guestCount.sharing || 1) *
-                        (pkg.pricing?.sharing?.pricePerTraveler || 0) +
-                      (guestCount.childWithoutBed || 0) *
-                        (pkg.pricing?.childWithoutBed || 0) +
-                      (guestCount.infants || 0) * (pkg.pricing?.infant || 0);
-                  }
-
-                  // Get flight cost
-                  const flightCost = selectedFlight
-                    ? selectedFlight.details.adults *
-                        selectedFlight.details.adultPrice +
-                      selectedFlight.details.children *
-                        selectedFlight.details.childPrice +
-                      selectedFlight.details.infants *
-                        selectedFlight.details.infantPrice
-                    : 0;
-
-                  // Total package cost
-                  const totalPackageCost = roomCost + flightCost;
-
-                  return selectedFlight || roomCost > 0 ? (
-                    <div className="flex justify-between items-center my-2 p-3 rounded-lg bg-emerald-100 border border-emerald-200">
-                      <span className="font-semibold text-emerald-900">
-                        Total Package Cost:
-                      </span>
-                      <span className="text-xl font-bold text-emerald-700">
-                        ₹{totalPackageCost.toLocaleString()}
-                      </span>
-                    </div>
-                  ) : null;
-                })()}
                 <div className="space-y-3">
                   <Button className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-lg py-6 shadow-lg">
                     Book This Package Now
@@ -2941,7 +2896,7 @@ const PackageDetailDynamic = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="col-span-1 sm:col-span-2">
                 <Label>Full Name</Label>
-                <Input name="fullName" value={quoteForm.fullName} onChange={handleQuoteChange} required className="mt-1" />
+                <Input name="fullName" value={quoteForm.fullName} onChange={handleQuoteChange} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Country Code</Label>
@@ -2949,7 +2904,7 @@ const PackageDetailDynamic = () => {
                   value={quoteForm.countryCode}
                   onValueChange={(value) => setQuoteForm((prev) => ({ ...prev, countryCode: value }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="box-border">
                     <SelectValue>
                       {(() => {
                         const selected = countryCodes.find(c => c.code === quoteForm.countryCode);
@@ -2979,42 +2934,55 @@ const PackageDetailDynamic = () => {
               </div>
               <div>
                 <Label>Mobile Number</Label>
-                <Input name="mobile" value={quoteForm.mobile} onChange={handleQuoteChange} required className="mt-1" />
+                <Input
+                  name="mobile"
+                  type="tel"
+                  pattern="[0-9]*"
+                  inputMode="numeric"
+                  value={quoteForm.mobile}
+                  onChange={e => {
+                    // Only allow digits
+                    const value = e.target.value.replace(/\D/g, "");
+                    setQuoteForm(prev => ({ ...prev, mobile: value }));
+                  }}
+                  required
+                  className="mt-1 box-border"
+                />
               </div>
               <div className="col-span-1 sm:col-span-2">
                 <Label>Departure City</Label>
-                <Input name="departureCity" value={quoteForm.departureCity} onChange={handleQuoteChange} required className="mt-1" />
+                <Input name="departureCity" value={quoteForm.departureCity} onChange={handleQuoteChange} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Duration (days)</Label>
-                <Input type="number" name="duration" value={quoteForm.duration} onChange={handleQuoteChange} min={1} required className="mt-1" />
+                <Input type="number" name="duration" value={quoteForm.duration} onChange={handleQuoteChange} min={1} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Departure Date</Label>
-                <Input type="date" name="departureDate" value={quoteForm.departureDate} onChange={handleQuoteChange} required className="mt-1" />
+                <Input type="date" name="departureDate" value={quoteForm.departureDate} onChange={handleQuoteChange} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Adults</Label>
-                <Input type="number" name="adults" value={quoteForm.adults} onChange={handleQuoteChange} min={1} required className="mt-1" />
+                <Input type="number" name="adults" value={quoteForm.adults} onChange={handleQuoteChange} min={1} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Children</Label>
-                <Input type="number" name="children" value={quoteForm.children} onChange={handleQuoteChange} min={0} required className="mt-1" />
+                <Input type="number" name="children" value={quoteForm.children} onChange={handleQuoteChange} min={0} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Infants</Label>
-                <Input type="number" name="infants" value={quoteForm.infants} onChange={handleQuoteChange} min={0} required className="mt-1" />
+                <Input type="number" name="infants" value={quoteForm.infants} onChange={handleQuoteChange} min={0} required className="mt-1 box-border" />
               </div>
               <div>
                 <Label>Package Type</Label>
-                <select name="packageType" value={quoteForm.packageType} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1">
+                <select name="packageType" value={quoteForm.packageType} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1 box-border">
                   <option value="group">Group Package</option>
                   <option value="independent">Independent Package</option>
                 </select>
               </div>
               <div className="col-span-1 sm:col-span-2">
                 <Label>Budget Per Person (Optional)</Label>
-                <select name="budget" value={quoteForm.budget} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1">
+                <select name="budget" value={quoteForm.budget} onChange={handleQuoteChange} className="w-full border rounded p-2 mt-1 box-border">
                   <option value="">Select Budget Range</option>
                   <option value="70,000 to 80,000">70,000 to 80,000</option>
                   <option value="80,000 to 90,000">80,000 to 90,000</option>
