@@ -537,10 +537,15 @@ export type Database = {
           answer: string
           category_id: string | null
           created_at: string | null
+          helpful_count: number
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          keywords: string[] | null
+          page: string
           question: string
+          seo_description: string | null
+          seo_title: string | null
           sort_order: number | null
           updated_at: string | null
         }
@@ -548,10 +553,15 @@ export type Database = {
           answer: string
           category_id?: string | null
           created_at?: string | null
+          helpful_count?: number
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          keywords?: string[] | null
+          page?: string
           question: string
+          seo_description?: string | null
+          seo_title?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
@@ -559,10 +569,15 @@ export type Database = {
           answer?: string
           category_id?: string | null
           created_at?: string | null
+          helpful_count?: number
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          keywords?: string[] | null
+          page?: string
           question?: string
+          seo_description?: string | null
+          seo_title?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
@@ -788,9 +803,12 @@ export type Database = {
       hajj_packages: {
         Row: {
           activities: Json | null
+          available_spots: number | null
           cancellation_policy: string | null
           class: string | null
           created_at: string | null
+          departure_city: string | null
+          departure_date: string | null
           disclaimer: string | null
           duration: string | null
           duration_category: string | null
@@ -807,9 +825,13 @@ export type Database = {
           makkah_hotel_distance: number | null
           makkah_hotel_name: string | null
           maktab_category: string | null
+          max_capacity: number | null
           meal_plan: string | null
+          name: string | null
+          package_category: string | null
           prices: Json | null
           refund_policy: string | null
+          seo: Json | null
           status: string | null
           terms_and_conditions: string | null
           traveler_responsibilities: string | null
@@ -818,9 +840,12 @@ export type Database = {
         }
         Insert: {
           activities?: Json | null
+          available_spots?: number | null
           cancellation_policy?: string | null
           class?: string | null
           created_at?: string | null
+          departure_city?: string | null
+          departure_date?: string | null
           disclaimer?: string | null
           duration?: string | null
           duration_category?: string | null
@@ -837,9 +862,13 @@ export type Database = {
           makkah_hotel_distance?: number | null
           makkah_hotel_name?: string | null
           maktab_category?: string | null
+          max_capacity?: number | null
           meal_plan?: string | null
+          name?: string | null
+          package_category?: string | null
           prices?: Json | null
           refund_policy?: string | null
+          seo?: Json | null
           status?: string | null
           terms_and_conditions?: string | null
           traveler_responsibilities?: string | null
@@ -848,9 +877,12 @@ export type Database = {
         }
         Update: {
           activities?: Json | null
+          available_spots?: number | null
           cancellation_policy?: string | null
           class?: string | null
           created_at?: string | null
+          departure_city?: string | null
+          departure_date?: string | null
           disclaimer?: string | null
           duration?: string | null
           duration_category?: string | null
@@ -867,9 +899,13 @@ export type Database = {
           makkah_hotel_distance?: number | null
           makkah_hotel_name?: string | null
           maktab_category?: string | null
+          max_capacity?: number | null
           meal_plan?: string | null
+          name?: string | null
+          package_category?: string | null
           prices?: Json | null
           refund_policy?: string | null
+          seo?: Json | null
           status?: string | null
           terms_and_conditions?: string | null
           traveler_responsibilities?: string | null
@@ -1140,21 +1176,28 @@ export type Database = {
       }
       leads: {
         Row: {
+          accommodation_type: string | null
+          adult_count: number | null
           assigned_to: string | null
           budget_range: string | null
+          child_count: number | null
           city: string | null
           converted_at: string | null
           country: string | null
           country_code: string | null
           created_at: string | null
+          duration_category: string | null
           email: string | null
           first_name: string
           follow_up_date: string | null
           id: string
+          infant_count: number | null
           last_name: string | null
           lead_source: string | null
+          maktab_category: string | null
           notes: string | null
           number_of_travelers: number | null
+          package_class: string | null
           package_interest: string | null
           phone: string
           service_interest: string | null
@@ -1164,21 +1207,28 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          accommodation_type?: string | null
+          adult_count?: number | null
           assigned_to?: string | null
           budget_range?: string | null
+          child_count?: number | null
           city?: string | null
           converted_at?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
+          duration_category?: string | null
           email?: string | null
           first_name: string
           follow_up_date?: string | null
           id?: string
+          infant_count?: number | null
           last_name?: string | null
           lead_source?: string | null
+          maktab_category?: string | null
           notes?: string | null
           number_of_travelers?: number | null
+          package_class?: string | null
           package_interest?: string | null
           phone: string
           service_interest?: string | null
@@ -1188,21 +1238,28 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          accommodation_type?: string | null
+          adult_count?: number | null
           assigned_to?: string | null
           budget_range?: string | null
+          child_count?: number | null
           city?: string | null
           converted_at?: string | null
           country?: string | null
           country_code?: string | null
           created_at?: string | null
+          duration_category?: string | null
           email?: string | null
           first_name?: string
           follow_up_date?: string | null
           id?: string
+          infant_count?: number | null
           last_name?: string | null
           lead_source?: string | null
+          maktab_category?: string | null
           notes?: string | null
           number_of_travelers?: number | null
+          package_class?: string | null
           package_interest?: string | null
           phone?: string
           service_interest?: string | null
@@ -1590,6 +1647,7 @@ export type Database = {
           og_image: string | null
           og_title: string | null
           page_title: string | null
+          page_type: string | null
           page_url: string
           robots_meta: string | null
           schema_markup: Json | null
@@ -1608,6 +1666,7 @@ export type Database = {
           og_image?: string | null
           og_title?: string | null
           page_title?: string | null
+          page_type?: string | null
           page_url: string
           robots_meta?: string | null
           schema_markup?: Json | null
@@ -1626,6 +1685,7 @@ export type Database = {
           og_image?: string | null
           og_title?: string | null
           page_title?: string | null
+          page_type?: string | null
           page_url?: string
           robots_meta?: string | null
           schema_markup?: Json | null
@@ -1789,22 +1849,21 @@ export type Database = {
           activities: string[] | null
           available_spots: number | null
           booking_deadline: string | null
+          cancellation_policy: string | null
           category: string | null
-          category_id: string | null
           cities_covered: string[] | null
           created_at: string | null
           currency: string | null
           departure_date: string | null
           description: string | null
+          disclaimer: string | null
           duration: string
           exclusions: string[] | null
           featured_image: string | null
           flight_details: Json | null
           flight_included: boolean | null
-          hotels: Json | null
           id: string
           images: string[] | null
-          includes: string[] | null
           inclusions: string[] | null
           is_group_package: boolean | null
           itinerary: Json | null
@@ -1812,44 +1871,39 @@ export type Database = {
           makkah_hotel: Json | null
           max_capacity: number | null
           meal_plan: string | null
-          mealPlan: string | null
           min_participants: number | null
           name: string
           package_category: string | null
           package_type: string | null
-          packageCategory: string | null
-          packageType: string | null
-          price: number
           pricing: Json | null
-          pricing_legacy: Json | null
+          refund_policy: string | null
           return_date: string | null
-          room_type_pricing: Json | null
           season_category: string | null
           seo: Json | null
           status: Database["public"]["Enums"]["package_status"] | null
           terms_conditions: string | null
+          traveler_responsibilities: string | null
           updated_at: string | null
         }
         Insert: {
           activities?: string[] | null
           available_spots?: number | null
           booking_deadline?: string | null
+          cancellation_policy?: string | null
           category?: string | null
-          category_id?: string | null
           cities_covered?: string[] | null
           created_at?: string | null
           currency?: string | null
           departure_date?: string | null
           description?: string | null
+          disclaimer?: string | null
           duration: string
           exclusions?: string[] | null
           featured_image?: string | null
           flight_details?: Json | null
           flight_included?: boolean | null
-          hotels?: Json | null
           id?: string
           images?: string[] | null
-          includes?: string[] | null
           inclusions?: string[] | null
           is_group_package?: boolean | null
           itinerary?: Json | null
@@ -1857,44 +1911,39 @@ export type Database = {
           makkah_hotel?: Json | null
           max_capacity?: number | null
           meal_plan?: string | null
-          mealPlan?: string | null
           min_participants?: number | null
           name: string
           package_category?: string | null
           package_type?: string | null
-          packageCategory?: string | null
-          packageType?: string | null
-          price: number
           pricing?: Json | null
-          pricing_legacy?: Json | null
+          refund_policy?: string | null
           return_date?: string | null
-          room_type_pricing?: Json | null
           season_category?: string | null
           seo?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
+          traveler_responsibilities?: string | null
           updated_at?: string | null
         }
         Update: {
           activities?: string[] | null
           available_spots?: number | null
           booking_deadline?: string | null
+          cancellation_policy?: string | null
           category?: string | null
-          category_id?: string | null
           cities_covered?: string[] | null
           created_at?: string | null
           currency?: string | null
           departure_date?: string | null
           description?: string | null
+          disclaimer?: string | null
           duration?: string
           exclusions?: string[] | null
           featured_image?: string | null
           flight_details?: Json | null
           flight_included?: boolean | null
-          hotels?: Json | null
           id?: string
           images?: string[] | null
-          includes?: string[] | null
           inclusions?: string[] | null
           is_group_package?: boolean | null
           itinerary?: Json | null
@@ -1902,33 +1951,21 @@ export type Database = {
           makkah_hotel?: Json | null
           max_capacity?: number | null
           meal_plan?: string | null
-          mealPlan?: string | null
           min_participants?: number | null
           name?: string
           package_category?: string | null
           package_type?: string | null
-          packageCategory?: string | null
-          packageType?: string | null
-          price?: number
           pricing?: Json | null
-          pricing_legacy?: Json | null
+          refund_policy?: string | null
           return_date?: string | null
-          room_type_pricing?: Json | null
           season_category?: string | null
           seo?: Json | null
           status?: Database["public"]["Enums"]["package_status"] | null
           terms_conditions?: string | null
+          traveler_responsibilities?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "umrah_packages_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -2211,6 +2248,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_faq_helpful: {
+        Args: { faq_id: number }
+        Returns: undefined
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean

@@ -44,8 +44,8 @@ interface Package {
   flight_details?: {
     flight_type: string;
     airline_name: string;
-    departure_airport: string;
-    return_airport: string;
+    departure_from_airport: string;
+    return_from_airport: string;
   };
   activities?: string[];
   sharing_price?: {
@@ -63,6 +63,13 @@ interface Package {
   meal_plan?: string;
   seo?: any;
   hotels?: any;
+  disclaimer?: string;
+  traveler_responsibilities?: string;
+  cancellation_policy?: string;
+  refund_policy?: string;
+  flight_included?: boolean;
+  package_type?: string;
+  currency?: string;
 }
 
 interface Hotel {
@@ -112,8 +119,8 @@ const PackageManager = () => {
     madinah_hotel: "",
     flight_type: "",
     airline_name: "",
-    departure_airport: "",
-    return_airport: "",
+    departure_from_airport: "",
+    return_from_airport: "",
     activities: [] as string[],
     sharing_price_adult: "",
     sharing_price_child_without_bed: "",
@@ -133,7 +140,14 @@ const PackageManager = () => {
     seo_og_image: "",
     hotels_makkah: "",
     hotels_madinah: "",
-    hotels_other: ""
+    hotels_other: "",
+    disclaimer: "",
+    traveler_responsibilities: "",
+    cancellation_policy: "",
+    refund_policy: "",
+    flight_included: false,
+    package_type: "",
+    currency: "INR"
   });
 
   useEffect(() => {
@@ -338,9 +352,10 @@ const PackageManager = () => {
         flight_details: {
           flight_type: formData.flight_type,
           airline_name: formData.airline_name,
-          departure_airport: formData.departure_airport,
-          return_airport: formData.return_airport
+          departure_from_airport: formData.departure_from_airport,
+          return_from_airport: formData.return_from_airport
         },
+        flight_included: formData.flight_included,
         activities: formData.activities,
         sharing_price: {
           adult: formData.sharing_price_adult ? parseFloat(formData.sharing_price_adult) : null,
@@ -368,7 +383,13 @@ const PackageManager = () => {
           makkah: formData.hotels_makkah,
           madinah: formData.hotels_madinah,
           other: formData.hotels_other
-        }
+        },
+        disclaimer: formData.disclaimer || null,
+        traveler_responsibilities: formData.traveler_responsibilities || null,
+        cancellation_policy: formData.cancellation_policy || null,
+        refund_policy: formData.refund_policy || null,
+        package_type: formData.package_type || null,
+        currency: formData.currency
       };
 
       if (editingPackage) {
@@ -425,8 +446,8 @@ const PackageManager = () => {
       madinah_hotel: pkg.madinah_hotel || "",
       flight_type: pkg.flight_details?.flight_type || "",
       airline_name: pkg.flight_details?.airline_name || "",
-      departure_airport: pkg.flight_details?.departure_airport || "",
-      return_airport: pkg.flight_details?.return_airport || "",
+      departure_from_airport: pkg.flight_details?.departure_from_airport || "",
+      return_from_airport: pkg.flight_details?.return_from_airport || "",
       activities: pkg.activities || [],
       sharing_price_adult: pkg.sharing_price?.adult?.toString() || "",
       sharing_price_child_without_bed: pkg.sharing_price?.child_without_bed?.toString() || "",
@@ -446,7 +467,14 @@ const PackageManager = () => {
       seo_og_image: pkg.seo?.og_image || "",
       hotels_makkah: pkg.hotels?.makkah || "",
       hotels_madinah: pkg.hotels?.madinah || "",
-      hotels_other: pkg.hotels?.other || ""
+      hotels_other: pkg.hotels?.other || "",
+      disclaimer: pkg.disclaimer || "",
+      traveler_responsibilities: pkg.traveler_responsibilities || "",
+      cancellation_policy: pkg.cancellation_policy || "",
+      refund_policy: pkg.refund_policy || "",
+      flight_included: pkg.flight_included || false,
+      package_type: pkg.package_type || "",
+      currency: pkg.currency || "INR"
     });
     setIsModalOpen(true);
   };
@@ -496,8 +524,8 @@ const PackageManager = () => {
       madinah_hotel: "",
       flight_type: "",
       airline_name: "",
-      departure_airport: "",
-      return_airport: "",
+      departure_from_airport: "",
+      return_from_airport: "",
       activities: [],
       sharing_price_adult: "",
       sharing_price_child_without_bed: "",
@@ -517,7 +545,14 @@ const PackageManager = () => {
       seo_og_image: "",
       hotels_makkah: "",
       hotels_madinah: "",
-      hotels_other: ""
+      hotels_other: "",
+      disclaimer: "",
+      traveler_responsibilities: "",
+      cancellation_policy: "",
+      refund_policy: "",
+      flight_included: false,
+      package_type: "",
+      currency: "INR"
     });
     setEditingPackage(null);
   };
@@ -537,11 +572,12 @@ const PackageManager = () => {
   const PackageForm = () => (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="basic">Basic</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="hotels">Hotels</TabsTrigger>
+          <TabsTrigger value="policies">Policies</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
           <TabsTrigger value="other">Other</TabsTrigger>
         </TabsList>
@@ -606,7 +642,7 @@ const PackageManager = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-4">
             <div>
               <Label htmlFor="booking_deadline">Booking Deadline</Label>
               <Input
@@ -649,9 +685,25 @@ const PackageManager = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label htmlFor="currency">Currency</Label>
+              <Select
+                value={formData.currency}
+                onValueChange={(value) => handleInputChange("currency", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INR">INR</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="SAR">SAR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <Label htmlFor="status">Status</Label>
               <Select
@@ -674,6 +726,14 @@ const PackageManager = () => {
                 id="category"
                 value={formData.category}
                 onChange={(e) => handleInputChange("category", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="package_type">Package Type</Label>
+              <Input
+                id="package_type"
+                value={formData.package_type}
+                onChange={(e) => handleInputChange("package_type", e.target.value)}
               />
             </div>
           </div>
@@ -710,6 +770,16 @@ const PackageManager = () => {
               </div>
             </div>
           )}
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="flight_included"
+              checked={formData.flight_included}
+              onChange={(e) => handleInputChange("flight_included", e.target.checked)}
+            />
+            <Label htmlFor="flight_included">Flight Included</Label>
+          </div>
         </TabsContent>
 
         <TabsContent value="pricing" className="space-y-4">
@@ -990,16 +1060,6 @@ const PackageManager = () => {
           </div>
 
           <div>
-            <Label htmlFor="terms_and_conditions">Terms and Conditions</Label>
-            <ReactQuill
-              value={formData.terms_and_conditions}
-              onChange={(value) => handleInputChange("terms_and_conditions", value)}
-              theme="snow"
-              style={{ height: '150px', marginBottom: '50px' }}
-            />
-          </div>
-
-          <div>
             <Label>Activities</Label>
             <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto border p-2 rounded">
               {activities.map((activity) => (
@@ -1056,19 +1116,19 @@ const PackageManager = () => {
             </div>
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div>
-                <Label htmlFor="departure_airport">Departure Airport</Label>
+                <Label htmlFor="departure_from_airport">Departure From Airport</Label>
                 <Input
-                  id="departure_airport"
-                  value={formData.departure_airport}
-                  onChange={(e) => handleInputChange("departure_airport", e.target.value)}
+                  id="departure_from_airport"
+                  value={formData.departure_from_airport}
+                  onChange={(e) => handleInputChange("departure_from_airport", e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="return_airport">Return Airport</Label>
+                <Label htmlFor="return_from_airport">Return From Airport</Label>
                 <Input
-                  id="return_airport"
-                  value={formData.return_airport}
-                  onChange={(e) => handleInputChange("return_airport", e.target.value)}
+                  id="return_from_airport"
+                  value={formData.return_from_airport}
+                  onChange={(e) => handleInputChange("return_from_airport", e.target.value)}
                 />
               </div>
             </div>
@@ -1144,6 +1204,58 @@ const PackageManager = () => {
               onChange={(e) => handleInputChange("hotels_other", e.target.value)}
               placeholder="Hotel details for other cities"
               rows={3}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="policies" className="space-y-4">
+          <div>
+            <Label htmlFor="terms_and_conditions">Terms and Conditions</Label>
+            <ReactQuill
+              value={formData.terms_and_conditions}
+              onChange={(value) => handleInputChange("terms_and_conditions", value)}
+              theme="snow"
+              style={{ height: '150px', marginBottom: '50px' }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="disclaimer">Disclaimer</Label>
+            <ReactQuill
+              value={formData.disclaimer}
+              onChange={(value) => handleInputChange("disclaimer", value)}
+              theme="snow"
+              style={{ height: '150px', marginBottom: '50px' }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="traveler_responsibilities">Traveler Responsibilities</Label>
+            <ReactQuill
+              value={formData.traveler_responsibilities}
+              onChange={(value) => handleInputChange("traveler_responsibilities", value)}
+              theme="snow"
+              style={{ height: '150px', marginBottom: '50px' }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="cancellation_policy">Cancellation Policy</Label>
+            <ReactQuill
+              value={formData.cancellation_policy}
+              onChange={(value) => handleInputChange("cancellation_policy", value)}
+              theme="snow"
+              style={{ height: '150px', marginBottom: '50px' }}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="refund_policy">Refund Policy</Label>
+            <ReactQuill
+              value={formData.refund_policy}
+              onChange={(value) => handleInputChange("refund_policy", value)}
+              theme="snow"
+              style={{ height: '150px', marginBottom: '50px' }}
             />
           </div>
         </TabsContent>
