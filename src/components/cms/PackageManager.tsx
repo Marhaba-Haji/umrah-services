@@ -68,7 +68,6 @@ interface Package {
   cancellation_policy?: string;
   refund_policy?: string;
   flight_included?: boolean;
-  package_type?: string;
   currency?: string;
 }
 
@@ -96,7 +95,6 @@ const PackageManager = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    price: "",
     duration: "",
     departure_date: "",
     return_date: "",
@@ -108,7 +106,7 @@ const PackageManager = () => {
     max_capacity: "",
     available_spots: "",
     cities_covered: "",
-    category: "",
+    category: "Umrah",
     featured_image: "",
     images: [] as string[],
     itinerary: [] as { title: string; description: string }[],
@@ -146,7 +144,6 @@ const PackageManager = () => {
     cancellation_policy: "",
     refund_policy: "",
     flight_included: false,
-    package_type: "",
     currency: "INR"
   });
 
@@ -324,11 +321,15 @@ const PackageManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Calculate base price from sharing price adult
+    const basePrice = formData.sharing_price_adult ? parseFloat(formData.sharing_price_adult) : 0;
+    
     try {
       const packageData = {
         name: formData.name,
         description: formData.description,
-        price: parseFloat(formData.price),
+        price: basePrice,
         duration: formData.duration,
         departure_date: formData.departure_date,
         return_date: formData.return_date || null,
@@ -349,12 +350,12 @@ const PackageManager = () => {
         terms_and_conditions: formData.terms_and_conditions || null,
         makkah_hotel: formData.makkah_hotel || null,
         madinah_hotel: formData.madinah_hotel || null,
-        flight_details: {
+        flight_details: formData.flight_included ? {
           flight_type: formData.flight_type,
           airline_name: formData.airline_name,
           departure_from_airport: formData.departure_from_airport,
           return_from_airport: formData.return_from_airport
-        },
+        } : null,
         flight_included: formData.flight_included,
         activities: formData.activities,
         sharing_price: {
@@ -388,7 +389,6 @@ const PackageManager = () => {
         traveler_responsibilities: formData.traveler_responsibilities || null,
         cancellation_policy: formData.cancellation_policy || null,
         refund_policy: formData.refund_policy || null,
-        package_type: formData.package_type || null,
         currency: formData.currency
       };
 
@@ -423,7 +423,6 @@ const PackageManager = () => {
     setFormData({
       name: pkg.name,
       description: pkg.description,
-      price: pkg.price.toString(),
       duration: pkg.duration,
       departure_date: pkg.departure_date,
       return_date: pkg.return_date || "",
@@ -435,7 +434,7 @@ const PackageManager = () => {
       max_capacity: pkg.max_capacity?.toString() || "",
       available_spots: pkg.available_spots?.toString() || "",
       cities_covered: pkg.cities_covered?.join(', ') || "",
-      category: pkg.category || "",
+      category: pkg.category || "Umrah",
       featured_image: pkg.featured_image || "",
       images: pkg.images || [],
       itinerary: pkg.itinerary || [],
@@ -473,7 +472,6 @@ const PackageManager = () => {
       cancellation_policy: pkg.cancellation_policy || "",
       refund_policy: pkg.refund_policy || "",
       flight_included: pkg.flight_included || false,
-      package_type: pkg.package_type || "",
       currency: pkg.currency || "INR"
     });
     setIsModalOpen(true);
@@ -501,7 +499,6 @@ const PackageManager = () => {
     setFormData({
       name: "",
       description: "",
-      price: "",
       duration: "",
       departure_date: "",
       return_date: "",
@@ -513,7 +510,7 @@ const PackageManager = () => {
       max_capacity: "",
       available_spots: "",
       cities_covered: "",
-      category: "",
+      category: "Umrah",
       featured_image: "",
       images: [],
       itinerary: [],
@@ -551,7 +548,6 @@ const PackageManager = () => {
       cancellation_policy: "",
       refund_policy: "",
       flight_included: false,
-      package_type: "",
       currency: "INR"
     });
     setEditingPackage(null);
@@ -572,14 +568,13 @@ const PackageManager = () => {
   const PackageForm = () => (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="basic" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="basic">Basic</TabsTrigger>
           <TabsTrigger value="pricing">Pricing</TabsTrigger>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="hotels">Hotels</TabsTrigger>
           <TabsTrigger value="policies">Policies</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
-          <TabsTrigger value="other">Other</TabsTrigger>
         </TabsList>
 
         <TabsContent value="basic" className="space-y-4">
@@ -595,11 +590,24 @@ const PackageManager = () => {
             </div>
             <div>
               <Label htmlFor="package_category">Package Category</Label>
-              <Input
-                id="package_category"
+              <Select
                 value={formData.package_category}
-                onChange={(e) => handleInputChange("package_category", e.target.value)}
-              />
+                onValueChange={(value) => handleInputChange("package_category", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select package category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="budget">Budget</SelectItem>
+                  <SelectItem value="economy">Economy</SelectItem>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="deluxe">Deluxe</SelectItem>
+                  <SelectItem value="super deluxe">Super Deluxe</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="hilton">Hilton</SelectItem>
+                  <SelectItem value="luxury">Luxury</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -662,9 +670,19 @@ const PackageManager = () => {
                   <SelectValue placeholder="Select season" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="peak">Peak Season</SelectItem>
-                  <SelectItem value="off-peak">Off-Peak Season</SelectItem>
-                  <SelectItem value="shoulder">Shoulder Season</SelectItem>
+                  <SelectItem value="Muharram">Muharram</SelectItem>
+                  <SelectItem value="Safar">Safar</SelectItem>
+                  <SelectItem value="Rabi-ul-Awwal">Rabi-ul-Awwal</SelectItem>
+                  <SelectItem value="Rabi-us-Sani">Rabi-us-Sani</SelectItem>
+                  <SelectItem value="Jumada-ul-Awwal">Jumada-ul-Awwal</SelectItem>
+                  <SelectItem value="Jumada-us-Sani">Jumada-us-Sani</SelectItem>
+                  <SelectItem value="Rajab">Rajab</SelectItem>
+                  <SelectItem value="Shaban">Shaban</SelectItem>
+                  <SelectItem value="Ramadan">Ramadan</SelectItem>
+                  <SelectItem value="Shawal">Shawal</SelectItem>
+                  <SelectItem value="Zil-Qadah">Zil-Qadah</SelectItem>
+                  <SelectItem value="Zul-Hijah">Zul-Hijah</SelectItem>
+                  <SelectItem value="December">December</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -678,10 +696,10 @@ const PackageManager = () => {
                   <SelectValue placeholder="Select meal plan" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="breakfast">Breakfast Only</SelectItem>
-                  <SelectItem value="half-board">Half Board</SelectItem>
-                  <SelectItem value="full-board">Full Board</SelectItem>
-                  <SelectItem value="all-inclusive">All Inclusive</SelectItem>
+                  <SelectItem value="room only">Room Only</SelectItem>
+                  <SelectItem value="breakfast">Breakfast</SelectItem>
+                  <SelectItem value="half board">Half Board</SelectItem>
+                  <SelectItem value="full board">Full Board</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -703,7 +721,7 @@ const PackageManager = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="status">Status</Label>
               <Select
@@ -725,15 +743,8 @@ const PackageManager = () => {
               <Input
                 id="category"
                 value={formData.category}
-                onChange={(e) => handleInputChange("category", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="package_type">Package Type</Label>
-              <Input
-                id="package_type"
-                value={formData.package_type}
-                onChange={(e) => handleInputChange("package_type", e.target.value)}
+                disabled
+                className="bg-gray-100"
               />
             </div>
           </div>
@@ -780,6 +791,55 @@ const PackageManager = () => {
             />
             <Label htmlFor="flight_included">Flight Included</Label>
           </div>
+
+          {formData.flight_included && (
+            <div>
+              <Label className="text-lg font-semibold">Flight Details</Label>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <Label htmlFor="flight_type">Flight Type</Label>
+                  <Select
+                    value={formData.flight_type}
+                    onValueChange={(value) => handleInputChange("flight_type", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select flight type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct">Direct</SelectItem>
+                      <SelectItem value="connecting">Connecting</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="airline_name">Airline Name</Label>
+                  <Input
+                    id="airline_name"
+                    value={formData.airline_name}
+                    onChange={(e) => handleInputChange("airline_name", e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-2">
+                <div>
+                  <Label htmlFor="departure_from_airport">Departure From Airport</Label>
+                  <Input
+                    id="departure_from_airport"
+                    value={formData.departure_from_airport}
+                    onChange={(e) => handleInputChange("departure_from_airport", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="return_from_airport">Return From Airport</Label>
+                  <Input
+                    id="return_from_airport"
+                    value={formData.return_from_airport}
+                    onChange={(e) => handleInputChange("return_from_airport", e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="pricing" className="space-y-4">
@@ -875,18 +935,6 @@ const PackageManager = () => {
                 />
               </div>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="price">Base Price</Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              value={formData.price}
-              onChange={(e) => handleInputChange("price", e.target.value)}
-              required
-            />
           </div>
         </TabsContent>
 
@@ -1086,53 +1134,6 @@ const PackageManager = () => {
               ))}
             </div>
           </div>
-
-          <div>
-            <Label className="text-lg font-semibold">Flight Details</Label>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div>
-                <Label htmlFor="flight_type">Flight Type</Label>
-                <Select
-                  value={formData.flight_type}
-                  onValueChange={(value) => handleInputChange("flight_type", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select flight type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="direct">Direct</SelectItem>
-                    <SelectItem value="connecting">Connecting</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="airline_name">Airline Name</Label>
-                <Input
-                  id="airline_name"
-                  value={formData.airline_name}
-                  onChange={(e) => handleInputChange("airline_name", e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div>
-                <Label htmlFor="departure_from_airport">Departure From Airport</Label>
-                <Input
-                  id="departure_from_airport"
-                  value={formData.departure_from_airport}
-                  onChange={(e) => handleInputChange("departure_from_airport", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="return_from_airport">Return From Airport</Label>
-                <Input
-                  id="return_from_airport"
-                  value={formData.return_from_airport}
-                  onChange={(e) => handleInputChange("return_from_airport", e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
         </TabsContent>
 
         <TabsContent value="hotels" className="space-y-4">
@@ -1327,15 +1328,6 @@ const PackageManager = () => {
               onChange={(e) => handleInputChange("seo_og_description", e.target.value)}
               rows={3}
             />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="other" className="space-y-4">
-          <div>
-            <Label>Additional Information</Label>
-            <p className="text-sm text-gray-600">
-              This tab can be used for any additional fields that don't fit in other categories.
-            </p>
           </div>
         </TabsContent>
       </Tabs>
