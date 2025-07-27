@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Edit, Trash2, Eye } from "lucide-react";
@@ -33,7 +34,7 @@ const PackageManager = () => {
   const [independentPackages, setIndependentPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -112,6 +113,7 @@ const PackageManager = () => {
 
       resetForm();
       fetchPackages();
+      setIsModalOpen(false);
     } catch (error) {
       console.error("Error saving package:", error);
       toast.error("Failed to save package");
@@ -132,7 +134,7 @@ const PackageManager = () => {
       max_capacity: pkg.max_capacity?.toString() || "",
       available_spots: pkg.available_spots?.toString() || ""
     });
-    setIsCreating(true);
+    setIsModalOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -167,7 +169,6 @@ const PackageManager = () => {
       available_spots: ""
     });
     setEditingPackage(null);
-    setIsCreating(false);
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -177,137 +178,137 @@ const PackageManager = () => {
     }));
   };
 
-  const PackageForm = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {editingPackage ? "Edit Package" : "Create New Package"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Package Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="package_category">Category</Label>
-              <Input
-                id="package_category"
-                value={formData.package_category}
-                onChange={(e) => handleInputChange("package_category", e.target.value)}
-              />
-            </div>
-          </div>
+  const handleCreatePackage = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
 
+  const PackageForm = () => (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Package Name</Label>
+          <Input
+            id="name"
+            value={formData.name}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="package_category">Category</Label>
+          <Input
+            id="package_category"
+            value={formData.package_category}
+            onChange={(e) => handleInputChange("package_category", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => handleInputChange("description", e.target.value)}
+          rows={4}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
+          <Label htmlFor="price">Price</Label>
+          <Input
+            id="price"
+            type="number"
+            value={formData.price}
+            onChange={(e) => handleInputChange("price", e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="duration">Duration</Label>
+          <Input
+            id="duration"
+            value={formData.duration}
+            onChange={(e) => handleInputChange("duration", e.target.value)}
+          />
+        </div>
+        <div>
+          <Label htmlFor="departure_date">Departure Date</Label>
+          <Input
+            id="departure_date"
+            type="date"
+            value={formData.departure_date}
+            onChange={(e) => handleInputChange("departure_date", e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => handleInputChange("status", value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="is_group_package"
+            checked={formData.is_group_package}
+            onChange={(e) => handleInputChange("is_group_package", e.target.checked)}
+          />
+          <Label htmlFor="is_group_package">Group Package</Label>
+        </div>
+      </div>
+
+      {formData.is_group_package && (
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              rows={4}
+            <Label htmlFor="max_capacity">Max Capacity</Label>
+            <Input
+              id="max_capacity"
+              type="number"
+              value={formData.max_capacity}
+              onChange={(e) => handleInputChange("max_capacity", e.target.value)}
             />
           </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="price">Price</Label>
-              <Input
-                id="price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => handleInputChange("price", e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="duration">Duration</Label>
-              <Input
-                id="duration"
-                value={formData.duration}
-                onChange={(e) => handleInputChange("duration", e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="departure_date">Departure Date</Label>
-              <Input
-                id="departure_date"
-                type="date"
-                value={formData.departure_date}
-                onChange={(e) => handleInputChange("departure_date", e.target.value)}
-              />
-            </div>
+          <div>
+            <Label htmlFor="available_spots">Available Spots</Label>
+            <Input
+              id="available_spots"
+              type="number"
+              value={formData.available_spots}
+              onChange={(e) => handleInputChange("available_spots", e.target.value)}
+            />
           </div>
+        </div>
+      )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value) => handleInputChange("status", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="is_group_package"
-                checked={formData.is_group_package}
-                onChange={(e) => handleInputChange("is_group_package", e.target.checked)}
-              />
-              <Label htmlFor="is_group_package">Group Package</Label>
-            </div>
-          </div>
-
-          {formData.is_group_package && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="max_capacity">Max Capacity</Label>
-                <Input
-                  id="max_capacity"
-                  type="number"
-                  value={formData.max_capacity}
-                  onChange={(e) => handleInputChange("max_capacity", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="available_spots">Available Spots</Label>
-                <Input
-                  id="available_spots"
-                  type="number"
-                  value={formData.available_spots}
-                  onChange={(e) => handleInputChange("available_spots", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button type="submit">
-              {editingPackage ? "Update Package" : "Create Package"}
-            </Button>
-            <Button type="button" variant="outline" onClick={resetForm}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      <div className="flex gap-2">
+        <Button type="submit">
+          {editingPackage ? "Update Package" : "Create Package"}
+        </Button>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => setIsModalOpen(false)}
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 
   const PackageList = ({ packages: packageList, title }: { packages: Package[], title: string }) => (
@@ -383,26 +384,21 @@ const PackageManager = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold">Package Manager</h2>
-        <Button onClick={() => setIsCreating(true)}>
+        <Button onClick={handleCreatePackage}>
           <Plus className="h-4 w-4 mr-2" />
           Create Package
         </Button>
       </div>
 
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all">All Packages ({packages.length})</TabsTrigger>
-          <TabsTrigger value="form">Package Form</TabsTrigger>
           <TabsTrigger value="group">Group Packages ({groupPackages.length})</TabsTrigger>
           <TabsTrigger value="independent">Independent Packages ({independentPackages.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
           <PackageList packages={packages} title="All Packages" />
-        </TabsContent>
-
-        <TabsContent value="form" className="space-y-4">
-          <PackageForm />
         </TabsContent>
 
         <TabsContent value="group" className="space-y-4">
@@ -414,13 +410,16 @@ const PackageManager = () => {
         </TabsContent>
       </Tabs>
 
-      {isCreating && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <PackageForm />
-          </div>
-        </div>
-      )}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {editingPackage ? "Edit Package" : "Create New Package"}
+            </DialogTitle>
+          </DialogHeader>
+          <PackageForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
