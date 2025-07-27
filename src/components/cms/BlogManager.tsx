@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Edit, Trash2 } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, Upload } from "lucide-react";
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 interface BlogCategory {
   id: string;
@@ -33,7 +35,6 @@ interface BlogPost {
   featured_image_alt?: string;
   author_name?: string;
   author_id?: string;
-  author_url?: string;
   category_id?: string;
   created_at?: string;
   updated_at?: string;
@@ -73,6 +74,8 @@ const BlogManager = () => {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showAdvancedFields, setShowAdvancedFields] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -84,9 +87,7 @@ const BlogManager = () => {
     featured_image: '',
     featured_image_alt: '',
     author_name: '',
-    author_url: '',
     category_id: '',
-    publish_date: '',
     featured: false,
     meta_title: '',
     meta_description: '',
@@ -105,8 +106,36 @@ const BlogManager = () => {
     video_url: '',
     review_rating: 0,
     image_gallery: [] as string[],
-    related_searches: [] as string[]
+    related_searches: [] as string[],
+    schema_markup: '',
+    faq_schema: '',
+    howto_schema: '',
+    local_business_schema: '',
+    speakable_schema: ''
   });
+
+  // Rich text editor modules
+  const quillModules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'script': 'sub'}, { 'script': 'super' }],
+      [{ 'indent': '-1'}, { 'indent': '+1' }],
+      ['blockquote', 'code-block'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link', 'image'],
+      ['clean']
+    ],
+  };
+
+  const quillFormats = [
+    'header', 'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet', 'script', 'indent', 'blockquote',
+    'code-block', 'color', 'background', 'align',
+    'link', 'image'
+  ];
 
   useEffect(() => {
     fetchBlogPosts();
@@ -165,6 +194,45 @@ const BlogManager = () => {
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    setImageUploading(true);
+    try {
+      const fileName = `${Date.now()}-${file.name}`;
+      const { data, error } = await supabase.storage
+        .from('blog-images')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('blog-images')
+        .getPublicUrl(fileName);
+
+      setFormData({...formData, featured_image: publicUrl});
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully"
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      handleImageUpload(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -178,9 +246,8 @@ const BlogManager = () => {
         featured_image: formData.featured_image,
         featured_image_alt: formData.featured_image_alt,
         author_name: formData.author_name,
-        author_url: formData.author_url,
         category_id: formData.category_id || null,
-        publish_date: formData.publish_date || null,
+        publish_date: formData.status === 'published' ? new Date().toISOString() : null,
         featured: formData.featured,
         meta_title: formData.meta_title,
         meta_description: formData.meta_description,
@@ -199,7 +266,12 @@ const BlogManager = () => {
         video_url: formData.video_url,
         review_rating: formData.review_rating || null,
         image_gallery: formData.image_gallery.length > 0 ? formData.image_gallery : null,
-        related_searches: formData.related_searches.length > 0 ? formData.related_searches : null
+        related_searches: formData.related_searches.length > 0 ? formData.related_searches : null,
+        schema_markup: formData.schema_markup ? JSON.parse(formData.schema_markup) : null,
+        faq_schema: formData.faq_schema ? JSON.parse(formData.faq_schema) : null,
+        howto_schema: formData.howto_schema ? JSON.parse(formData.howto_schema) : null,
+        local_business_schema: formData.local_business_schema ? JSON.parse(formData.local_business_schema) : null,
+        speakable_schema: formData.speakable_schema ? JSON.parse(formData.speakable_schema) : null
       };
 
       if (isEditing && selectedPost) {
@@ -249,9 +321,7 @@ const BlogManager = () => {
       featured_image: '',
       featured_image_alt: '',
       author_name: '',
-      author_url: '',
       category_id: '',
-      publish_date: '',
       featured: false,
       meta_title: '',
       meta_description: '',
@@ -270,11 +340,17 @@ const BlogManager = () => {
       video_url: '',
       review_rating: 0,
       image_gallery: [],
-      related_searches: []
+      related_searches: [],
+      schema_markup: '',
+      faq_schema: '',
+      howto_schema: '',
+      local_business_schema: '',
+      speakable_schema: ''
     });
     setSelectedPost(null);
     setIsEditing(false);
     setShowAdvancedFields(false);
+    setImageFile(null);
   };
 
   const handleEdit = (post: BlogPost) => {
@@ -288,9 +364,7 @@ const BlogManager = () => {
       featured_image: post.featured_image || '',
       featured_image_alt: post.featured_image_alt || '',
       author_name: post.author_name || '',
-      author_url: post.author_url || '',
       category_id: post.category_id || '',
-      publish_date: post.publish_date || '',
       featured: post.featured || false,
       meta_title: post.meta_title || '',
       meta_description: post.meta_description || '',
@@ -309,7 +383,12 @@ const BlogManager = () => {
       video_url: post.video_url || '',
       review_rating: post.review_rating || 0,
       image_gallery: post.image_gallery || [],
-      related_searches: post.related_searches || []
+      related_searches: post.related_searches || [],
+      schema_markup: post.schema_markup ? JSON.stringify(post.schema_markup, null, 2) : '',
+      faq_schema: post.faq_schema ? JSON.stringify(post.faq_schema, null, 2) : '',
+      howto_schema: post.howto_schema ? JSON.stringify(post.howto_schema, null, 2) : '',
+      local_business_schema: post.local_business_schema ? JSON.stringify(post.local_business_schema, null, 2) : '',
+      speakable_schema: post.speakable_schema ? JSON.stringify(post.speakable_schema, null, 2) : ''
     });
     setIsEditing(true);
   };
@@ -408,12 +487,15 @@ const BlogManager = () => {
 
               <div>
                 <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
-                  rows={10}
-                />
+                <div className="mt-2">
+                  <ReactQuill
+                    value={formData.content}
+                    onChange={(value) => setFormData({...formData, content: value})}
+                    modules={quillModules}
+                    formats={quillFormats}
+                    style={{ height: '200px', marginBottom: '50px' }}
+                  />
+                </div>
               </div>
 
               <div>
@@ -456,21 +538,31 @@ const BlogManager = () => {
               </div>
 
               <div>
-                <Label htmlFor="author_url">Author URL</Label>
-                <Input
-                  id="author_url"
-                  value={formData.author_url}
-                  onChange={(e) => setFormData({...formData, author_url: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="featured_image">Featured Image URL</Label>
-                <Input
-                  id="featured_image"
-                  value={formData.featured_image}
-                  onChange={(e) => setFormData({...formData, featured_image: e.target.value})}
-                />
+                <Label htmlFor="featured_image">Featured Image</Label>
+                <div className="mt-2">
+                  <Input
+                    id="featured_image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="mb-2"
+                  />
+                  {imageUploading && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Uploading image...
+                    </div>
+                  )}
+                  {formData.featured_image && (
+                    <div className="mt-2">
+                      <img 
+                        src={formData.featured_image} 
+                        alt="Featured" 
+                        className="w-32 h-32 object-cover rounded"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -479,16 +571,6 @@ const BlogManager = () => {
                   id="featured_image_alt"
                   value={formData.featured_image_alt}
                   onChange={(e) => setFormData({...formData, featured_image_alt: e.target.value})}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="publish_date">Publish Date</Label>
-                <Input
-                  id="publish_date"
-                  type="datetime-local"
-                  value={formData.publish_date}
-                  onChange={(e) => setFormData({...formData, publish_date: e.target.value})}
                 />
               </div>
 
@@ -509,7 +591,7 @@ const BlogManager = () => {
                   onClick={() => setShowAdvancedFields(!showAdvancedFields)}
                   className="w-full"
                 >
-                  {showAdvancedFields ? 'Hide' : 'Show'} Advanced SEO & Social Media Fields
+                  {showAdvancedFields ? 'Hide' : 'Show'} Advanced SEO & Schema Fields
                 </Button>
               </div>
 
@@ -651,6 +733,63 @@ const BlogManager = () => {
                         <SelectItem value="player">Player</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <h3 className="font-semibold pt-4">Schema Markup</h3>
+                  
+                  <div>
+                    <Label htmlFor="schema_markup">General Schema Markup (JSON)</Label>
+                    <Textarea
+                      id="schema_markup"
+                      value={formData.schema_markup}
+                      onChange={(e) => setFormData({...formData, schema_markup: e.target.value})}
+                      rows={5}
+                      placeholder='{"@context": "https://schema.org", "@type": "Article", ...}'
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="faq_schema">FAQ Schema (JSON)</Label>
+                    <Textarea
+                      id="faq_schema"
+                      value={formData.faq_schema}
+                      onChange={(e) => setFormData({...formData, faq_schema: e.target.value})}
+                      rows={5}
+                      placeholder='{"@context": "https://schema.org", "@type": "FAQPage", ...}'
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="howto_schema">How-to Schema (JSON)</Label>
+                    <Textarea
+                      id="howto_schema"
+                      value={formData.howto_schema}
+                      onChange={(e) => setFormData({...formData, howto_schema: e.target.value})}
+                      rows={5}
+                      placeholder='{"@context": "https://schema.org", "@type": "HowTo", ...}'
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="local_business_schema">Local Business Schema (JSON)</Label>
+                    <Textarea
+                      id="local_business_schema"
+                      value={formData.local_business_schema}
+                      onChange={(e) => setFormData({...formData, local_business_schema: e.target.value})}
+                      rows={5}
+                      placeholder='{"@context": "https://schema.org", "@type": "LocalBusiness", ...}'
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="speakable_schema">Speakable Schema (JSON)</Label>
+                    <Textarea
+                      id="speakable_schema"
+                      value={formData.speakable_schema}
+                      onChange={(e) => setFormData({...formData, speakable_schema: e.target.value})}
+                      rows={5}
+                      placeholder='{"@context": "https://schema.org", "@type": "SpeakableSpecification", ...}'
+                    />
                   </div>
 
                   <h3 className="font-semibold pt-4">Additional Fields</h3>
