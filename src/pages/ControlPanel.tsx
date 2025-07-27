@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +18,8 @@ import LeadManager from "@/components/crm/LeadManager";
 import SaudiVisasManager from "@/components/cms/SaudiVisasManager";
 import HajjPackagesManager from "@/components/cms/HajjPackagesManager";
 import MarkupManagement from "@/components/cms/MarkupManagement";
-import AnimatedCounter from "@/components/AnimatedCounter";
 import FaqsManager from "@/components/cms/FaqsManager";
+import DashboardTabs from "@/components/dashboard/DashboardTabs";
 
 const APP_NAME = "Marhaba Admin";
 
@@ -58,7 +59,7 @@ const ControlPanel = () => {
       items: [
         { id: "payment-gateway", label: "Payment Gateway", icon: "🔒" },
         { id: "seo-manager", label: "SEO Settings", icon: "🔍" },
-        { id: "markup-management", label: "Markup Management", icon: "📝" }, // Added Markup Management
+        { id: "markup-management", label: "Markup Management", icon: "📝" },
       ],
     },
   ];
@@ -67,46 +68,10 @@ const ControlPanel = () => {
     window.location.href = "/login";
   };
 
-  const renderDashboard = () => {
-    // Placeholder for now, will fetch and show stats in next step
-    const modules = [
-      { key: "bookings", label: "Bookings" },
-      { key: "leads", label: "Leads" },
-      { key: "umrahPackages", label: "Umrah Packages" },
-      { key: "hajjPackages", label: "Hajj Packages" },
-      { key: "groupFlights", label: "Group Flights" },
-      { key: "visas", label: "Saudi Visas" },
-      { key: "hotels", label: "Hotels" },
-      { key: "transport", label: "Transport" },
-      { key: "activities", label: "Activities" },
-      { key: "guides", label: "Guides" },
-      { key: "ziarath", label: "Ziarath" },
-    ];
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {modules.map((mod) => (
-          <Card key={mod.key} className="shadow border border-gray-100">
-            <CardHeader>
-              <CardTitle>{mod.label}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl">
-                <AnimatedCounter end={0} />
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Total {mod.label}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  };
-
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return renderDashboard();
+        return <DashboardTabs />;
       case "package-manager":
         return <PackageManager />;
       case "hajj-packages-manager":
@@ -145,7 +110,7 @@ const ControlPanel = () => {
         handleLogout();
         return null;
       default:
-        return renderDashboard();
+        return <DashboardTabs />;
     }
   };
 
