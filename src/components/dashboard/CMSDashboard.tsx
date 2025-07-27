@@ -21,7 +21,7 @@ interface CMSStats {
 }
 
 const CMSDashboard = () => {
-  const [dateFilter, setDateFilter] = useState<DateFilter>("monthly");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
   const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date }>();
   const [cmsStats, setCmsStats] = useState<CMSStats>({
     groupUmrahPackages: { total: 0, active: 0, inactive: 0 },

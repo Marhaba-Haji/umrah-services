@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import DateFilterSelector from "./DateFilterSelector";
 import { DateFilter } from "./DashboardTabs";
@@ -24,7 +24,7 @@ interface BookingStats {
 }
 
 const BookingsDashboard = () => {
-  const [dateFilter, setDateFilter] = useState<DateFilter>("monthly");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("thisMonth");
   const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date }>();
   const [bookingStats, setBookingStats] = useState<BookingStats>({
     totalBookings: 0,
@@ -46,22 +46,77 @@ const BookingsDashboard = () => {
     fetchBookingStats();
   }, [dateFilter, customDateRange]);
 
+  const getDateRange = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (dateFilter) {
+      case "today":
+        return { from: today, to: new Date(today.getTime() + 24 * 60 * 60 * 1000) };
+      case "yesterday":
+        const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+        return { from: yesterday, to: today };
+      case "thisWeek":
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        return { from: weekStart, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      case "lastWeek":
+        const lastWeekStart = new Date(today);
+        lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+        const lastWeekEnd = new Date(lastWeekStart);
+        lastWeekEnd.setDate(lastWeekStart.getDate() + 7);
+        return { from: lastWeekStart, to: lastWeekEnd };
+      case "thisMonth":
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { from: monthStart, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      case "lastMonth":
+        const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { from: lastMonthStart, to: lastMonthEnd };
+      case "last3Months":
+        const threeMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+        return { from: threeMonthsAgo, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      case "last6Months":
+        const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+        return { from: sixMonthsAgo, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      case "thisYear":
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        return { from: yearStart, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      case "lastYear":
+        const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
+        const lastYearEnd = new Date(today.getFullYear(), 0, 1);
+        return { from: lastYearStart, to: lastYearEnd };
+      case "custom":
+        return customDateRange ? customDateRange : { from: today, to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+      default:
+        return { from: new Date(today.getFullYear(), today.getMonth(), 1), to: new Date(now.getTime() + 24 * 60 * 60 * 1000) };
+    }
+  };
+
   const fetchBookingStats = async () => {
     try {
+      const dateRange = getDateRange();
+      
       // Fetch general bookings
       const { data: bookings, error: bookingsError } = await supabase
         .from("bookings")
-        .select("*");
+        .select("*")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString());
 
       // Fetch hotel bookings
       const { data: hotelBookings, error: hotelError } = await supabase
         .from("hotel_bookings")
-        .select("*");
+        .select("*")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString());
 
       // Fetch visa applications
       const { data: visaApplications, error: visaError } = await supabase
         .from("visa_applications")
-        .select("*");
+        .select("*")
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString());
 
       if (bookingsError || hotelError || visaError) {
         throw new Error("Error fetching booking data");

@@ -1,13 +1,23 @@
 
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import LeadsDashboard from "./LeadsDashboard";
 import BookingsDashboard from "./BookingsDashboard";
 import SalesDashboard from "./SalesDashboard";
 import CMSDashboard from "./CMSDashboard";
 
-export type DateFilter = "daily" | "weekly" | "monthly" | "yearly" | "tillDate" | "custom";
+export type DateFilter = 
+  | "today" 
+  | "yesterday" 
+  | "thisWeek" 
+  | "lastWeek" 
+  | "thisMonth" 
+  | "lastMonth" 
+  | "last3Months" 
+  | "last6Months" 
+  | "thisYear" 
+  | "lastYear" 
+  | "custom";
 
 const DashboardTabs = () => {
   const [activeTab, setActiveTab] = useState("leads");

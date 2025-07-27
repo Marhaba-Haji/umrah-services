@@ -6,7 +6,19 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { DateFilter } from "./DashboardTabs";
+
+export type DateFilter = 
+  | "today" 
+  | "yesterday" 
+  | "thisWeek" 
+  | "lastWeek" 
+  | "thisMonth" 
+  | "lastMonth" 
+  | "last3Months" 
+  | "last6Months" 
+  | "thisYear" 
+  | "lastYear" 
+  | "custom";
 
 interface DateFilterSelectorProps {
   value: DateFilter;
@@ -35,15 +47,20 @@ const DateFilterSelector: React.FC<DateFilterSelectorProps> = ({
   return (
     <div className="flex items-center space-x-4">
       <Select value={value} onValueChange={handleFilterChange}>
-        <SelectTrigger className="w-48">
+        <SelectTrigger className="w-56">
           <SelectValue placeholder="Select time period" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="daily">Daily</SelectItem>
-          <SelectItem value="weekly">Weekly</SelectItem>
-          <SelectItem value="monthly">Monthly</SelectItem>
-          <SelectItem value="yearly">Yearly</SelectItem>
-          <SelectItem value="tillDate">Till Date</SelectItem>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="yesterday">Yesterday</SelectItem>
+          <SelectItem value="thisWeek">This Week Until Today</SelectItem>
+          <SelectItem value="lastWeek">Last Week</SelectItem>
+          <SelectItem value="thisMonth">This Month Until Today</SelectItem>
+          <SelectItem value="lastMonth">Last Month</SelectItem>
+          <SelectItem value="last3Months">Last 3 Months</SelectItem>
+          <SelectItem value="last6Months">Last 6 Months</SelectItem>
+          <SelectItem value="thisYear">This Year Until Today</SelectItem>
+          <SelectItem value="lastYear">Last Year</SelectItem>
           <SelectItem value="custom">Custom Range</SelectItem>
         </SelectContent>
       </Select>
@@ -69,6 +86,7 @@ const DateFilterSelector: React.FC<DateFilterSelectorProps> = ({
                     });
                   }
                 }}
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -92,6 +110,7 @@ const DateFilterSelector: React.FC<DateFilterSelectorProps> = ({
                     });
                   }
                 }}
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
