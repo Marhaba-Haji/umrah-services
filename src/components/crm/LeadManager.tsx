@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -52,7 +53,7 @@ interface Lead {
   notes: string;
   date: string;
   followUpDate?: string;
-  raw?: any; // Add raw property
+  raw?: any;
 }
 
 type ContactInquiry = Record<string, unknown>;
@@ -84,16 +85,11 @@ interface VisaApplication {
 }
 
 const LeadManager = () => {
+  const [activeTab, setActiveTab] = useState("group-umrah");
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [contactInquiries, setContactInquiries] = useState<ContactInquiry[]>(
-    [],
-  );
-  const [groupFlightInquiries, setGroupFlightInquiries] = useState<
-    GroupFlightInquiry[]
-  >([]);
-  const [visaApplications, setVisaApplications] = useState<VisaApplication[]>(
-    [],
-  );
+  const [contactInquiries, setContactInquiries] = useState<ContactInquiry[]>([]);
+  const [groupFlightInquiries, setGroupFlightInquiries] = useState<GroupFlightInquiry[]>([]);
+  const [visaApplications, setVisaApplications] = useState<VisaApplication[]>([]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
@@ -108,13 +104,40 @@ const LeadManager = () => {
       name: "",
       email: "",
       phone: "",
-      service: "Umrah Visa",
+      service: "Group Umrah",
       status: "New",
       source: "Website",
       notes: "",
       followUpDate: "",
     },
   });
+
+  // Service category mapping
+  const serviceCategories = {
+    "group-umrah": ["Group Umrah", "Umrah Package"],
+    "independent-umrah": ["Independent Umrah", "Individual Umrah"],
+    "custom-umrah": ["Custom Umrah", "Customized Umrah"],
+    "hajj": ["Hajj", "Hajj Package"],
+    "flight": ["Flight", "Group Flights"],
+    "visa": ["Visa", "Umrah Visa", "Saudi Visa"],
+    "hotel": ["Hotel", "Hotel Booking"],
+    "transport": ["Transport", "Transportation"],
+    "activity": ["Activity", "Activities", "Ziarath"],
+    "guide": ["Guide", "Guide Services"]
+  };
+
+  const tabLabels = {
+    "group-umrah": "Group Umrah",
+    "independent-umrah": "Independent Umrah", 
+    "custom-umrah": "Custom Umrah",
+    "hajj": "Hajj",
+    "flight": "Flight",
+    "visa": "Visa",
+    "hotel": "Hotel",
+    "transport": "Transport",
+    "activity": "Activity",
+    "guide": "Guide"
+  };
 
   useEffect(() => {
     async function fetchLeads() {
@@ -246,6 +269,18 @@ const LeadManager = () => {
     }
   };
 
+  const getFilteredLeads = (category: string) => {
+    const categoryServices = serviceCategories[category as keyof typeof serviceCategories] || [];
+    return leads.filter((lead) => {
+      const matchesCategory = categoryServices.includes(lead.service);
+      const matchesSearch = lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.phone.includes(searchTerm);
+      const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
+      return matchesCategory && matchesSearch && matchesStatus;
+    });
+  };
+
   const onSubmit = (data: unknown) => {
     const d = data as LeadFormData;
     const newLead: Lead = {
@@ -295,16 +330,6 @@ const LeadManager = () => {
     setLeads(leads.filter((lead) => lead.id !== id));
   };
 
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.phone.includes(searchTerm);
-    const matchesStatus =
-      statusFilter === "all" || lead.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "New":
@@ -320,6 +345,136 @@ const LeadManager = () => {
       default:
         return "secondary";
     }
+  };
+
+  const renderLeadsTable = (category: string) => {
+    const filteredLeads = getFilteredLeads(category);
+    
+    return (
+      <div className="space-y-4">
+        <div className="flex gap-4 items-center">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search leads by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="New">New</SelectItem>
+              <SelectItem value="Contacted">Contacted</SelectItem>
+              <SelectItem value="Qualified">Qualified</SelectItem>
+              <SelectItem value="Converted">Converted</SelectItem>
+              <SelectItem value="Lost">Lost</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Name</th>
+                    <th className="text-left p-2">Contact</th>
+                    <th className="text-left p-2">Service</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Source</th>
+                    <th className="text-left p-2">Date</th>
+                    <th className="text-left p-2">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr key={lead.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        <div>
+                          <div className="font-medium">{lead.name}</div>
+                          {lead.followUpDate && (
+                            <div className="text-xs text-red-600">
+                              Follow up: {lead.followUpDate}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center text-sm">
+                            <Mail className="w-3 h-3 mr-1" />
+                            {lead.email}
+                          </div>
+                          <div className="flex items-center text-sm">
+                            <Phone className="w-3 h-3 mr-1" />
+                            {lead.phone}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-2">{lead.service}</td>
+                      <td className="p-2">
+                        <Badge variant={getStatusBadgeVariant(lead.status)}>
+                          {lead.status}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <Badge variant="outline">{lead.source}</Badge>
+                      </td>
+                      <td className="p-2">{lead.date}</td>
+                      <td className="p-2">
+                        <div className="flex space-x-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setViewLead(lead)}
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(lead)}
+                          >
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setMessageLead(lead)}
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(lead.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredLeads.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No leads found for {tabLabels[category as keyof typeof tabLabels]}.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   };
 
   return (
@@ -412,19 +567,16 @@ const LeadManager = () => {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Umrah Visa">
-                              Umrah Visa
-                            </SelectItem>
-                            <SelectItem value="Umrah Package">
-                              Umrah Package
-                            </SelectItem>
-                            <SelectItem value="Hotel Booking">
-                              Hotel Booking
-                            </SelectItem>
+                            <SelectItem value="Group Umrah">Group Umrah</SelectItem>
+                            <SelectItem value="Independent Umrah">Independent Umrah</SelectItem>
+                            <SelectItem value="Custom Umrah">Custom Umrah</SelectItem>
+                            <SelectItem value="Hajj">Hajj</SelectItem>
+                            <SelectItem value="Flight">Flight</SelectItem>
+                            <SelectItem value="Visa">Visa</SelectItem>
+                            <SelectItem value="Hotel">Hotel</SelectItem>
                             <SelectItem value="Transport">Transport</SelectItem>
-                            <SelectItem value="Group Flights">
-                              Group Flights
-                            </SelectItem>
+                            <SelectItem value="Activity">Activity</SelectItem>
+                            <SelectItem value="Guide">Guide</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -542,201 +694,26 @@ const LeadManager = () => {
         </Dialog>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <Input
-              placeholder="Search leads by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="New">New</SelectItem>
-            <SelectItem value="Contacted">Contacted</SelectItem>
-            <SelectItem value="Qualified">Qualified</SelectItem>
-            <SelectItem value="Converted">Converted</SelectItem>
-            <SelectItem value="Lost">Lost</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-10">
+          <TabsTrigger value="group-umrah">Group Umrah</TabsTrigger>
+          <TabsTrigger value="independent-umrah">Independent Umrah</TabsTrigger>
+          <TabsTrigger value="custom-umrah">Custom Umrah</TabsTrigger>
+          <TabsTrigger value="hajj">Hajj</TabsTrigger>
+          <TabsTrigger value="flight">Flight</TabsTrigger>
+          <TabsTrigger value="visa">Visa</TabsTrigger>
+          <TabsTrigger value="hotel">Hotel</TabsTrigger>
+          <TabsTrigger value="transport">Transport</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="guide">Guide</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-2">Name</th>
-                  <th className="text-left p-2">Contact</th>
-                  <th className="text-left p-2">Service</th>
-                  <th className="text-left p-2">Status</th>
-                  <th className="text-left p-2">Source</th>
-                  <th className="text-left p-2">Date</th>
-                  <th className="text-left p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <div>
-                        <div className="font-medium">{lead.name}</div>
-                        {lead.followUpDate && (
-                          <div className="text-xs text-red-600">
-                            Follow up: {lead.followUpDate}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center text-sm">
-                          <Mail className="w-3 h-3 mr-1" />
-                          {lead.email}
-                        </div>
-                        <div className="flex items-center text-sm">
-                          <Phone className="w-3 h-3 mr-1" />
-                          {lead.phone}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-2">{lead.service}</td>
-                    <td className="p-2">
-                      <Badge variant={getStatusBadgeVariant(lead.status)}>
-                        {lead.status}
-                      </Badge>
-                    </td>
-                    <td className="p-2">
-                      <Badge variant="outline">{lead.source}</Badge>
-                    </td>
-                    <td className="p-2">{lead.date}</td>
-                    <td className="p-2">
-                      <div className="flex space-x-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setViewLead(lead)}
-                        >
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(lead)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setMessageLead(lead)}
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(lead.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* Umrah Visa Applications Section */}
-          <div className="mt-10">
-            <h2 className="text-lg font-semibold mb-4">
-              Umrah Visa Applications (Unpaid/Failed)
-            </h2>
-            <div className="rounded-md border overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Name
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nationality
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Passport
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Gender
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Phone
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Email
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Payment
-                    </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {visaApplications.map((app) => (
-                    <tr key={app.id}>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.first_name} {app.last_name}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.nationality}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.passport_number}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.gender}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.phone}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.email}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.status}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {app.payment_status}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
-                        {new Date(app.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {visaApplications.length === 0 && (
-                <div className="p-4 text-gray-500">
-                  No unpaid or failed Umrah visa applications found.
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {Object.keys(serviceCategories).map((category) => (
+          <TabsContent key={category} value={category} className="space-y-4">
+            {renderLeadsTable(category)}
+          </TabsContent>
+        ))}
+      </Tabs>
 
       {/* View Lead Dialog */}
       <Dialog open={!!viewLead} onOpenChange={() => setViewLead(null)}>
@@ -815,6 +792,86 @@ const LeadManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Umrah Visa Applications Section */}
+      <div className="mt-10">
+        <h2 className="text-lg font-semibold mb-4">
+          Umrah Visa Applications (Unpaid/Failed)
+        </h2>
+        <div className="rounded-md border overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Name
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Nationality
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Passport
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Gender
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Phone
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Payment
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Created
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {visaApplications.map((app) => (
+                <tr key={app.id}>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.first_name} {app.last_name}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.nationality}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.passport_number}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.gender}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.phone}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.email}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.status}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {app.payment_status}
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap max-w-xs truncate">
+                    {new Date(app.created_at).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {visaApplications.length === 0 && (
+            <div className="p-4 text-gray-500">
+              No unpaid or failed Umrah visa applications found.
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="mt-12">
         <h3 className="text-xl font-semibold mb-4">Hotel Enquiries</h3>
