@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -163,49 +162,136 @@ const BookingsManager = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("umrah-packages");
 
-  // Dummy data for all booking types
+  // Dummy data for Umrah packages with specific categories
   const dummyUmrahBookings: Booking[] = [
+    // Group Umrah Packages
     {
       id: "1",
-      booking_reference: "UMR-2024-001",
+      booking_reference: "GRP-UMR-2024-001",
       total_amount: 125000,
-      number_of_travelers: 2,
+      number_of_travelers: 4,
       travel_date: "2024-03-15",
       status: "confirmed",
       payment_status: "completed",
       created_at: "2024-01-15T10:30:00Z",
-      package_name: "Deluxe Umrah Package - 14 Days",
+      package_name: "Group Umrah Package - 14 Days Premium",
       customer_name: "Ahmed Hassan",
       customer_email: "ahmed.hassan@email.com",
       customer_phone: "+91-9876543210"
     },
     {
       id: "2",
-      booking_reference: "UMR-2024-002",
+      booking_reference: "GRP-UMR-2024-002",
       total_amount: 85000,
-      number_of_travelers: 4,
+      number_of_travelers: 6,
       travel_date: "2024-04-20",
       status: "pending",
       payment_status: "pending",
       created_at: "2024-02-10T14:20:00Z",
-      package_name: "Economy Umrah Package - 10 Days",
+      package_name: "Group Umrah Package - 10 Days Economy",
       customer_name: "Fatima Ali",
       customer_email: "fatima.ali@email.com",
       customer_phone: "+91-9876543211"
     },
     {
       id: "3",
-      booking_reference: "UMR-2024-003",
+      booking_reference: "GRP-UMR-2024-003",
       total_amount: 195000,
-      number_of_travelers: 1,
+      number_of_travelers: 8,
       travel_date: "2024-05-10",
       status: "confirmed",
       payment_status: "completed",
       created_at: "2024-02-25T09:15:00Z",
-      package_name: "Premium Umrah Package - 21 Days",
+      package_name: "Group Umrah Package - 21 Days Luxury",
       customer_name: "Mohammad Khan",
       customer_email: "mohammad.khan@email.com",
       customer_phone: "+91-9876543212"
+    },
+    // Independent Umrah Packages
+    {
+      id: "4",
+      booking_reference: "IND-UMR-2024-001",
+      total_amount: 75000,
+      number_of_travelers: 2,
+      travel_date: "2024-03-25",
+      status: "confirmed",
+      payment_status: "completed",
+      created_at: "2024-01-20T11:45:00Z",
+      package_name: "Independent Umrah Package - 7 Days Standard",
+      customer_name: "Sarah Abdullah",
+      customer_email: "sarah.abdullah@email.com",
+      customer_phone: "+91-9876543213"
+    },
+    {
+      id: "5",
+      booking_reference: "IND-UMR-2024-002",
+      total_amount: 95000,
+      number_of_travelers: 3,
+      travel_date: "2024-04-15",
+      status: "pending",
+      payment_status: "pending",
+      created_at: "2024-02-12T16:30:00Z",
+      package_name: "Independent Umrah Package - 12 Days Deluxe",
+      customer_name: "Omar Malik",
+      customer_email: "omar.malik@email.com",
+      customer_phone: "+91-9876543214"
+    },
+    {
+      id: "6",
+      booking_reference: "IND-UMR-2024-003",
+      total_amount: 55000,
+      number_of_travelers: 1,
+      travel_date: "2024-05-05",
+      status: "confirmed",
+      payment_status: "completed",
+      created_at: "2024-02-28T13:45:00Z",
+      package_name: "Independent Umrah Package - 5 Days Budget",
+      customer_name: "Amina Rahman",
+      customer_email: "amina.rahman@email.com",
+      customer_phone: "+91-9876543215"
+    },
+    // Custom Umrah Packages
+    {
+      id: "7",
+      booking_reference: "CUS-UMR-2024-001",
+      total_amount: 155000,
+      number_of_travelers: 2,
+      travel_date: "2024-03-30",
+      status: "confirmed",
+      payment_status: "completed",
+      created_at: "2024-01-25T14:20:00Z",
+      package_name: "Custom Umrah Package - 15 Days Premium Tailored",
+      customer_name: "Khalid Sheikh",
+      customer_email: "khalid.sheikh@email.com",
+      customer_phone: "+91-9876543216"
+    },
+    {
+      id: "8",
+      booking_reference: "CUS-UMR-2024-002",
+      total_amount: 225000,
+      number_of_travelers: 4,
+      travel_date: "2024-04-25",
+      status: "pending",
+      payment_status: "pending",
+      created_at: "2024-02-15T10:15:00Z",
+      package_name: "Custom Umrah Package - 20 Days Luxury Bespoke",
+      customer_name: "Zainab Qureshi",
+      customer_email: "zainab.qureshi@email.com",
+      customer_phone: "+91-9876543217"
+    },
+    {
+      id: "9",
+      booking_reference: "CUS-UMR-2024-003",
+      total_amount: 105000,
+      number_of_travelers: 3,
+      travel_date: "2024-05-15",
+      status: "confirmed",
+      payment_status: "completed",
+      created_at: "2024-03-01T12:30:00Z",
+      package_name: "Custom Umrah Package - 10 Days Premium Personalized",
+      customer_name: "Ibrahim Yusuf",
+      customer_email: "ibrahim.yusuf@email.com",
+      customer_phone: "+91-9876543218"
     }
   ];
 
@@ -625,11 +711,11 @@ const BookingsManager = () => {
   const getUmrahPackagesByType = (type: string) => {
     return filteredBookings.filter((booking) => {
       if (type === "group") {
-        return booking.package_name?.includes("Group");
+        return booking.booking_reference.includes("GRP-UMR");
       } else if (type === "independent") {
-        return booking.package_name?.includes("Independent") || booking.package_name?.includes("Economy");
+        return booking.booking_reference.includes("IND-UMR");
       } else if (type === "custom") {
-        return booking.package_name?.includes("Custom") || booking.package_name?.includes("Premium");
+        return booking.booking_reference.includes("CUS-UMR");
       }
       return false;
     });
