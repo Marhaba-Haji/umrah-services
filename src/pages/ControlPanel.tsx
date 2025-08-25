@@ -20,6 +20,7 @@ import HajjPackagesManager from "@/components/cms/HajjPackagesManager";
 import MarkupManagement from "@/components/cms/MarkupManagement";
 import FaqsManager from "@/components/cms/FaqsManager";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
+import CompanySettings from "@/components/cms/CompanySettings";
 
 const APP_NAME = "Marhaba Admin";
 
@@ -60,6 +61,7 @@ const ControlPanel = () => {
         { id: "payment-gateway", label: "Payment Gateway", icon: "🔒" },
         { id: "seo-manager", label: "SEO Settings", icon: "🔍" },
         { id: "markup-management", label: "Markup Management", icon: "📝" },
+        { id: "company-settings", label: "Company Settings", icon: "🏢" },
       ],
     },
   ];
@@ -106,6 +108,8 @@ const ControlPanel = () => {
         return <LeadManager />;
       case "faqs-manager":
         return <FaqsManager />;
+      case "company-settings":
+        return <CompanySettings />;
       case "logout":
         handleLogout();
         return null;

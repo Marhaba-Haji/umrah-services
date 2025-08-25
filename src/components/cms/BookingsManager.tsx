@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Eye, Edit, Trash2 } from "lucide-react";
+import { Eye, Edit, Trash2, CheckCircle, Clock, AlertCircle, Truck, Calendar, UserCheck, Badge } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +21,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge as BadgeComponent } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+
+// Enhanced interfaces with vendor tracking and service delivery
+interface VendorStatus {
+  vendor_id?: string;
+  vendor_name?: string;
+  vendor_contact?: string;
+  vendor_email?: string;
+  mapped_date?: string;
+  confirmed_date?: string;
+  confirmation_status: "not_mapped" | "mapped" | "confirmed" | "rejected";
+  notes?: string;
+  priority_level?: "low" | "medium" | "high" | "urgent";
+}
+
+interface ServiceDeliveryStatus {
+  service_delivered: boolean;
+  delivery_date?: string;
+  due_date: string;
+  delivery_notes?: string;
+  delivery_confirmation?: string;
+  delivery_proof?: string;
+  delivery_status: "pending" | "in_progress" | "delivered" | "overdue";
+}
 
 interface Booking {
   id: string;
@@ -37,6 +69,11 @@ interface Booking {
   customer_name?: string;
   customer_email?: string;
   customer_phone?: string;
+  // Enhanced fields for vendor tracking
+  vendor_status_json?: Record<string, VendorStatus>;
+  service_delivery_json?: Record<string, ServiceDeliveryStatus>;
+  operations_notes?: string;
+  priority_level?: "low" | "medium" | "high" | "urgent";
 }
 
 interface HotelBooking {
@@ -148,6 +185,321 @@ interface HajjBooking {
   package_category: string;
 }
 
+// Vendor Management Dialog Component
+const VendorManagementDialog = ({ 
+  booking, 
+  serviceType, 
+  isOpen, 
+  onClose, 
+  onUpdate 
+}: {
+  booking: any;
+  serviceType: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (vendorStatus: VendorStatus) => void;
+}) => {
+  const [vendorStatus, setVendorStatus] = useState<VendorStatus>({
+    confirmation_status: "not_mapped"
+  });
+
+  useEffect(() => {
+    if (booking?.vendor_status_json?.[serviceType]) {
+      setVendorStatus(booking.vendor_status_json[serviceType]);
+    }
+  }, [booking, serviceType]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdate(vendorStatus);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Vendor Management - {serviceType}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Vendor Name</label>
+              <Input
+                value={vendorStatus.vendor_name || ""}
+                onChange={(e) => setVendorStatus(prev => ({ ...prev, vendor_name: e.target.value }))}
+                placeholder="Enter vendor name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Vendor Contact</label>
+              <Input
+                value={vendorStatus.vendor_contact || ""}
+                onChange={(e) => setVendorStatus(prev => ({ ...prev, vendor_contact: e.target.value }))}
+                placeholder="Enter vendor contact"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Vendor Email</label>
+            <Input
+              value={vendorStatus.vendor_email || ""}
+              onChange={(e) => setVendorStatus(prev => ({ ...prev, vendor_email: e.target.value }))}
+              placeholder="Enter vendor email"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Mapped Date</label>
+              <Input
+                type="date"
+                value={vendorStatus.mapped_date || ""}
+                onChange={(e) => setVendorStatus(prev => ({ ...prev, mapped_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Confirmation Status</label>
+              <Select 
+                value={vendorStatus.confirmation_status} 
+                onValueChange={(value: any) => setVendorStatus(prev => ({ ...prev, confirmation_status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="not_mapped">Not Mapped</SelectItem>
+                  <SelectItem value="mapped">Mapped</SelectItem>
+                  <SelectItem value="confirmed">Confirmed</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Priority Level</label>
+            <Select 
+              value={vendorStatus.priority_level || "low"} 
+              onValueChange={(value: any) => setVendorStatus(prev => ({ ...prev, priority_level: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Notes</label>
+            <textarea
+              className="w-full p-2 border rounded-md"
+              rows={3}
+              value={vendorStatus.notes || ""}
+              onChange={(e) => setVendorStatus(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Enter vendor notes"
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Update Vendor Status
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Service Delivery Management Dialog Component
+const ServiceDeliveryDialog = ({ 
+  booking, 
+  serviceType, 
+  isOpen, 
+  onClose, 
+  onUpdate 
+}: {
+  booking: any;
+  serviceType: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdate: (deliveryStatus: ServiceDeliveryStatus) => void;
+}) => {
+  const [deliveryStatus, setDeliveryStatus] = useState<ServiceDeliveryStatus>({
+    service_delivered: false,
+    due_date: "",
+    delivery_status: "pending"
+  });
+
+  useEffect(() => {
+    if (booking?.service_delivery_json?.[serviceType]) {
+      setDeliveryStatus(booking.service_delivery_json[serviceType]);
+    }
+  }, [booking, serviceType]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    onUpdate(deliveryStatus);
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Service Delivery Management - {serviceType}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">Due Date</label>
+              <Input
+                type="date"
+                value={deliveryStatus.due_date}
+                onChange={(e) => setDeliveryStatus(prev => ({ ...prev, due_date: e.target.value }))}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Delivery Status</label>
+              <Select 
+                value={deliveryStatus.delivery_status} 
+                onValueChange={(value: any) => setDeliveryStatus(prev => ({ ...prev, delivery_status: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Service Delivered</label>
+            <Select 
+              value={deliveryStatus.service_delivered ? "yes" : "no"} 
+              onValueChange={(value) => setDeliveryStatus(prev => ({ ...prev, service_delivered: value === "yes" }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="no">No</SelectItem>
+                <SelectItem value="yes">Yes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {deliveryStatus.service_delivered && (
+            <div>
+              <label className="text-sm font-medium">Delivery Date</label>
+              <Input
+                type="date"
+                value={deliveryStatus.delivery_date || ""}
+                onChange={(e) => setDeliveryStatus(prev => ({ ...prev, delivery_date: e.target.value }))}
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-sm font-medium">Delivery Notes</label>
+            <textarea
+              className="w-full p-2 border rounded-md"
+              rows={3}
+              value={deliveryStatus.delivery_notes || ""}
+              onChange={(e) => setDeliveryStatus(prev => ({ ...prev, delivery_notes: e.target.value }))}
+              placeholder="Enter delivery notes"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Delivery Confirmation</label>
+            <Input
+              value={deliveryStatus.delivery_confirmation || ""}
+              onChange={(e) => setDeliveryStatus(prev => ({ ...prev, delivery_confirmation: e.target.value }))}
+              placeholder="Enter delivery confirmation details"
+            />
+          </div>
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Update Delivery Status
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Status Indicator Component
+const StatusIndicator = ({ status, type }: { status: string; type: "vendor" | "delivery" }) => {
+  const getStatusConfig = () => {
+    switch (status) {
+      case "confirmed":
+      case "delivered":
+        return { color: "bg-green-100 text-green-800", icon: CheckCircle };
+      case "pending":
+      case "mapped":
+      case "in_progress":
+        return { color: "bg-yellow-100 text-yellow-800", icon: Clock };
+      case "not_mapped":
+      case "overdue":
+      case "rejected":
+        return { color: "bg-red-100 text-red-800", icon: AlertCircle };
+      default:
+        return { color: "bg-gray-100 text-gray-800", icon: Clock };
+    }
+  };
+
+  const config = getStatusConfig();
+  const Icon = config.icon;
+
+  return (
+    <BadgeComponent className={`${config.color} flex items-center gap-1`}>
+      <Icon className="w-3 h-3" />
+      {status.replace("_", " ")}
+    </BadgeComponent>
+  );
+};
+
+// Progress Tracking Component
+const ProgressTracker = ({ booking, serviceType }: { booking: any; serviceType: string }) => {
+  const vendorStatus = booking?.vendor_status_json?.[serviceType]?.confirmation_status || "not_mapped";
+  const deliveryStatus = booking?.service_delivery_json?.[serviceType]?.service_delivered || false;
+  
+  const getProgressValue = () => {
+    if (vendorStatus === "not_mapped") return 0;
+    if (vendorStatus === "mapped") return 33;
+    if (vendorStatus === "confirmed") return 66;
+    if (deliveryStatus) return 100;
+    return 66;
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs text-gray-600">
+        <span>Vendor Mapping</span>
+        <span>Vendor Confirmation</span>
+        <span>Service Delivery</span>
+      </div>
+      <Progress value={getProgressValue()} className="h-2" />
+      <div className="flex justify-between text-xs">
+        <StatusIndicator status={vendorStatus} type="vendor" />
+        <StatusIndicator status={deliveryStatus ? "delivered" : "pending"} type="delivery" />
+      </div>
+    </div>
+  );
+};
+
 const BookingsManager = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [hotelBookings, setHotelBookings] = useState<HotelBooking[]>([]);
@@ -161,6 +513,12 @@ const BookingsManager = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("umrah-packages");
+  
+  // Vendor and delivery management states
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [selectedServiceType, setSelectedServiceType] = useState<string>("");
+  const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
+  const [deliveryDialogOpen, setDeliveryDialogOpen] = useState(false);
 
   // Dummy data for Umrah packages with specific categories
   const dummyUmrahBookings: Booking[] = [
@@ -177,7 +535,67 @@ const BookingsManager = () => {
       package_name: "Group Umrah Package - 14 Days Premium",
       customer_name: "Ahmed Hassan",
       customer_email: "ahmed.hassan@email.com",
-      customer_phone: "+91-9876543210"
+      customer_phone: "+91-9876543210",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Saudi Airlines",
+          vendor_contact: "+966-123456789",
+          vendor_email: "bookings@saudiairlines.com",
+          mapped_date: "2024-01-16",
+          confirmed_date: "2024-01-18",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Hilton Suites Makkah",
+          vendor_contact: "+966-123456790",
+          vendor_email: "reservations@hiltonmakkah.com",
+          mapped_date: "2024-01-17",
+          confirmed_date: "2024-01-19",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456789",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-01-20",
+          confirmed_date: "2024-01-25",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-03-15",
+          due_date: "2024-03-15",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-03-15",
+          due_date: "2024-03-15",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-01-25",
+          due_date: "2024-02-01",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     },
     {
       id: "2",
@@ -191,7 +609,49 @@ const BookingsManager = () => {
       package_name: "Group Umrah Package - 10 Days Economy",
       customer_name: "Fatima Ali",
       customer_email: "fatima.ali@email.com",
-      customer_phone: "+91-9876543211"
+      customer_phone: "+91-9876543211",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Emirates Airlines",
+          vendor_contact: "+971-123456789",
+          vendor_email: "bookings@emirates.com",
+          mapped_date: "2024-02-12",
+          confirmed_date: "",
+          confirmation_status: "mapped",
+          notes: "Awaiting flight confirmation",
+          priority_level: "high"
+        },
+        hotel: {
+          vendor_name: "",
+          vendor_contact: "",
+          vendor_email: "",
+          mapped_date: "",
+          confirmed_date: "",
+          confirmation_status: "not_mapped",
+          notes: "Hotel vendor not yet mapped",
+          priority_level: "urgent"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-20",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        },
+        hotel: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-20",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        }
+      },
+      operations_notes: "Flight vendor mapped but not confirmed. Hotel vendor needs to be mapped urgently.",
+      priority_level: "high"
     },
     {
       id: "3",
@@ -205,7 +665,67 @@ const BookingsManager = () => {
       package_name: "Group Umrah Package - 21 Days Luxury",
       customer_name: "Mohammad Khan",
       customer_email: "mohammad.khan@email.com",
-      customer_phone: "+91-9876543212"
+      customer_phone: "+91-9876543212",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Etihad Airways",
+          vendor_contact: "+971-123456790",
+          vendor_email: "bookings@etihad.com",
+          mapped_date: "2024-02-20",
+          confirmed_date: "2024-02-22",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Madinah Crown Hotel",
+          vendor_contact: "+966-123456791",
+          vendor_email: "reservations@madinacrown.com",
+          mapped_date: "2024-02-21",
+          confirmed_date: "2024-02-23",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456790",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-02-25",
+          confirmed_date: "2024-02-28",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-05-10",
+          due_date: "2024-05-10",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-05-10",
+          due_date: "2024-05-10",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-02-28",
+          due_date: "2024-03-05",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     },
     // Independent Umrah Packages
     {
@@ -220,7 +740,67 @@ const BookingsManager = () => {
       package_name: "Independent Umrah Package - 7 Days Standard",
       customer_name: "Sarah Abdullah",
       customer_email: "sarah.abdullah@email.com",
-      customer_phone: "+91-9876543213"
+      customer_phone: "+91-9876543213",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Saudi Airlines",
+          vendor_contact: "+966-123456792",
+          vendor_email: "bookings@saudiairlines.com",
+          mapped_date: "2024-01-26",
+          confirmed_date: "2024-01-28",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Hilton Suites Makkah",
+          vendor_contact: "+966-123456793",
+          vendor_email: "reservations@hiltonmakkah.com",
+          mapped_date: "2024-01-27",
+          confirmed_date: "2024-01-29",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456791",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-01-29",
+          confirmed_date: "2024-02-02",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-03-25",
+          due_date: "2024-03-25",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-03-25",
+          due_date: "2024-03-25",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-02-02",
+          due_date: "2024-02-05",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     },
     {
       id: "5",
@@ -234,7 +814,49 @@ const BookingsManager = () => {
       package_name: "Independent Umrah Package - 12 Days Deluxe",
       customer_name: "Omar Malik",
       customer_email: "omar.malik@email.com",
-      customer_phone: "+91-9876543214"
+      customer_phone: "+91-9876543214",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Emirates Airlines",
+          vendor_contact: "+971-123456794",
+          vendor_email: "bookings@emirates.com",
+          mapped_date: "2024-02-13",
+          confirmed_date: "",
+          confirmation_status: "mapped",
+          notes: "Awaiting flight confirmation",
+          priority_level: "high"
+        },
+        hotel: {
+          vendor_name: "",
+          vendor_contact: "",
+          vendor_email: "",
+          mapped_date: "",
+          confirmed_date: "",
+          confirmation_status: "not_mapped",
+          notes: "Hotel vendor not yet mapped",
+          priority_level: "urgent"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-15",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        },
+        hotel: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-15",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        }
+      },
+      operations_notes: "Flight vendor mapped but not confirmed. Hotel vendor needs to be mapped urgently.",
+      priority_level: "high"
     },
     {
       id: "6",
@@ -248,7 +870,67 @@ const BookingsManager = () => {
       package_name: "Independent Umrah Package - 5 Days Budget",
       customer_name: "Amina Rahman",
       customer_email: "amina.rahman@email.com",
-      customer_phone: "+91-9876543215"
+      customer_phone: "+91-9876543215",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Saudi Airlines",
+          vendor_contact: "+966-123456795",
+          vendor_email: "bookings@saudiairlines.com",
+          mapped_date: "2024-02-28",
+          confirmed_date: "2024-03-02",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Madinah Crown Hotel",
+          vendor_contact: "+966-123456796",
+          vendor_email: "reservations@madinacrown.com",
+          mapped_date: "2024-02-29",
+          confirmed_date: "2024-03-01",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456792",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-03-01",
+          confirmed_date: "2024-03-05",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-05-05",
+          due_date: "2024-05-05",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-05-05",
+          due_date: "2024-05-05",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-03-05",
+          due_date: "2024-03-10",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     },
     // Custom Umrah Packages
     {
@@ -263,7 +945,67 @@ const BookingsManager = () => {
       package_name: "Custom Umrah Package - 15 Days Premium Tailored",
       customer_name: "Khalid Sheikh",
       customer_email: "khalid.sheikh@email.com",
-      customer_phone: "+91-9876543216"
+      customer_phone: "+91-9876543216",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Etihad Airways",
+          vendor_contact: "+971-123456797",
+          vendor_email: "bookings@etihad.com",
+          mapped_date: "2024-01-26",
+          confirmed_date: "2024-01-28",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Hilton Suites Makkah",
+          vendor_contact: "+966-123456798",
+          vendor_email: "reservations@hiltonmakkah.com",
+          mapped_date: "2024-01-27",
+          confirmed_date: "2024-01-29",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456793",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-01-29",
+          confirmed_date: "2024-02-02",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-03-30",
+          due_date: "2024-03-30",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-03-30",
+          due_date: "2024-03-30",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-02-02",
+          due_date: "2024-02-05",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     },
     {
       id: "8",
@@ -277,7 +1019,49 @@ const BookingsManager = () => {
       package_name: "Custom Umrah Package - 20 Days Luxury Bespoke",
       customer_name: "Zainab Qureshi",
       customer_email: "zainab.qureshi@email.com",
-      customer_phone: "+91-9876543217"
+      customer_phone: "+91-9876543217",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Emirates Airlines",
+          vendor_contact: "+971-123456799",
+          vendor_email: "bookings@emirates.com",
+          mapped_date: "2024-02-13",
+          confirmed_date: "",
+          confirmation_status: "mapped",
+          notes: "Awaiting flight confirmation",
+          priority_level: "high"
+        },
+        hotel: {
+          vendor_name: "",
+          vendor_contact: "",
+          vendor_email: "",
+          mapped_date: "",
+          confirmed_date: "",
+          confirmation_status: "not_mapped",
+          notes: "Hotel vendor not yet mapped",
+          priority_level: "urgent"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-25",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        },
+        hotel: {
+          service_delivered: false,
+          delivery_date: "",
+          due_date: "2024-04-25",
+          delivery_notes: "",
+          delivery_confirmation: "",
+          delivery_status: "pending"
+        }
+      },
+      operations_notes: "Flight vendor mapped but not confirmed. Hotel vendor needs to be mapped urgently.",
+      priority_level: "high"
     },
     {
       id: "9",
@@ -291,7 +1075,67 @@ const BookingsManager = () => {
       package_name: "Custom Umrah Package - 10 Days Premium Personalized",
       customer_name: "Ibrahim Yusuf",
       customer_email: "ibrahim.yusuf@email.com",
-      customer_phone: "+91-9876543218"
+      customer_phone: "+91-9876543218",
+      vendor_status_json: {
+        flight: {
+          vendor_name: "Saudi Airlines",
+          vendor_contact: "+966-123456800",
+          vendor_email: "bookings@saudiairlines.com",
+          mapped_date: "2024-03-01",
+          confirmed_date: "2024-03-03",
+          confirmation_status: "confirmed",
+          notes: "Flight confirmed with seat allocation",
+          priority_level: "medium"
+        },
+        hotel: {
+          vendor_name: "Madinah Crown Hotel",
+          vendor_contact: "+966-123456801",
+          vendor_email: "reservations@madinacrown.com",
+          mapped_date: "2024-03-02",
+          confirmed_date: "2024-03-04",
+          confirmation_status: "confirmed",
+          notes: "Hotel rooms confirmed and allocated",
+          priority_level: "medium"
+        },
+        visa: {
+          vendor_name: "Saudi Embassy",
+          vendor_contact: "+91-1123456794",
+          vendor_email: "visa@saudiembassy.in",
+          mapped_date: "2024-03-04",
+          confirmed_date: "2024-03-08",
+          confirmation_status: "confirmed",
+          notes: "Visa approved and issued",
+          priority_level: "high"
+        }
+      },
+      service_delivery_json: {
+        flight: {
+          service_delivered: true,
+          delivery_date: "2024-05-15",
+          due_date: "2024-05-15",
+          delivery_notes: "Flight departed on time",
+          delivery_confirmation: "Boarding passes issued",
+          delivery_status: "delivered"
+        },
+        hotel: {
+          service_delivered: true,
+          delivery_date: "2024-05-15",
+          due_date: "2024-05-15",
+          delivery_notes: "Hotel check-in completed",
+          delivery_confirmation: "Room keys provided",
+          delivery_status: "delivered"
+        },
+        visa: {
+          service_delivered: true,
+          delivery_date: "2024-03-08",
+          due_date: "2024-03-12",
+          delivery_notes: "Visa delivered to customer",
+          delivery_confirmation: "Passport with visa collected",
+          delivery_status: "delivered"
+        }
+      },
+      operations_notes: "All services confirmed and delivered successfully. Customer satisfied with arrangements.",
+      priority_level: "medium"
     }
   ];
 
@@ -720,6 +1564,225 @@ const BookingsManager = () => {
       return false;
     });
   };
+
+  // Vendor management functions
+  const handleVendorUpdate = async (vendorStatus: VendorStatus) => {
+    if (!selectedBooking || !selectedServiceType) return;
+
+    try {
+      const updatedVendorStatus = {
+        ...selectedBooking.vendor_status_json,
+        [selectedServiceType]: {
+          ...vendorStatus,
+          mapped_date: vendorStatus.mapped_date || new Date().toISOString().split('T')[0],
+          confirmed_date: vendorStatus.confirmation_status === "confirmed" 
+            ? (vendorStatus.confirmed_date || new Date().toISOString().split('T')[0])
+            : ""
+        }
+      };
+
+      // Update the booking in state
+      const updatedBookings = bookings.map(booking => 
+        booking.id === selectedBooking.id 
+          ? { ...booking, vendor_status_json: updatedVendorStatus }
+          : booking
+      );
+      setBookings(updatedBookings);
+
+      toast({
+        title: "Vendor Status Updated",
+        description: `Vendor status for ${selectedServiceType} has been updated successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update vendor status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeliveryUpdate = async (deliveryStatus: ServiceDeliveryStatus) => {
+    if (!selectedBooking || !selectedServiceType) return;
+
+    try {
+      const updatedDeliveryStatus = {
+        ...selectedBooking.service_delivery_json,
+        [selectedServiceType]: {
+          ...deliveryStatus,
+          delivery_date: deliveryStatus.service_delivered 
+            ? (deliveryStatus.delivery_date || new Date().toISOString().split('T')[0])
+            : ""
+        }
+      };
+
+      // Update the booking in state
+      const updatedBookings = bookings.map(booking => 
+        booking.id === selectedBooking.id 
+          ? { ...booking, service_delivery_json: updatedDeliveryStatus }
+          : booking
+      );
+      setBookings(updatedBookings);
+
+      toast({
+        title: "Delivery Status Updated",
+        description: `Service delivery status for ${selectedServiceType} has been updated successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update delivery status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Enhanced table rendering with vendor tracking
+  const renderEnhancedBookingTable = (bookingData: Booking[], title: string) => (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Reference</TableHead>
+            <TableHead>Customer</TableHead>
+            <TableHead>Package</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Travelers</TableHead>
+            <TableHead>Travel Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Payment</TableHead>
+            <TableHead>Vendor Status</TableHead>
+            <TableHead>Service Delivery</TableHead>
+            <TableHead>Priority</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {bookingData.map((booking) => (
+            <TableRow key={booking.id}>
+              <TableCell className="font-medium">
+                {booking.booking_reference}
+              </TableCell>
+              <TableCell>
+                <div>
+                  <div className="font-medium">{booking.customer_name}</div>
+                  <div className="text-sm text-gray-500">{booking.customer_email}</div>
+                </div>
+              </TableCell>
+              <TableCell>{booking.package_name}</TableCell>
+              <TableCell>₹{booking.total_amount.toLocaleString()}</TableCell>
+              <TableCell>{booking.number_of_travelers}</TableCell>
+              <TableCell>
+                {booking.travel_date
+                  ? new Date(booking.travel_date).toLocaleDateString()
+                  : "N/A"}
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    booking.status === "confirmed"
+                      ? "bg-green-100 text-green-800"
+                      : booking.status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {booking.status}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    booking.payment_status === "completed"
+                      ? "bg-green-100 text-green-800"
+                      : booking.payment_status === "pending"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {booking.payment_status || "pending"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  {booking.vendor_status_json && Object.entries(booking.vendor_status_json).map(([service, status]) => (
+                    <div key={service} className="flex items-center gap-1">
+                      <span className="text-xs font-medium">{service}:</span>
+                      <StatusIndicator status={status.confirmation_status} type="vendor" />
+                    </div>
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="space-y-1">
+                  {booking.service_delivery_json && Object.entries(booking.service_delivery_json).map(([service, delivery]) => (
+                    <div key={service} className="flex items-center gap-1">
+                      <span className="text-xs font-medium">{service}:</span>
+                      <StatusIndicator 
+                        status={delivery.delivery_status} 
+                        type="delivery" 
+                      />
+                    </div>
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell>
+                <BadgeComponent 
+                  className={`${
+                    booking.priority_level === "urgent" ? "bg-red-100 text-red-800" :
+                    booking.priority_level === "high" ? "bg-orange-100 text-orange-800" :
+                    booking.priority_level === "medium" ? "bg-yellow-100 text-yellow-800" :
+                    "bg-green-100 text-green-800"
+                  }`}
+                >
+                  {booking.priority_level || "low"}
+                </BadgeComponent>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setSelectedServiceType("flight");
+                      setVendorDialogOpen(true);
+                    }}
+                    title="Manage Vendor"
+                  >
+                    <UserCheck className="w-4 h-4" />
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedBooking(booking);
+                      setSelectedServiceType("flight");
+                      setDeliveryDialogOpen(true);
+                    }}
+                    title="Manage Delivery"
+                  >
+                    <Truck className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" title="View Details">
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" title="Edit">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {bookingData.length === 0 && (
+        <div className="p-4 text-gray-500">
+          No {title.toLowerCase()} bookings found.
+        </div>
+      )}
+    </div>
+  );
 
   const renderBookingTable = (bookingData: Booking[], title: string) => (
     <div className="rounded-md border">
@@ -1343,7 +2406,7 @@ const BookingsManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Bookings Management</CardTitle>
+        <CardTitle>Bookings Management - Operations & Service Delivery Tracking</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex justify-between items-center mb-6">
@@ -1389,15 +2452,15 @@ const BookingsManager = () => {
               </TabsList>
               
               <TabsContent value="group">
-                {renderBookingTable(getUmrahPackagesByType("group"), "Group Umrah")}
+                {renderEnhancedBookingTable(getUmrahPackagesByType("group"), "Group Umrah")}
               </TabsContent>
               
               <TabsContent value="independent">
-                {renderBookingTable(getUmrahPackagesByType("independent"), "Independent Umrah")}
+                {renderEnhancedBookingTable(getUmrahPackagesByType("independent"), "Independent Umrah")}
               </TabsContent>
               
               <TabsContent value="custom">
-                {renderBookingTable(getUmrahPackagesByType("custom"), "Custom Umrah")}
+                {renderEnhancedBookingTable(getUmrahPackagesByType("custom"), "Custom Umrah")}
               </TabsContent>
             </Tabs>
           </TabsContent>
@@ -1430,6 +2493,24 @@ const BookingsManager = () => {
             {renderGuideTable()}
           </TabsContent>
         </Tabs>
+
+        {/* Vendor Management Dialog */}
+        <VendorManagementDialog
+          booking={selectedBooking}
+          serviceType={selectedServiceType}
+          isOpen={vendorDialogOpen}
+          onClose={() => setVendorDialogOpen(false)}
+          onUpdate={handleVendorUpdate}
+        />
+
+        {/* Service Delivery Dialog */}
+        <ServiceDeliveryDialog
+          booking={selectedBooking}
+          serviceType={selectedServiceType}
+          isOpen={deliveryDialogOpen}
+          onClose={() => setDeliveryDialogOpen(false)}
+          onUpdate={handleDeliveryUpdate}
+        />
       </CardContent>
     </Card>
   );
